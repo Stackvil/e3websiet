@@ -113,18 +113,7 @@ const Login = () => {
                             >
                                 Sign In
                             </button>
-                            <div className="flex items-center gap-4 my-4">
-                                <div className="h-[1px] bg-gray-200 flex-grow"></div>
-                                <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">OR</span>
-                                <div className="h-[1px] bg-gray-200 flex-grow"></div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={handleSendOtp}
-                                className="w-full border-2 border-riverside-teal text-riverside-teal py-4 rounded-xl font-bold text-lg hover:bg-riverside-teal hover:text-white transition-all active:scale-95"
-                            >
-                                Login with OTP
-                            </button>
+
                         </>
                     ) : (
                         <>

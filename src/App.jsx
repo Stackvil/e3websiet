@@ -8,6 +8,7 @@ import Events from './pages/Events';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
+import YourTickets from './pages/YourTickets';
 import Success from './pages/Success';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/tickets" element={<YourTickets />} />
                     <Route path="/success" element={<Success />} />
                 </Routes>
             </Layout>

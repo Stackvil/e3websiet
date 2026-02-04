@@ -21,7 +21,7 @@ const Home = () => {
         <div className="flex flex-col">
             {/* Hero Section */}
             {/* Hero Section */}
-            <section className="relative min-h-screen bg-charcoal-grey">
+            <section className="relative h-auto bg-charcoal-grey">
                 {/* Parallax Background Placeholder */}
                 <div
                     className="absolute inset-0 z-0 bg-fixed bg-cover bg-center opacity-60"
@@ -29,21 +29,21 @@ const Home = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal-grey to-transparent z-10" />
 
-                <div className="relative z-20 container mx-auto flex flex-col justify-center px-6 py-32">
+                <div className="relative z-20 container mx-auto flex flex-col px-6 pt-6 pb-8">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
-                        className="w-full text-center mb-12"
+                        className="w-full text-center mb-6"
                     >
-                        <h1 className="text-4xl md:text-6xl font-heading font-bold text-white mb-4 leading-tight">
+                        <h1 className="text-2xl md:text-3xl font-heading font-bold text-white mb-2 leading-tight">
                             Start Booking Your Fun
                         </h1>
-                        <p className="text-slate-300 text-lg">Select a ride below to book instantly</p>
+                        <p className="text-slate-300 text-sm">Select a ride below to book instantly</p>
                     </motion.div>
 
                     <div className="w-full">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                             {ACTIVITIES.map((ride, index) => (
                                 <motion.div
                                     key={ride.id}
@@ -60,25 +60,25 @@ const Home = () => {
             </section>
 
             {/* Philosophy Section - The 3 E's */}
-            <section className="py-24 container mx-auto px-6">
-                <div className="text-center mb-16">
-                    <h2 className="text-4xl md:text-5xl mb-4 font-heading">The <span className="text-sunset-orange">3 E's</span> Philosophy</h2>
-                    <div className="w-24 h-1 bg-riverside-teal mx-auto" />
+            <section className="py-16 container mx-auto px-6">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl md:text-4xl mb-4 font-heading">The <span className="text-sunset-orange">3 E's</span> Philosophy</h2>
+                    <div className="w-20 h-1 bg-riverside-teal mx-auto" />
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-12">
+                <div className="grid md:grid-cols-3 gap-8">
                     {philosophy.map((item, i) => (
                         <motion.div
                             key={item.title}
-                            whileHover={{ y: -10 }}
-                            className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 text-center flex flex-col items-center"
+                            whileHover={{ y: -8 }}
+                            className="bg-white p-8 rounded-2xl shadow-md border border-gray-100 text-center flex flex-col items-center hover:shadow-xl transition-shadow duration-300"
                         >
-                            <div className={`${item.color} w-20 h-20 rounded-2xl flex items-center justify-center mb-8 shadow-lg`}>
-                                {item.icon}
+                            <div className={`${item.color} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-lg`}>
+                                {React.cloneElement(item.icon, { size: 28 })}
                             </div>
-                            <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
-                            <p className="text-gray-500 mb-8">{item.desc}</p>
-                            <Link to={item.title === 'Eat' ? '/dine' : item.title === 'Enjoy' ? '/contact' : '/play'} className="text-charcoal-grey font-bold flex items-center gap-2 hover:text-sunset-orange transition-colors">
+                            <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                            <p className="text-gray-600 text-sm mb-6 leading-relaxed bg-gray-50 p-2 rounded-lg w-full">{item.desc}</p>
+                            <Link to={item.title === 'Eat' ? '/dine' : item.title === 'Enjoy' ? '/contact' : '/play'} className="text-charcoal-grey font-bold text-sm flex items-center gap-2 hover:text-sunset-orange transition-colors border-b-2 border-transparent hover:border-sunset-orange pb-0.5">
                                 Learn More <ArrowRight size={16} />
                             </Link>
                         </motion.div>

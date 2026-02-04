@@ -10,61 +10,144 @@ export const ACTIVITIES = [
         price: 150,
         ageGroup: '7+ years',
         category: 'Action',
-        image: 'https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=600&q=80',
-        desc: 'High-octane fun for kids and adults alike in our bumper car arena.'
+        image: '/bumping%20cars%20single/IMG_8417.jpg',
+        desc: 'High-octane fun for kids and adults alike in our bumping car arena.'
     },
     {
         id: 2,
-        title: 'Indoor Cricket',
-        price: 500,
-        ageGroup: 'Youth',
-        category: 'Sports',
-        image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=600&q=80',
-        desc: 'Professional-grade indoor cricket pitches with high-speed simulators.'
-    },
-    {
-        id: 3,
         title: 'Trampoline Zone',
         price: 200,
         ageGroup: 'Kids',
         category: 'Action',
-        image: 'https://images.unsplash.com/photo-1545558014-8692077e9b5c?auto=format&fit=crop&w=600&q=80',
+        image: '/trampoline/trampoline.webp',
         desc: 'Anti-gravity world with giant trampolines and foam pits for ultimate fun.'
     },
     {
-        id: 4,
-        title: 'Circling Tower',
+        id: 3,
+        title: '360 Cycle',
         price: 120,
         ageGroup: 'Kids',
         category: 'Rides',
-        image: 'https://images.unsplash.com/photo-1533740566848-5f7d3e04e3d7?auto=format&fit=crop&w=600&q=80',
-        desc: 'Panoramic views of the Krishna river from our safe and exciting circling tower.'
+        image: '/360%20cycle/360-degree-cycle-500x500.webp',
+        desc: 'Experience the thrill of cycling in a full 360-degree loop.'
+    },
+    {
+        id: 4,
+        title: 'Columbus Mini',
+        price: 150,
+        ageGroup: 'Kids',
+        category: 'Rides',
+        image: '/columbus%20mini/IMG_8407.jpg',
+        desc: 'A mini version of the classic swinging ship ride for little adventurers.'
     },
     {
         id: 5,
-        title: 'Arcade Arena',
-        price: 'Coin-based',
-        ageGroup: 'All Ages',
-        category: 'Gaming',
-        image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80',
-        desc: 'Modern VR games and classic arcades for every gamer.'
+        title: 'Joker Ride',
+        price: 120,
+        ageGroup: 'Kids',
+        category: 'Rides',
+        image: '/joker%20ride/IMG_8400.jpg',
+        desc: 'A fun and colorful ride that brings smiles to every face.'
     },
-    // Replicating items to reach 20 as requested
-    { id: 6, title: 'VR Experience', price: 300, ageGroup: '10+', category: 'Gaming', image: 'https://images.unsplash.com/photo-1622979135225-d2ba269fb1bd?auto=format&fit=crop&w=600&q=80', desc: 'Immersive Virtual Reality adventures.' },
-    { id: 7, title: 'Bowling Alley', price: 400, ageGroup: 'All Ages', category: 'Sports', image: 'https://images.unsplash.com/photo-1538566914565-d4c382103348?auto=format&fit=crop&w=600&q=80', desc: 'Classic ten-pin bowling fun.' },
-    { id: 8, title: 'Laser Tag', price: 350, ageGroup: '8+', category: 'Action', image: 'https://images.unsplash.com/photo-1555567540-c3d32847c20f?auto=format&fit=crop&w=600&q=80', desc: 'Tactical laser combat arena.' },
-    { id: 9, title: 'Kids Soft Play', price: 250, ageGroup: 'Toddlers', category: 'Kids', image: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=600&q=80', desc: 'Safe and soft play area for little ones.' },
-    { id: 10, title: 'Go Karting', price: 600, ageGroup: '12+', category: 'Action', image: 'https://images.unsplash.com/photo-1505521377774-103a8cc2f735?auto=format&fit=crop&w=600&q=80', desc: 'Speed and thrills on the track.' },
-    { id: 11, title: 'Archery', price: 150, ageGroup: '10+', category: 'Sports', image: 'https://images.unsplash.com/photo-1511066922412-1d54cb6c5073?auto=format&fit=crop&w=600&q=80', desc: 'Test your aim and precision.' },
-    { id: 12, title: 'Rope Course', price: 200, ageGroup: '8+', category: 'Adventure', image: 'https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?auto=format&fit=crop&w=600&q=80', desc: 'Challenging obstacles high above.' },
-    { id: 13, title: 'Bull Ride', price: 100, ageGroup: '10+', category: 'Rides', image: 'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=600&q=80', desc: 'Can you stay on the mechanical bull?' },
-    { id: 14, title: 'Mini Golf', price: 180, ageGroup: 'All Ages', category: 'Sports', image: 'https://images.unsplash.com/photo-1526676037777-05a232554f77?auto=format&fit=crop&w=600&q=80', desc: 'Fun putting challenges.' },
-    { id: 15, title: 'Mirror Maze', price: 120, ageGroup: 'All Ages', category: 'Adventure', image: 'https://images.unsplash.com/photo-1505322965620-332e92c30084?auto=format&fit=crop&w=600&q=80', desc: 'Find your way through the reflections.' },
-    { id: 16, title: 'Horror House', price: 200, ageGroup: '12+', category: 'Adventure', image: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=600&q=80', desc: 'Spooky thrills and scares.' },
-    { id: 17, title: 'Escape Room', price: 800, ageGroup: 'Group', category: 'Puzzle', image: 'https://images.unsplash.com/photo-1517260739337-6799d239ce83?auto=format&fit=crop&w=600&q=80', desc: 'Solve puzzles to escape in time.' },
-    { id: 18, title: 'Paintball', price: 450, ageGroup: '14+', category: 'Action', image: 'https://images.unsplash.com/photo-1555567959-199c9684c30c?auto=format&fit=crop&w=600&q=80', desc: 'Color combat with friends.' },
-    { id: 19, title: 'Water Boat', price: 150, ageGroup: 'Kids', category: 'Rides', image: 'https://images.unsplash.com/photo-1563299796-b729d0af54a5?auto=format&fit=crop&w=600&q=80', desc: 'Gentle boating fun for kids.' },
-    { id: 20, title: 'Ferris Wheel', price: 250, ageGroup: 'All Ages', category: 'Rides', image: 'https://images.unsplash.com/photo-1528659567210-985ea83c9284?auto=format&fit=crop&w=600&q=80', desc: 'Classic views from the top.' }
+    {
+        id: 6,
+        title: 'Free Fall',
+        price: 200,
+        ageGroup: 'Youth',
+        category: 'Adventure',
+        image: '/free%20fall/IMG_8381.jpg',
+        desc: 'Experience the adrenaline rush of a sudden drop in safety.'
+    },
+    {
+        id: 7,
+        title: 'Sun & Moon',
+        price: 150,
+        ageGroup: 'Family',
+        category: 'Rides',
+        image: '/sun%20&%20moon/IMG_8389.jpg',
+        desc: 'A delightful ride for the whole family to enjoy together.'
+    },
+    {
+        id: 8,
+        title: 'Train Ride',
+        price: 100,
+        ageGroup: 'All Ages',
+        category: 'Rides',
+        image: '/train%20ticket/IMG_8410.jpg',
+        desc: 'All aboard! A scenic train journey around the park.'
+    },
+    {
+        id: 9,
+        title: 'Kids Soft Play',
+        price: 250,
+        ageGroup: 'Toddlers',
+        category: 'Kids',
+        image: '/soft%20play/WhatsApp_Image_2025-06-14_at_4.04.53_PM.jpeg',
+        desc: 'Safe and soft play area designed specifically for little ones.'
+    },
+    {
+        id: 10,
+        title: 'Bull Ride',
+        price: 100,
+        ageGroup: '10+',
+        category: 'Rides',
+        image: '/bull%20ride/IMG_8384.jpg',
+        desc: 'Hold on tight and test your balance on the mechanical bull.'
+    },
+    {
+        id: 11,
+        title: 'Balloon Shooting',
+        price: 150,
+        ageGroup: '10+',
+        category: 'Action',
+        image: '/baloon%20shooting/IMG_8435.jpg',
+        desc: 'Test your aim and precision at our shooting range.'
+    },
+    {
+        id: 12,
+        title: 'Bungee Jump',
+        price: 200,
+        ageGroup: '8+',
+        category: 'Adventure',
+        image: '/Bungee%20jump/bungee-jumping-trampoline.jpeg',
+        desc: 'Jump high and flip safely on our bungee trampolines.'
+    },
+    {
+        id: 13,
+        title: 'Paddle Boat',
+        price: 150,
+        ageGroup: 'Kids',
+        category: 'Rides',
+        image: '/paddle%20boat/paddle-boat.webp',
+        desc: 'Gentle boating fun on the water for kids.'
+    },
+    {
+        id: 14,
+        title: 'Mini Wheel',
+        price: 250,
+        ageGroup: 'All Ages',
+        category: 'Rides',
+        image: '/mini%20wheel%20ride/1.avif',
+        desc: 'Classic views from the top of our mini ferris wheel.'
+    },
+    {
+        id: 15,
+        title: 'Bouncy Castle',
+        price: 150,
+        ageGroup: 'Kids',
+        category: 'Kids',
+        image: '/bouncy/WhatsApp_Image_2025-06-14_at_4.02.45_PM.jpeg',
+        desc: 'Jump, bounce, and play in our colorful inflatable castle.'
+    },
+    {
+        id: 16,
+        title: 'Basket Ball',
+        price: 100,
+        ageGroup: 'All Ages',
+        category: 'Sports',
+        image: '/basket%20ball/images.jpg',
+        desc: 'Shoot some hoops and challenge your friends.'
+    }
 ];
 
 const Play = () => {
@@ -115,7 +198,7 @@ const Play = () => {
                 </div>
 
                 {/* Activities Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     <AnimatePresence mode="popLayout">
                         {filteredActivities.map((activity, i) => (
                             <motion.div
@@ -124,21 +207,20 @@ const Play = () => {
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                                className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-50 flex flex-col hover:shadow-xl transition-shadow group"
+                                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-50 flex flex-col hover:shadow-xl transition-shadow group"
                             >
-                                <div className="h-64 overflow-hidden relative">
+                                <div className="h-24 overflow-hidden relative">
                                     <img src={activity.image} alt={activity.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl font-black text-riverside-teal">
+                                    <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-md font-black text-riverside-teal text-[10px]">
                                         {typeof activity.price === 'number' ? `₹${activity.price}` : activity.price}
                                     </div>
                                 </div>
-                                <div className="p-8 flex-grow flex flex-col">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <span className="text-sunset-orange font-bold uppercase text-xs tracking-widest">{activity.category}</span>
-                                        <span className="text-gray-400 text-xs font-bold">{activity.ageGroup}</span>
+                                <div className="p-2 flex-grow flex flex-col">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-sunset-orange font-bold uppercase text-[8px] tracking-widest">{activity.category}</span>
+                                        <span className="text-gray-400 text-[8px] font-bold">{activity.ageGroup}</span>
                                     </div>
-                                    <h3 className="text-2xl font-bold mb-4">{activity.title}</h3>
-                                    <p className="text-gray-500 text-sm mb-8 leading-relaxed flex-grow">{activity.desc}</p>
+                                    <h3 className="text-xs font-bold mb-2 truncate">{activity.title}</h3>
                                     <button
                                         onClick={() => addToCart({
                                             id: `play-${activity.id}`,
@@ -147,9 +229,9 @@ const Play = () => {
                                             image: activity.image,
                                             stall: activity.category
                                         })}
-                                        className="flex items-center justify-between w-full btn-orange"
+                                        className="flex items-center justify-between w-full btn-orange text-[10px] py-1 px-2 rounded-md"
                                     >
-                                        Book Ticket <Ticket size={18} />
+                                        Book <Ticket size={12} />
                                     </button>
                                 </div>
                             </motion.div>

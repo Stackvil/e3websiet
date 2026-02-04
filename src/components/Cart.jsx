@@ -5,18 +5,30 @@ import useStore from '../store/useStore';
 import PaymentGateway from './PaymentGateway';
 
 const Cart = () => {
-    const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, clearCart } = useStore();
+    const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, clearCart, user, setUser } = useStore();
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+    const [showMobilePrompt, setShowMobilePrompt] = useState(false);
+    const [mobileNumber, setMobileNumber] = useState('');
 
     const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-    const handleCheckout = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            alert('Please login to checkout');
-            return;
+    const handlePayClick = () => {
+        if (cart.length === 0) return;
+
+        if (user?.mobile) {
+            setIsPaymentOpen(true);
+        } else {
+            setShowMobilePrompt(true);
         }
-        setIsPaymentOpen(true);
+    };
+
+    const handleMobileSubmit = (e) => {
+        e.preventDefault();
+        if (mobileNumber.length >= 10) {
+            setUser({ mobile: mobileNumber });
+            setShowMobilePrompt(false);
+            setIsPaymentOpen(true);
+        }
     };
 
     return (
@@ -40,7 +52,7 @@ const Cart = () => {
                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                                 className="w-screen max-w-md"
                             >
-                                <div className="h-full flex flex-col bg-white shadow-2xl">
+                                <div className="h-full flex flex-col bg-white shadow-2xl relative">
                                     {/* Header */}
                                     <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-creamy-white">
                                         <div className="flex items-center gap-3">
@@ -114,10 +126,10 @@ const Cart = () => {
                                             </div>
 
                                             <button
-                                                onClick={handleCheckout}
+                                                onClick={handlePayClick}
                                                 className="w-full btn-orange py-5 rounded-[2rem] text-lg flex items-center justify-center gap-4 shadow-xl shadow-sunset-orange/20"
                                             >
-                                                Checkout Now <ArrowRight size={20} />
+                                                Pay <ArrowRight size={20} />
                                             </button>
 
                                             <button
@@ -128,6 +140,48 @@ const Cart = () => {
                                             </button>
                                         </div>
                                     )}
+
+                                    {/* Mobile Number Prompt Overlay */}
+                                    <AnimatePresence>
+                                        {showMobilePrompt && (
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="absolute inset-0 bg-white/90 backdrop-blur-md z-50 flex items-center justify-center p-8"
+                                            >
+                                                <div className="w-full max-w-sm bg-white p-6 rounded-3xl shadow-2xl border border-gray-100">
+                                                    <div className="flex justify-between items-center mb-6">
+                                                        <h3 className="text-xl font-bold font-heading">Quick Login</h3>
+                                                        <button onClick={() => setShowMobilePrompt(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                                                            <X size={20} />
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-gray-500 text-sm mb-6">Enter your mobile number to continue with your payment.</p>
+
+                                                    <form onSubmit={handleMobileSubmit}>
+                                                        <input
+                                                            type="tel"
+                                                            value={mobileNumber}
+                                                            onChange={(e) => setMobileNumber(e.target.value)}
+                                                            placeholder="Mobile Number"
+                                                            className="w-full p-4 bg-gray-50 rounded-xl font-bold outline-none border-2 border-transparent focus:border-sunset-orange mb-4"
+                                                            autoFocus
+                                                            pattern="[0-9]{10}"
+                                                            title="Please enter a valid 10-digit mobile number"
+                                                            required
+                                                        />
+                                                        <button
+                                                            type="submit"
+                                                            className="w-full btn-orange py-4 rounded-xl font-bold shadow-lg shadow-sunset-orange/20"
+                                                        >
+                                                            Continue to Pay
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             </motion.div>
                         </div>

@@ -2,18 +2,31 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CreditCard, Smartphone, Building, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import useStore from '../store/useStore';
 
 const PaymentGateway = ({ amount, isOpen, onClose }) => {
     const [method, setMethod] = useState('upi'); // upi, card, netbanking
     const [isPaying, setIsPaying] = useState(false);
     const navigate = useNavigate();
 
+    const { user, cart, addTicket } = useStore();
+
     if (!isOpen) return null;
 
     const handlePay = () => {
         setIsPaying(true);
         setTimeout(() => {
-            navigate('/success');
+            const orderId = `ETH-${Math.floor(1000 + Math.random() * 9000)}`;
+            const newTicket = {
+                id: orderId,
+                date: new Date().toISOString(),
+                items: cart,
+                total: amount,
+                userMobile: user?.mobile
+            };
+
+            addTicket(newTicket);
+            navigate(`/success?orderId=${orderId}`, { state: { mobile: user?.mobile, bookedItems: cart } });
             onClose();
         }, 2000);
     };
@@ -85,11 +98,11 @@ const PaymentGateway = ({ amount, isOpen, onClose }) => {
                             <div className="space-y-4 mb-8">
                                 {method === 'upi' && (
                                     <div className="space-y-3">
-                                        <div className="p-4 border rounded-xl flex items-center justify-between hover:border-riverside-teal cursor-pointer">
+                                        <div onClick={handlePay} className="p-4 border rounded-xl flex items-center justify-between hover:border-riverside-teal cursor-pointer transition-colors active:bg-gray-50">
                                             <span className="font-medium">PhonePe</span>
                                             <div className="w-4 h-4 rounded-full border border-gray-300" />
                                         </div>
-                                        <div className="p-4 border rounded-xl flex items-center justify-between hover:border-riverside-teal cursor-pointer">
+                                        <div onClick={handlePay} className="p-4 border rounded-xl flex items-center justify-between hover:border-riverside-teal cursor-pointer transition-colors active:bg-gray-50">
                                             <span className="font-medium">Google Pay</span>
                                             <div className="w-4 h-4 rounded-full border border-gray-300" />
                                         </div>

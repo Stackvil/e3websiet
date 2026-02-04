@@ -1,13 +1,15 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, ArrowRight, Home } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { CheckCircle, ArrowRight, User } from 'lucide-react';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import useStore from '../store/useStore';
 
 const Success = () => {
     const [searchParams] = useSearchParams();
+    const location = useLocation();
     const orderId = searchParams.get('orderId');
     const { clearCart } = useStore();
+    const mobile = location.state?.mobile;
 
     useEffect(() => {
         clearCart();
@@ -24,15 +26,45 @@ const Success = () => {
                     <CheckCircle size={48} />
                 </div>
 
-                <h1 className="text-4xl font-heading font-bold text-charcoal-grey mb-4 tracking-tighter">Order Confirmed!</h1>
-                <p className="text-gray-500 text-lg mb-8">
-                    Thank you for your order. We've received it and are preparing it now.
-                    Your order ID is <span className="font-bold text-charcoal-grey">#{orderId || 'ETH-782'}</span>.
-                </p>
+                <h1 className="text-4xl font-heading font-bold text-charcoal-grey mb-6 tracking-tighter">Order Confirmed!</h1>
+
+                <div className="flex justify-center mb-8">
+                    <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${orderId || 'ETH-782'}`}
+                        alt="Order QR Code"
+                        className="rounded-xl border-4 border-white shadow-lg"
+                    />
+                </div>
+
+                {/* Tickets Section */}
+                <div className="space-y-6 mb-8 text-left">
+                    <h2 className="text-xl font-bold text-charcoal-grey text-center">Your Tickets</h2>
+                    {(location.state?.bookedItems || []).map((item) => (
+                        <div key={item.id} className="bg-white border rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-2 h-full bg-sunset-orange" />
+                            <div className="flex items-center gap-4">
+                                <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover" />
+                                <div>
+                                    <h3 className="font-bold text-lg">{item.name}</h3>
+                                    <p className="text-sm text-gray-500">Qty: {item.quantity} • ₹{item.price * item.quantity}</p>
+                                    <p className="text-[10px] uppercase font-bold text-riverside-teal tracking-widest mt-1">Valid for Today</p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-center border-l border-dashed border-gray-300 pl-4">
+                                <img
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=ETH-${orderId || '782'}-${item.id}`}
+                                    alt="QR"
+                                    className="w-16 h-16 pointer-events-none"
+                                />
+                                <span className="text-[10px] font-bold text-gray-400 mt-1">SCAN ME</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
 
                 <div className="space-y-4">
-                    <Link to="/" className="w-full btn-orange py-4 rounded-2xl flex items-center justify-center gap-3 text-lg font-bold">
-                        Back to Home <Home size={20} />
+                    <Link to="/login" className="w-full btn-orange py-4 rounded-2xl flex items-center justify-center gap-3 text-lg font-bold">
+                        Go to Profile <User size={20} />
                     </Link>
                     <Link to="/dine" className="w-full text-riverside-teal font-bold hover:underline flex items-center justify-center gap-2">
                         Browse More Food <ArrowRight size={18} />

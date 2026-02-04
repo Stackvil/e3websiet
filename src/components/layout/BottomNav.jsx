@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Utensils, Play, Calendar, User } from 'lucide-react';
+import { Home, Utensils, Play, Calendar, User, Ticket } from 'lucide-react';
 
 const BottomNav = () => {
     return (
@@ -23,27 +23,18 @@ const BottomNav = () => {
                 </NavLink>
 
                 <NavLink
-                    to="/play"
-                    className={({ isActive }) => `flex flex-col items-center gap-1 transition-all ${isActive ? 'text-sunset-orange' : 'text-gray-400'}`}
-                >
-                    <Play size={22} />
-                    <span className="text-[10px] font-bold uppercase tracking-tight">Play</span>
-                </NavLink>
-
-                <NavLink
-                    to="/events"
-                    className={({ isActive }) => `flex flex-col items-center gap-1 transition-all ${isActive ? 'text-sunset-orange' : 'text-gray-400'}`}
-                >
-                    <Calendar size={22} />
-                    <span className="text-[10px] font-bold uppercase tracking-tight">Events</span>
-                </NavLink>
-
-                <NavLink
                     to="/login"
                     className={({ isActive }) => `flex flex-col items-center gap-1 transition-all ${isActive ? 'text-sunset-orange' : 'text-gray-400'}`}
                 >
                     <User size={22} />
                     <span className="text-[10px] font-bold uppercase tracking-tight">Profile</span>
+                </NavLink>
+                <NavLink
+                    to="/tickets"
+                    className={({ isActive }) => `flex flex-col items-center gap-1 transition-all ${isActive ? 'text-sunset-orange' : 'text-gray-400'}`}
+                >
+                    <Ticket size={22} />
+                    <span className="text-[10px] font-bold uppercase tracking-tight">Tickets</span>
                 </NavLink>
             </div>
         </nav>

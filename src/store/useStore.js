@@ -47,7 +47,15 @@ const useStore = create(
             isOpen: () => {
                 const hour = new Date().getHours();
                 return hour >= 9 && hour < 23;
-            }
+            },
+
+            user: null,
+            setUser: (user) => set({ user }),
+
+            tickets: [], // Store for confirmed tickets
+            addTicket: (ticket) => set((state) => ({
+                tickets: [ticket, ...state.tickets]
+            })),
         }),
         {
             name: 'ethree-storage',
