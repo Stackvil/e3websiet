@@ -3,15 +3,17 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ShoppingCart, MapPin, Clock, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cart from '../Cart';
+import useStore from '../../store/useStore';
 
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
     const location = useLocation();
+    const { user } = useStore();
 
     const navLinks = [
         { name: 'Home', path: '/' },
         { name: 'Dine', path: '/dine' },
-        { name: 'Your Tickets', path: '/tickets' },
+        ...(user ? [{ name: 'Your Tickets', path: '/tickets' }] : []),
         { name: 'Contact', path: '/contact' },
     ];
 
@@ -38,7 +40,7 @@ const Header = () => {
                         </Link>
                     ))}
                     <Link to="/login" className="font-semibold text-charcoal-grey hover:text-sunset-orange transition-colors">
-                        Login
+                        {user ? (user.name || 'User') : 'Login'}
                     </Link>
                     <Link to="/dine" className="btn-orange flex items-center gap-2">
                         Order Now <ShoppingCart size={18} />
@@ -72,7 +74,7 @@ const Header = () => {
                                 </Link>
                             ))}
                             <Link to="/login" onClick={() => setIsOpen(false)} className="text-lg font-semibold">
-                                Login
+                                {user ? (user.name || 'User') : 'Login'}
                             </Link>
                             <Link to="/dine" onClick={() => setIsOpen(false)} className="btn-orange text-center">
                                 Order Now

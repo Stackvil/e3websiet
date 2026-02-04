@@ -9,7 +9,7 @@ const PaymentGateway = ({ amount, isOpen, onClose }) => {
     const [isPaying, setIsPaying] = useState(false);
     const navigate = useNavigate();
 
-    const { user, cart, addTicket } = useStore();
+    const { user, cart, addTicket, closeCart } = useStore();
 
     if (!isOpen) return null;
 
@@ -26,6 +26,7 @@ const PaymentGateway = ({ amount, isOpen, onClose }) => {
             };
 
             addTicket(newTicket);
+            closeCart(); // Close the cart sidebar
             navigate(`/success?orderId=${orderId}`, { state: { mobile: user?.mobile, bookedItems: cart } });
             onClose();
         }, 2000);

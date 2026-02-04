@@ -9,6 +9,7 @@ const useStore = create(
             isDarkMode: false,
 
             toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
+            closeCart: () => set({ isCartOpen: false }),
 
             addToCart: (item, quantity = 1) => {
                 const cart = get().cart;

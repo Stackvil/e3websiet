@@ -7,26 +7,36 @@ import PaymentGateway from './PaymentGateway';
 const Cart = () => {
     const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, clearCart, user, setUser } = useStore();
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-    const [showMobilePrompt, setShowMobilePrompt] = useState(false);
-    const [mobileNumber, setMobileNumber] = useState('');
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authMode, setAuthMode] = useState('signup'); // 'signup' or 'login'
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
     const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
     const handlePayClick = () => {
         if (cart.length === 0) return;
 
-        if (user?.mobile) {
+        if (user) {
             setIsPaymentOpen(true);
         } else {
-            setShowMobilePrompt(true);
+            setAuthMode('signup');
+            setShowAuthModal(true);
         }
     };
 
-    const handleMobileSubmit = (e) => {
+    const handleAuthSubmit = (e) => {
         e.preventDefault();
-        if (mobileNumber.length >= 10) {
-            setUser({ mobile: mobileNumber });
-            setShowMobilePrompt(false);
+        // In a real app, this would hit the API
+        // For now, we simulate a successful login/register and set the user in the store
+        if (email && password) {
+            const newUser = {
+                email: email,
+                name: email.split('@')[0], // Derive a display name
+                id: Date.now()
+            };
+            setUser(newUser);
+            setShowAuthModal(false);
             setIsPaymentOpen(true);
         }
     };
@@ -141,9 +151,9 @@ const Cart = () => {
                                         </div>
                                     )}
 
-                                    {/* Mobile Number Prompt Overlay */}
+                                    {/* Auth Prompt Overlay (Login/Register) */}
                                     <AnimatePresence>
-                                        {showMobilePrompt && (
+                                        {showAuthModal && (
                                             <motion.div
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
@@ -152,32 +162,64 @@ const Cart = () => {
                                             >
                                                 <div className="w-full max-w-sm bg-white p-6 rounded-3xl shadow-2xl border border-gray-100">
                                                     <div className="flex justify-between items-center mb-6">
-                                                        <h3 className="text-xl font-bold font-heading">Quick Login</h3>
-                                                        <button onClick={() => setShowMobilePrompt(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                                                        <h3 className="text-xl font-bold font-heading">
+                                                            {authMode === 'signup' ? 'Create Account' : 'Welcome Back'}
+                                                        </h3>
+                                                        <button onClick={() => setShowAuthModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
                                                             <X size={20} />
                                                         </button>
                                                     </div>
-                                                    <p className="text-gray-500 text-sm mb-6">Enter your mobile number to continue with your payment.</p>
 
-                                                    <form onSubmit={handleMobileSubmit}>
-                                                        <input
-                                                            type="tel"
-                                                            value={mobileNumber}
-                                                            onChange={(e) => setMobileNumber(e.target.value)}
-                                                            placeholder="Mobile Number"
-                                                            className="w-full p-4 bg-gray-50 rounded-xl font-bold outline-none border-2 border-transparent focus:border-sunset-orange mb-4"
-                                                            autoFocus
-                                                            pattern="[0-9]{10}"
-                                                            title="Please enter a valid 10-digit mobile number"
-                                                            required
-                                                        />
+                                                    <form onSubmit={handleAuthSubmit} className="space-y-4">
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email Address</label>
+                                                            <input
+                                                                type="email"
+                                                                value={email}
+                                                                onChange={(e) => setEmail(e.target.value)}
+                                                                placeholder="you@example.com"
+                                                                className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-transparent focus:border-sunset-orange"
+                                                                autoFocus
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label>
+                                                            <input
+                                                                type="password"
+                                                                value={password}
+                                                                onChange={(e) => setPassword(e.target.value)}
+                                                                placeholder="••••••••"
+                                                                className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-transparent focus:border-sunset-orange"
+                                                                required
+                                                            />
+                                                        </div>
+
                                                         <button
                                                             type="submit"
-                                                            className="w-full btn-orange py-4 rounded-xl font-bold shadow-lg shadow-sunset-orange/20"
+                                                            className="w-full btn-orange py-4 rounded-xl font-bold shadow-lg shadow-sunset-orange/20 mt-4"
                                                         >
-                                                            Continue to Pay
+                                                            {authMode === 'signup' ? 'Continue to Pay' : 'Login & Pay'}
                                                         </button>
                                                     </form>
+
+                                                    <div className="mt-6 text-center text-sm text-gray-500">
+                                                        {authMode === 'signup' ? (
+                                                            <>
+                                                                Already have an account?{' '}
+                                                                <button onClick={() => setAuthMode('login')} className="text-riverside-teal font-bold hover:underline">
+                                                                    Login
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                New to Ethree?{' '}
+                                                                <button onClick={() => setAuthMode('signup')} className="text-riverside-teal font-bold hover:underline">
+                                                                    Create Account
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </motion.div>
                                         )}
