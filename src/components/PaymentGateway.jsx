@@ -13,23 +13,38 @@ const PaymentGateway = ({ amount, isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    const handlePay = () => {
+    const handlePay = async () => {
         setIsPaying(true);
-        setTimeout(() => {
-            const orderId = `ETH-${Math.floor(1000 + Math.random() * 9000)}`;
-            const newTicket = {
-                id: orderId,
-                date: new Date().toISOString(),
-                items: cart,
-                total: amount,
-                userMobile: user?.mobile
-            };
+        try {
+            const response = await fetch('http://localhost:5001/api/payment/initiate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    amount: amount,
+                    firstname: user?.name?.split(' ')[0] || 'User',
+                    email: user?.email || 'user@example.com',
+                    phone: user?.phone || '9999999999',
+                    productinfo: `Booking for ${cart.length} items`,
+                    items: cart // Send cart items to save in backend order
+                }),
+            });
 
-            addTicket(newTicket);
-            closeCart(); // Close the cart sidebar
-            navigate(`/success?orderId=${orderId}`, { state: { mobile: user?.mobile, bookedItems: cart } });
-            onClose();
-        }, 2000);
+            const result = await response.json();
+
+            if (result.success) {
+                // Redirect to Easebuzz Payment Page
+                window.location.href = result.payment_url;
+            } else {
+                alert('Payment Initiation Failed: ' + result.message);
+                setIsPaying(false);
+            }
+        } catch (error) {
+            console.error('Payment Error:', error);
+            alert('Something went wrong. Please try again.');
+            setIsPaying(false);
+        }
     };
 
     return (

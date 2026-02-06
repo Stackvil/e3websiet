@@ -12,12 +12,26 @@ const STALLS = [
 ];
 
 const MENU_DATA = [
-    { id: 101, name: 'Darbar Mandi Special', price: 450, category: 'Arabian', stall: 'Darbar Mandi', image: 'https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&w=400&q=80', open: true },
-    { id: 102, name: 'Wow! Chicken Momo', price: 190, category: 'Chinese', stall: 'Wow! Momo', image: 'https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?auto=format&fit=crop&w=400&q=80', open: true },
-    { id: 103, name: 'Smoked Butter Chicken', price: 320, category: 'North Indian', stall: 'The Food Jail', image: 'https://images.unsplash.com/photo-1603894584214-5da0a4-d13deed9?auto=format&fit=crop&w=400&q=80', open: true },
-    { id: 104, name: 'Guntur Karam Dosa', price: 110, category: 'South Indian', stall: 'Ethree Tiffins', image: 'https://images.unsplash.com/photo-1630383249896-424e482df921?auto=format&fit=crop&w=400&q=80', open: true },
-    { id: 105, name: 'Premium Malai Kulfi', price: 150, category: 'Dessert', stall: 'Dumont E3', image: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=400&q=80', open: true },
-    { id: 106, name: 'Apollo Spicy Fish', price: 340, category: 'North Indian', stall: "Pub'Gs", image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=400&q=80', open: false },
+    { id: 101, name: 'Darbar Special', price: 450, category: 'Arabian', stall: 'Darbar Mandi', image: '/shops/darbar.png', open: true },
+    { id: 102, name: 'Wow! Momo Platter', price: 190, category: 'Chinese', stall: 'Wow! Momo', image: '/shops/wow momo.png', open: true },
+    { id: 103, name: 'Jail Theme Special', price: 320, category: 'North Indian', stall: 'The Food Jail', image: '/shops/food jail.png', open: true },
+    { id: 104, name: 'Tiffins Combo', price: 110, category: 'South Indian', stall: 'Aaruchulu', image: '/shops/aaruchulu.png', open: true },
+    { id: 105, name: 'Ice Cream Scoop', price: 150, category: 'Dessert', stall: 'Dumont E3', image: '/shops/dumont.png', open: true },
+    { id: 106, name: 'Pub Special', price: 340, category: 'North Indian', stall: "Pub'Gs", image: '/shops/pubgs.png', open: true },
+    { id: 107, name: 'Waffle Deluxe', price: 200, category: 'Dessert', stall: 'Waffle Cafe', image: '/shops/Waffle cafe.jpeg', open: true },
+    { id: 108, name: 'Alpha Biryani', price: 280, category: 'North Indian', stall: 'Alpha Hotel', image: '/shops/alpha.png', open: true },
+    { id: 109, name: 'Bawarchi Biryani', price: 300, category: 'North Indian', stall: 'Bawarchi', image: '/shops/bawarchi.png', open: true },
+    { id: 110, name: 'Burma Dishes', price: 220, category: 'Chinese', stall: 'Burma', image: '/shops/burma.png', open: true },
+    { id: 111, name: 'Cool Refreshers', price: 80, category: 'Beverages', stall: 'Cool Drinks', image: '/shops/coca cola.png', open: true },
+    { id: 112, name: 'Royal Falooda', price: 120, category: 'Dessert', stall: 'Falooda', image: '/shops/punjabi falooda kulfi.png', open: true },
+    { id: 113, name: 'Fruit Salad', price: 100, category: 'Healthy', stall: 'Fruit Me Up', image: '/shops/fruit mesh up.png', open: true },
+    { id: 114, name: 'Grilled Rolls', price: 180, category: 'Arabian', stall: 'Grills & Rolls', image: '/shops/grills & rolls.png', open: true },
+    { id: 115, name: 'Pulao Special', price: 250, category: 'North Indian', stall: 'House of Pulaos', image: '/shops/house of pulaos.png', open: true },
+    { id: 116, name: 'Fried Chicken', price: 350, category: 'Fast Food', stall: 'KFC', image: '/shops/kfc.png', open: true },
+    { id: 117, name: 'Pizza Slice', price: 220, category: 'Fast Food', stall: 'Planet Pizza', image: '/shops/planet pizza.png', open: true },
+    { id: 118, name: 'Punjabi Thali', price: 260, category: 'North Indian', stall: 'Punjabi Tadka', image: '/shops/punjabi tadka.png', open: true },
+    { id: 119, name: 'Red Bucket Special', price: 290, category: 'North Indian', stall: 'Red Bucket', image: '/shops/the red bucket biriyani.png', open: true },
+    { id: 120, name: 'Spicy Chillis', price: 210, category: 'Chinese', stall: 'Red Chillis', image: '/shops/red chillis.png', open: true },
 ];
 
 const Dine = () => {
@@ -37,48 +51,10 @@ const Dine = () => {
     return (
         <div className="bg-creamy-white min-h-screen pt-24 pb-12">
             <div className="container mx-auto px-6">
-                {/* Header Area */}
-                <div className="bg-white p-8 rounded-3xl shadow-sm mb-12 flex flex-col md:flex-row md:items-center justify-between gap-8 border border-gray-100">
-                    <div>
-                        <h1 className="text-4xl font-heading font-bold text-charcoal-grey mb-2 uppercase">Culinary Court</h1>
-                        <p className="text-gray-500">Discover Vijayawada's first open-air multi-vendor experience.</p>
-                    </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 flex-grow md:max-w-xl">
-                        <div className="relative flex-grow">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search stalls or dishes..."
-                                className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-sunset-orange transition-all"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <button className="flex items-center gap-2 bg-charcoal-grey text-white px-6 py-3 rounded-xl font-bold">
-                            <Filter size={18} /> Filter
-                        </button>
-                    </div>
-                </div>
-
-                {/* Categories / Stalls */}
-                <div className="flex gap-4 overflow-x-auto pb-4 mb-12 no-scrollbar">
-                    {STALLS.map(stall => (
-                        <button
-                            key={stall.id}
-                            onClick={() => setActiveCategory(stall.category)}
-                            className={`px-8 py-3 rounded-full whitespace-nowrap transition-all font-bold ${(activeCategory === stall.category)
-                                    ? 'bg-riverside-teal text-white shadow-lg'
-                                    : 'bg-white text-gray-400 border border-gray-100 hover:border-riverside-teal'
-                                }`}
-                        >
-                            {stall.name}
-                        </button>
-                    ))}
-                </div>
 
                 {/* Menu Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     <AnimatePresence mode="popLayout">
                         {filteredItems.map((item) => (
                             <motion.div
@@ -87,42 +63,27 @@ const Dine = () => {
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                                className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100 group relative"
+                                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group relative"
                             >
-                                <div className="relative h-64 overflow-hidden">
-                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                    <div className="absolute top-4 left-4">
-                                        <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md ${item.open ? 'bg-green-500/80 text-white' : 'bg-red-500/80 text-white'
-                                            }`}>
-                                            {item.open ? 'Open Now' : 'Closed'}
-                                        </span>
-                                    </div>
+                                <div className="relative h-40 overflow-hidden">
+                                    <img src={item.image} alt={item.name} className="w-full h-full object-fill group-hover:scale-105 transition-transform duration-700" />
                                     {!item.open && (
                                         <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                                            <p className="text-white font-bold bg-charcoal-grey/80 px-6 py-2 rounded-lg">Coming back at 9 AM</p>
+                                            <p className="text-white font-bold bg-charcoal-grey/80 px-3 py-1 rounded text-xs">Closed</p>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="p-8">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <span className="text-riverside-teal font-bold uppercase text-[10px] tracking-widest">{item.stall}</span>
-                                            <h3 className="text-2xl font-bold mt-1">{item.name}</h3>
-                                        </div>
-                                        <span className="text-2xl font-heading font-bold text-sunset-orange">₹{item.price}</span>
+                                <div className="p-3">
+                                    <div className="mb-2">
+                                        <h3 className="text-sm font-bold leading-tight truncate text-charcoal-grey">{item.stall}</h3>
+                                        <p className="text-gray-400 text-[10px] leading-tight line-clamp-1">{item.category} Cuisine</p>
                                     </div>
-                                    <p className="text-gray-500 text-sm mb-8 leading-relaxed">Experience authentic {item.category} culinary expertise in every bite.</p>
 
                                     <button
-                                        disabled={!item.open}
-                                        onClick={() => addToCart(item)}
-                                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all ${item.open
-                                                ? 'btn-orange'
-                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            }`}
+                                        className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold text-xs bg-gray-100 text-charcoal-grey hover:bg-sunset-orange hover:text-white transition-all"
                                     >
-                                        <Plus size={20} /> Add to Cart
+                                        View Menu
                                     </button>
                                 </div>
                             </motion.div>

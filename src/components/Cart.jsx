@@ -2,42 +2,108 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
-import PaymentGateway from './PaymentGateway';
-
 const Cart = () => {
     const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, clearCart, user, setUser } = useStore();
-    const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+    const [isPaymentOpen, setIsPaymentOpen] = useState(false); // Kept for logic compatibility but unused for modal
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState('signup'); // 'signup' or 'login'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const initiatePayment = async () => {
+        setIsProcessing(true);
+        try {
+            const response = await fetch('http://127.0.0.1:5001/api/payment/initiate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    amount: totalPrice,
+                    firstname: user?.name?.split(' ')[0] || 'User',
+                    email: user?.email || 'user@example.com',
+                    phone: user?.phone || '9999999999',
+                    productinfo: `Booking for ${cart.length} items`,
+                    items: cart
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.href = result.payment_url;
+            } else {
+                alert('Payment Initiation Failed: ' + result.message);
+                setIsProcessing(false);
+            }
+        } catch (error) {
+            console.error('Payment Error:', error);
+            alert(`Payment Error: ${error.message}`);
+            setIsProcessing(false);
+        }
+    };
 
     const handlePayClick = () => {
         if (cart.length === 0) return;
 
         if (user) {
-            setIsPaymentOpen(true);
+            initiatePayment();
         } else {
             setAuthMode('signup');
             setShowAuthModal(true);
         }
     };
 
-    const handleAuthSubmit = (e) => {
+    const handleAuthSubmit = async (e) => {
         e.preventDefault();
-        // In a real app, this would hit the API
-        // For now, we simulate a successful login/register and set the user in the store
         if (email && password) {
             const newUser = {
                 email: email,
-                name: email.split('@')[0], // Derive a display name
+                name: email.split('@')[0],
                 id: Date.now()
             };
             setUser(newUser);
             setShowAuthModal(false);
-            setIsPaymentOpen(true);
+
+            // Wait for state update to propagate or just call directly with new user context if possible
+            // But since 'user' comes from store, we can just call initiatePayment immediately 
+            // relying on the fact that we just set it? NO, setUser might be async in terms of re-render.
+            // However, we can just pass the user data to initiatePayment if we refactored it,
+            // or let's just trigger it. In React state updates, it might be better to wait.
+            // For simplicity in this structure:
+
+            // We duplicate the initiate logic slightly or pass args. 
+            // Let's call initiatePayment. The 'user' variable from useStore() hook will still be old in this closure
+            // but we can pass the specific user object we just created to a modified initiate function.
+
+            setIsProcessing(true);
+            try {
+                const response = await fetch('http://127.0.0.1:5001/api/payment/initiate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: totalPrice,
+                        firstname: newUser.name.split(' ')[0],
+                        email: newUser.email,
+                        phone: '9999999999', // Default or ask user
+                        productinfo: `Booking for ${cart.length} items`,
+                        items: cart
+                    }),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = result.payment_url;
+                } else {
+                    alert('Payment Failed: ' + result.message);
+                    setIsProcessing(false);
+                }
+            } catch (error) {
+                console.error(error);
+                setIsProcessing(false);
+            }
         }
     };
 
@@ -137,9 +203,10 @@ const Cart = () => {
 
                                             <button
                                                 onClick={handlePayClick}
-                                                className="w-full btn-orange py-5 rounded-[2rem] text-lg flex items-center justify-center gap-4 shadow-xl shadow-sunset-orange/20"
+                                                disabled={isProcessing}
+                                                className="w-full btn-orange py-5 rounded-[2rem] text-lg flex items-center justify-center gap-4 shadow-xl shadow-sunset-orange/20 disabled:opacity-50"
                                             >
-                                                Pay <ArrowRight size={20} />
+                                                {isProcessing ? 'Processing...' : 'Pay'} <ArrowRight size={20} />
                                             </button>
 
                                             <button
@@ -197,9 +264,10 @@ const Cart = () => {
 
                                                         <button
                                                             type="submit"
-                                                            className="w-full btn-orange py-4 rounded-xl font-bold shadow-lg shadow-sunset-orange/20 mt-4"
+                                                            disabled={isProcessing}
+                                                            className="w-full btn-orange py-4 rounded-xl font-bold shadow-lg shadow-sunset-orange/20 mt-4 disabled:opacity-50"
                                                         >
-                                                            {authMode === 'signup' ? 'Continue to Pay' : 'Login & Pay'}
+                                                            {isProcessing ? 'Processing Payment...' : (authMode === 'signup' ? 'Continue to Pay' : 'Login & Pay')}
                                                         </button>
                                                     </form>
 
@@ -207,14 +275,14 @@ const Cart = () => {
                                                         {authMode === 'signup' ? (
                                                             <>
                                                                 Already have an account?{' '}
-                                                                <button onClick={() => setAuthMode('login')} className="text-riverside-teal font-bold hover:underline">
+                                                                <button type="button" onClick={() => setAuthMode('login')} className="text-riverside-teal font-bold hover:underline">
                                                                     Login
                                                                 </button>
                                                             </>
                                                         ) : (
                                                             <>
                                                                 New to Ethree?{' '}
-                                                                <button onClick={() => setAuthMode('signup')} className="text-riverside-teal font-bold hover:underline">
+                                                                <button type="button" onClick={() => setAuthMode('signup')} className="text-riverside-teal font-bold hover:underline">
                                                                     Create Account
                                                                 </button>
                                                             </>
@@ -230,12 +298,6 @@ const Cart = () => {
                     </div>
                 )}
             </AnimatePresence>
-
-            <PaymentGateway
-                isOpen={isPaymentOpen}
-                onClose={() => setIsPaymentOpen(false)}
-                amount={totalPrice}
-            />
         </>
     );
 };

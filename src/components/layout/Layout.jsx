@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ShoppingCart, MapPin, Clock, Info } from 'lucide-react';
+import { Menu, X, ShoppingCart, MapPin, Clock, Info, Ticket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cart from '../Cart';
 import useStore from '../../store/useStore';
@@ -42,8 +42,8 @@ const Header = () => {
                     <Link to="/login" className="font-semibold text-charcoal-grey hover:text-sunset-orange transition-colors">
                         {user ? (user.name || 'User') : 'Login'}
                     </Link>
-                    <Link to="/dine" className="btn-orange flex items-center gap-2">
-                        Order Now <ShoppingCart size={18} />
+                    <Link to="/" className="btn-orange flex items-center gap-2">
+                        Book Tickets <Ticket size={18} />
                     </Link>
                 </nav>
 
@@ -76,8 +76,8 @@ const Header = () => {
                             <Link to="/login" onClick={() => setIsOpen(false)} className="text-lg font-semibold">
                                 {user ? (user.name || 'User') : 'Login'}
                             </Link>
-                            <Link to="/dine" onClick={() => setIsOpen(false)} className="btn-orange text-center">
-                                Order Now
+                            <Link to="/" onClick={() => setIsOpen(false)} className="btn-orange text-center">
+                                Book Tickets
                             </Link>
                         </div>
                     </motion.div>

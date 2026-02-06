@@ -47,6 +47,17 @@ class MockModel {
         await fs.writeJson(this.filePath, data);
         return newDocs;
     }
+
+    async findByIdAndUpdate(id, update) {
+        const data = await fs.readJson(this.filePath);
+        const index = data.findIndex(item => item._id === id);
+        if (index !== -1) {
+            data[index] = { ...data[index], ...update };
+            await fs.writeJson(this.filePath, data);
+            return data[index];
+        }
+        return null;
+    }
 }
 
 module.exports = MockModel;
