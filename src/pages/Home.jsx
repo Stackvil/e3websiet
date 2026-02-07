@@ -1,16 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Play, Zap, Utensils, Star, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { ACTIVITIES } from './Play';
 import RideCard from '../components/RideCard';
 
 const Home = () => {
     const { addToCart, toggleCart } = useStore();
-    const featuredRide = ACTIVITIES[0]; // Kept just in case or can be removed if not used elsewhere
+    const [activities, setActivities] = useState([]);
 
-    // Handlers moved to RideCard component to manage individual quantity states
+    useEffect(() => {
+        const fetchActivities = async () => {
+            try {
+                const res = await fetch('http://localhost:5001/api/products');
+                const data = await res.json();
+                const playItems = data.filter(item => item.category === 'play'); // Display all rides
+                setActivities(playItems);
+            } catch (err) {
+                console.error("Failed to fetch activities", err);
+            }
+        };
+        fetchActivities();
+    }, []);
+
     const philosophy = [
         { title: 'Eat', icon: <Utensils className="text-white" size={32} />, color: 'bg-sunset-orange', desc: 'A Gastronomic journey through the best stalls in Vijayawada.' },
         { title: 'Enjoy', icon: <Zap className="text-white" size={32} />, color: 'bg-riverside-teal', desc: 'Soak in the refreshing breeze on the banks of the Krishna River.' },
@@ -19,7 +31,6 @@ const Home = () => {
 
     return (
         <div className="flex flex-col">
-            {/* Hero Section */}
             {/* Hero Section */}
             <section className="relative h-auto bg-charcoal-grey">
                 {/* Parallax Background Placeholder */}
@@ -44,9 +55,9 @@ const Home = () => {
 
                     <div className="w-full">
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                            {ACTIVITIES.map((ride, index) => (
+                            {activities.map((ride, index) => (
                                 <motion.div
-                                    key={ride.id}
+                                    key={ride._id || ride.id}
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: index * 0.05 }}

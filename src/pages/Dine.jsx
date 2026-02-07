@@ -1,49 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, ShoppingCart, Clock, Filter, ShoppingBag } from 'lucide-react';
 import useStore from '../store/useStore';
 
-const STALLS = [
-    { id: 'all', name: 'All Stalls', category: 'all' },
-    { id: 'north', name: 'North Indian', category: 'North Indian' },
-    { id: 'arabian', name: 'Arabian', category: 'Arabian' },
-    { id: 'chinese', name: 'Oriental', category: 'Chinese' },
-    { id: 'south', name: 'Tiffins', category: 'South Indian' },
-];
 
-const MENU_DATA = [
-    { id: 101, name: 'Darbar Special', price: 450, category: 'Arabian', stall: 'Darbar Mandi', image: '/shops/darbar.png', open: true },
-    { id: 102, name: 'Wow! Momo Platter', price: 190, category: 'Chinese', stall: 'Wow! Momo', image: '/shops/wow momo.png', open: true },
-    { id: 103, name: 'Jail Theme Special', price: 320, category: 'North Indian', stall: 'The Food Jail', image: '/shops/food jail.png', open: true },
-    { id: 104, name: 'Tiffins Combo', price: 110, category: 'South Indian', stall: 'Aaruchulu', image: '/shops/aaruchulu.png', open: true },
-    { id: 105, name: 'Ice Cream Scoop', price: 150, category: 'Dessert', stall: 'Dumont E3', image: '/shops/dumont.png', open: true },
-    { id: 106, name: 'Pub Special', price: 340, category: 'North Indian', stall: "Pub'Gs", image: '/shops/pubgs.png', open: true },
-    { id: 107, name: 'Waffle Deluxe', price: 200, category: 'Dessert', stall: 'Waffle Cafe', image: '/shops/Waffle cafe.jpeg', open: true },
-    { id: 108, name: 'Alpha Biryani', price: 280, category: 'North Indian', stall: 'Alpha Hotel', image: '/shops/alpha.png', open: true },
-    { id: 109, name: 'Bawarchi Biryani', price: 300, category: 'North Indian', stall: 'Bawarchi', image: '/shops/bawarchi.png', open: true },
-    { id: 110, name: 'Burma Dishes', price: 220, category: 'Chinese', stall: 'Burma', image: '/shops/burma.png', open: true },
-    { id: 111, name: 'Cool Refreshers', price: 80, category: 'Beverages', stall: 'Cool Drinks', image: '/shops/coca cola.png', open: true },
-    { id: 112, name: 'Royal Falooda', price: 120, category: 'Dessert', stall: 'Falooda', image: '/shops/punjabi falooda kulfi.png', open: true },
-    { id: 113, name: 'Fruit Salad', price: 100, category: 'Healthy', stall: 'Fruit Me Up', image: '/shops/fruit mesh up.png', open: true },
-    { id: 114, name: 'Grilled Rolls', price: 180, category: 'Arabian', stall: 'Grills & Rolls', image: '/shops/grills & rolls.png', open: true },
-    { id: 115, name: 'Pulao Special', price: 250, category: 'North Indian', stall: 'House of Pulaos', image: '/shops/house of pulaos.png', open: true },
-    { id: 116, name: 'Fried Chicken', price: 350, category: 'Fast Food', stall: 'KFC', image: '/shops/kfc.png', open: true },
-    { id: 117, name: 'Pizza Slice', price: 220, category: 'Fast Food', stall: 'Planet Pizza', image: '/shops/planet pizza.png', open: true },
-    { id: 118, name: 'Punjabi Thali', price: 260, category: 'North Indian', stall: 'Punjabi Tadka', image: '/shops/punjabi tadka.png', open: true },
-    { id: 119, name: 'Red Bucket Special', price: 290, category: 'North Indian', stall: 'Red Bucket', image: '/shops/the red bucket biriyani.png', open: true },
-    { id: 120, name: 'Spicy Chillis', price: 210, category: 'Chinese', stall: 'Red Chillis', image: '/shops/red chillis.png', open: true },
-];
+
+
 
 const Dine = () => {
-    const [activeCategory, setActiveCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [menuItems, setMenuItems] = useState([]);
     const { addToCart, cart, toggleCart } = useStore();
 
-    const filteredItems = MENU_DATA.filter(item => {
-        const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
+    useEffect(() => {
+        const fetchDineItems = async () => {
+            try {
+                const res = await fetch('http://localhost:5001/api/products');
+                const data = await res.json();
+                // Filter for dine items and fallback to local category if cuisine is missing (for legacy or mixed data)
+                const dineItems = data.filter(item => item.category === 'dine' || item.category === 'food');
+                setMenuItems(dineItems);
+            } catch (err) {
+                console.error("Failed to fetch dine items", err);
+            }
+        };
+        fetchDineItems();
+    }, []);
+
+    const filteredItems = menuItems.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.stall.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
+            (item.stall && item.stall.toLowerCase().includes(searchQuery.toLowerCase()));
+        return matchesSearch;
     });
 
     const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -53,12 +40,33 @@ const Dine = () => {
             <div className="container mx-auto px-6">
 
 
+                {/* Header & Search */}
+                <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h1 className="text-3xl font-heading font-bold text-charcoal-grey">Dine & Delight</h1>
+                        <p className="text-gray-500">Explore the best food stalls at Ethree</p>
+                    </div>
+
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search stalls..."
+                            className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-riverside-teal"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+
+
                 {/* Menu Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     <AnimatePresence mode="popLayout">
                         {filteredItems.map((item) => (
                             <motion.div
-                                key={item.id}
+                                key={item._id || item.id}
                                 layout
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -77,7 +85,7 @@ const Dine = () => {
                                 <div className="p-3">
                                     <div className="mb-2">
                                         <h3 className="text-sm font-bold leading-tight truncate text-charcoal-grey">{item.stall}</h3>
-                                        <p className="text-gray-400 text-[10px] leading-tight line-clamp-1">{item.category} Cuisine</p>
+                                        <p className="text-gray-400 text-[10px] leading-tight line-clamp-1">{item.cuisine || item.category} Cuisine</p>
                                     </div>
 
                                     <button

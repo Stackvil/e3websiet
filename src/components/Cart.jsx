@@ -6,9 +6,10 @@ const Cart = () => {
     const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, clearCart, user, setUser } = useStore();
     const [isPaymentOpen, setIsPaymentOpen] = useState(false); // Kept for logic compatibility but unused for modal
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [authMode, setAuthMode] = useState('signup'); // 'signup' or 'login'
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [mobile, setMobile] = useState('');
+    const [otp, setOtp] = useState('');
+    const [isOtpSent, setIsOtpSent] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -24,8 +25,8 @@ const Cart = () => {
                 body: JSON.stringify({
                     amount: totalPrice,
                     firstname: user?.name?.split(' ')[0] || 'User',
-                    email: user?.email || 'user@example.com',
-                    phone: user?.phone || '9999999999',
+                    email: user?.email || 'noprovided@example.com',
+                    phone: user?.mobile || user?.phone || mobile || '9999999999',
                     productinfo: `Booking for ${cart.length} items`,
                     items: cart
                 }),
@@ -52,58 +53,73 @@ const Cart = () => {
         if (user) {
             initiatePayment();
         } else {
-            setAuthMode('signup');
             setShowAuthModal(true);
         }
     };
 
     const handleAuthSubmit = async (e) => {
         e.preventDefault();
-        if (email && password) {
-            const newUser = {
-                email: email,
-                name: email.split('@')[0],
-                id: Date.now()
-            };
-            setUser(newUser);
-            setShowAuthModal(false);
+        setIsLoading(true);
 
-            // Wait for state update to propagate or just call directly with new user context if possible
-            // But since 'user' comes from store, we can just call initiatePayment immediately 
-            // relying on the fact that we just set it? NO, setUser might be async in terms of re-render.
-            // However, we can just pass the user data to initiatePayment if we refactored it,
-            // or let's just trigger it. In React state updates, it might be better to wait.
-            // For simplicity in this structure:
-
-            // We duplicate the initiate logic slightly or pass args. 
-            // Let's call initiatePayment. The 'user' variable from useStore() hook will still be old in this closure
-            // but we can pass the specific user object we just created to a modified initiate function.
-
-            setIsProcessing(true);
-            try {
-                const response = await fetch('http://127.0.0.1:5001/api/payment/initiate', {
+        try {
+            if (!isOtpSent) {
+                // Send OTP
+                const response = await fetch('http://127.0.0.1:5001/api/auth/send-otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        amount: totalPrice,
-                        firstname: newUser.name.split(' ')[0],
-                        email: newUser.email,
-                        phone: '9999999999', // Default or ask user
-                        productinfo: `Booking for ${cart.length} items`,
-                        items: cart
-                    }),
+                    body: JSON.stringify({ mobile })
                 });
-                const result = await response.json();
-                if (result.success) {
-                    window.location.href = result.payment_url;
-                } else {
-                    alert('Payment Failed: ' + result.message);
-                    setIsProcessing(false);
+                const data = await response.json();
+                if (data.message) {
+                    alert(data.message); // Show dummy OTP
+                    setIsOtpSent(true);
                 }
-            } catch (error) {
-                console.error(error);
-                setIsProcessing(false);
+            } else {
+                // Verify OTP
+                const response = await fetch('http://127.0.0.1:5001/api/auth/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mobile, otp })
+                });
+                const data = await response.json();
+
+                if (data.token) {
+                    setUser(data.user);
+                    setShowAuthModal(false);
+                    // Proceed to payment immediately with the new user data
+                    setIsProcessing(true);
+                    // Call initiate payment logic manually since we have data
+                    // Or just rely on state update? State update might be slow for immediate call, pass user explicitly
+
+                    // Re-using initiatePayment logic but with explicit user data
+                    const paymentRes = await fetch('http://127.0.0.1:5001/api/payment/initiate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            amount: totalPrice,
+                            firstname: data.user.name?.split(' ')[0] || 'User',
+                            email: data.user.email || 'noprovided@example.com',
+                            phone: data.user.mobile || mobile,
+                            productinfo: `Booking for ${cart.length} items`,
+                            items: cart
+                        }),
+                    });
+                    const result = await paymentRes.json();
+                    if (result.success) {
+                        window.location.href = result.payment_url;
+                    } else {
+                        alert('Payment Failed: ' + result.message);
+                        setIsProcessing(false);
+                    }
+                } else {
+                    alert(data.message || 'Verification Failed');
+                }
             }
+        } catch (error) {
+            console.error(error);
+            alert('Error: ' + error.message);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -230,7 +246,7 @@ const Cart = () => {
                                                 <div className="w-full max-w-sm bg-white p-6 rounded-3xl shadow-2xl border border-gray-100">
                                                     <div className="flex justify-between items-center mb-6">
                                                         <h3 className="text-xl font-bold font-heading">
-                                                            {authMode === 'signup' ? 'Create Account' : 'Welcome Back'}
+                                                            {isOtpSent ? 'Verify OTP' : 'Login / Signup'}
                                                         </h3>
                                                         <button onClick={() => setShowAuthModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
                                                             <X size={20} />
@@ -238,56 +254,44 @@ const Cart = () => {
                                                     </div>
 
                                                     <form onSubmit={handleAuthSubmit} className="space-y-4">
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email Address</label>
-                                                            <input
-                                                                type="email"
-                                                                value={email}
-                                                                onChange={(e) => setEmail(e.target.value)}
-                                                                placeholder="you@example.com"
-                                                                className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-transparent focus:border-sunset-orange"
-                                                                autoFocus
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label>
-                                                            <input
-                                                                type="password"
-                                                                value={password}
-                                                                onChange={(e) => setPassword(e.target.value)}
-                                                                placeholder="••••••••"
-                                                                className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-transparent focus:border-sunset-orange"
-                                                                required
-                                                            />
-                                                        </div>
+                                                        {!isOtpSent ? (
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mobile Number</label>
+                                                                <input
+                                                                    type="tel"
+                                                                    value={mobile}
+                                                                    onChange={(e) => setMobile(e.target.value)}
+                                                                    placeholder="9876543210"
+                                                                    pattern="[0-9]{10}"
+                                                                    className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-transparent focus:border-sunset-orange"
+                                                                    autoFocus
+                                                                    required
+                                                                />
+                                                                <p className="text-xs text-gray-400 mt-2">Dummy OTP: 123456</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Enter OTP</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={otp}
+                                                                    onChange={(e) => setOtp(e.target.value)}
+                                                                    placeholder="123456"
+                                                                    className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-transparent focus:border-sunset-orange"
+                                                                    autoFocus
+                                                                    required
+                                                                />
+                                                            </div>
+                                                        )}
 
                                                         <button
                                                             type="submit"
-                                                            disabled={isProcessing}
+                                                            disabled={isLoading || isProcessing}
                                                             className="w-full btn-orange py-4 rounded-xl font-bold shadow-lg shadow-sunset-orange/20 mt-4 disabled:opacity-50"
                                                         >
-                                                            {isProcessing ? 'Processing Payment...' : (authMode === 'signup' ? 'Continue to Pay' : 'Login & Pay')}
+                                                            {isLoading ? 'Processing...' : (isOtpSent ? 'Verify & Pay' : 'Send OTP')}
                                                         </button>
                                                     </form>
-
-                                                    <div className="mt-6 text-center text-sm text-gray-500">
-                                                        {authMode === 'signup' ? (
-                                                            <>
-                                                                Already have an account?{' '}
-                                                                <button type="button" onClick={() => setAuthMode('login')} className="text-riverside-teal font-bold hover:underline">
-                                                                    Login
-                                                                </button>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                New to Ethree?{' '}
-                                                                <button type="button" onClick={() => setAuthMode('signup')} className="text-riverside-teal font-bold hover:underline">
-                                                                    Create Account
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
                                                 </div>
                                             </motion.div>
                                         )}

@@ -1,47 +1,102 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, ShoppingCart, Calendar, Users, Package, Power } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package } from 'lucide-react';
 
 const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState('orders');
-    const [orders, setOrders] = useState([]);
+    const [activeTab, setActiveTab] = useState('bookings');
     const [bookings, setBookings] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [showModal, setShowModal] = useState(false);
+    const [editingItem, setEditingItem] = useState(null);
+    const [formData, setFormData] = useState({ name: '', category: 'dine', price: '', description: '', image: '' });
 
     useEffect(() => {
         const fetchData = async () => {
             const token = localStorage.getItem('token');
+            const headers = { 'x-auth-token': token };
             try {
-                const [ordersRes, bookingsRes] = await Promise.all([
-                    fetch('http://localhost:5001/api/orders/all', { headers: { 'x-auth-token': token } }), // I need to add /all endpoint
-                    fetch('http://localhost:5001/api/bookings', { headers: { 'x-auth-token': token } })
+                const [bookingsRes, productsRes] = await Promise.all([
+                    fetch('http://localhost:5001/api/bookings', { headers }).catch(err => ({ ok: false, json: () => [] })),
+                    fetch('http://localhost:5001/api/products')
                 ]);
-                const ordersData = await ordersRes.json();
+
                 const bookingsData = await bookingsRes.json();
-                if (Array.isArray(ordersData)) setOrders(ordersData);
+                const productsData = await productsRes.json();
+
                 if (Array.isArray(bookingsData)) setBookings(bookingsData);
+                if (Array.isArray(productsData)) setProducts(productsData);
             } catch (err) {
                 console.error('Fetch error:', err);
             }
         };
         fetchData();
 
-        // Mock fallback if API fails or empty
-        setTimeout(() => {
-            if (orders.length === 0) {
-                setOrders([
-                    { id: 'ORD001', user: 'Sharmila', status: 'preparing', total: 450, items: 'Momo x2, Mandi x1' },
-                    { id: 'ORD002', user: 'Vikas', status: 'placed', total: 220, items: 'Burger x1' },
-                ]);
-            }
-        }, 1000);
+
     }, []);
 
+    const handleEditItem = (item) => {
+        setEditingItem(item);
+        // Default category to 'play' if in 'rides' tab, else 'dine' or item's category
+        const defaultCategory = activeTab === 'rides' ? 'play' : 'dine';
+        setFormData(item ? { ...item } : { name: '', category: defaultCategory, price: '', description: '', image: '' });
+        setShowModal(true);
+    };
+
+    const handleDeleteItem = async (id) => {
+        if (!window.confirm('Are you sure?')) return;
+        const token = localStorage.getItem('token');
+        try {
+            await fetch(`http://localhost:5001/api/products/${id}`, {
+                method: 'DELETE',
+                headers: { 'x-auth-token': token }
+            });
+            setProducts(products.filter(p => p._id !== id));
+        } catch (err) {
+            alert('Error deleting item');
+        }
+    };
+
+    const handleSaveItem = async (e) => {
+        e.preventDefault();
+        const token = localStorage.getItem('token');
+        const url = editingItem
+            ? `http://localhost:5001/api/products/${editingItem._id}`
+            : 'http://localhost:5001/api/products';
+        const method = editingItem ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                body: JSON.stringify(formData)
+            });
+            const savedItem = await res.json();
+            if (editingItem) {
+                setProducts(products.map(p => p._id === savedItem._id ? savedItem : p));
+            } else {
+                setProducts([...products, savedItem]);
+            }
+            setShowModal(false);
+        } catch (err) {
+            alert('Error saving item');
+        }
+    };
+
     const tabs = [
-        { id: 'orders', label: 'Live Orders', icon: ShoppingCart },
         { id: 'bookings', label: 'Bookings', icon: Calendar },
-        { id: 'inventory', label: 'Inventory', icon: Package },
+        { id: 'dine', label: 'Dine', icon: Utensils },
+        { id: 'rides', label: 'Rides', icon: Gamepad2 },
         { id: 'analytics', label: 'Analytics', icon: LayoutDashboard },
     ];
+
+    // Helper to get filtered products
+    const getVisibleProducts = () => {
+        if (activeTab === 'rides') return products.filter(p => p.category === 'play');
+        if (activeTab === 'dine') return products.filter(p => p.category === 'dine' || !p.category); // Dine shows food items
+        return [];
+    };
+
+    const visibleProducts = getVisibleProducts();
 
     return (
         <div className="min-h-screen bg-gray-50 flex pt-20">
@@ -87,41 +142,7 @@ const AdminDashboard = () => {
                         </button>
                     </header>
 
-                    {activeTab === 'orders' && (
-                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 border-b">
-                                    <tr>
-                                        <th className="px-6 py-4 font-semibold text-charcoal-grey">Order ID</th>
-                                        <th className="px-6 py-4 font-semibold text-charcoal-grey">Customer</th>
-                                        <th className="px-6 py-4 font-semibold text-charcoal-grey">Items</th>
-                                        <th className="px-6 py-4 font-semibold text-charcoal-grey">Total</th>
-                                        <th className="px-6 py-4 font-semibold text-charcoal-grey">Status</th>
-                                        <th className="px-6 py-4 font-semibold text-charcoal-grey">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {orders.map((order) => (
-                                        <tr key={order.id} className="border-b hover:bg-gray-50/50">
-                                            <td className="px-6 py-4 font-medium">{order.id}</td>
-                                            <td className="px-6 py-4">{order.user}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{order.items}</td>
-                                            <td className="px-6 py-4 font-semibold">₹{order.total}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${order.status === 'preparing' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
-                                                    }`}>
-                                                    {order.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <button className="text-riverside-teal hover:underline font-medium">Manage</button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+
 
                     {activeTab === 'bookings' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -141,6 +162,140 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {activeTab === 'dine' && (
+                        <div>
+                            <div className="mb-6 flex justify-end">
+                                <button
+                                    onClick={() => handleEditItem(null)} // Open modal for new item
+                                    className="bg-riverside-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
+                                >
+                                    <Utensils className="w-5 h-5 mr-2" />
+                                    Add New Item
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                {visibleProducts.map((item) => (
+                                    <div key={item._id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group relative hover:shadow-md transition-all">
+                                        <div className="relative h-40 overflow-hidden">
+                                            <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                            <div className="absolute top-2 right-2 bg-charcoal-grey/80 backdrop-blur-md px-2 py-1 rounded text-xs font-bold text-white">
+                                                ₹{item.price}
+                                            </div>
+                                            {item.status === 'off' && (
+                                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+                                                    <p className="text-white font-bold bg-red-500/80 px-3 py-1 rounded text-xs">Closed</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="p-4">
+                                            <div className="mb-4">
+                                                <h3 className="font-bold text-charcoal-grey truncate">{item.stall || item.name}</h3>
+                                                <p className="text-gray-400 text-xs truncate capitalize">{item.cuisine || item.category} Cuisine</p>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={() => handleEditItem(item)}
+                                                    className="w-full py-1.5 rounded-lg text-xs font-bold bg-gray-50 text-charcoal-grey hover:bg-riverside-teal hover:text-white transition-colors border border-gray-100"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteItem(item._id)}
+                                                    className="w-full py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors border border-red-100"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'rides' && (
+                        <div>
+                            <div className="mb-6 flex justify-end">
+                                <button
+                                    onClick={() => handleEditItem(null)}
+                                    className="bg-riverside-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
+                                >
+                                    <Package className="w-5 h-5 mr-2" />
+                                    Add New Ride
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                {visibleProducts.map((ride) => (
+                                    <div key={ride._id} className="bg-white backdrop-blur-md rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all group flex flex-col aspect-square w-full shadow-sm relative">
+                                        <div className="h-[55%] overflow-hidden relative">
+                                            <img
+                                                src={ride.image}
+                                                alt={ride.name}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg text-sm font-bold text-sunset-orange border border-sunset-orange/50 shadow-lg">
+                                                ₹{ride.price}
+                                            </div>
+                                        </div>
+
+                                        <div className="p-2 flex flex-col h-[45%] justify-between bg-charcoal-grey">
+                                            <div className="flex flex-col items-center justify-center flex-grow">
+                                                <h3 className="text-white font-bold text-xs leading-tight text-center line-clamp-2">{ride.name}</h3>
+                                                {ride.isCombo && <p className="text-[10px] text-sunset-orange font-bold text-center mt-0.5">Any 5 Rides</p>}
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2 mt-1">
+                                                <button
+                                                    onClick={() => handleEditItem(ride)}
+                                                    className="bg-riverside-teal/20 hover:bg-riverside-teal/30 text-riverside-teal py-1 rounded-md text-[10px] font-bold transition-colors border border-riverside-teal/50"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteItem(ride._id)}
+                                                    className="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-1 rounded-md text-[10px] font-bold transition-colors border border-red-500/50"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Inventory Modal */}
+                    {showModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-xl p-8 max-w-md w-full">
+                                <h3 className="text-xl font-bold mb-6">{editingItem ? 'Edit Item' : 'Add New Item'}</h3>
+                                <form onSubmit={handleSaveItem} className="space-y-4">
+                                    <input placeholder="Name" className="w-full border p-2 rounded" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                    <select className="w-full border p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
+                                        <option value="dine">Dine (Food)</option>
+                                        <option value="play">Play (Rides)</option>
+                                        <option value="events">Event</option>
+                                    </select>
+                                    <input type="number" placeholder="Price" className="w-full border p-2 rounded" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
+                                    <textarea placeholder="Description" className="w-full border p-2 rounded" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                    <input placeholder="Image URL" className="w-full border p-2 rounded" value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} />
+                                    <div className="flex gap-4 mt-6">
+                                        <button type="submit" className="flex-1 bg-riverside-teal text-white py-2 rounded font-bold">Save</button>
+                                        <button type="button" onClick={() => setShowModal(false)} className="flex-1 border border-gray-300 py-2 rounded font-bold">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     )}
                 </motion.div>

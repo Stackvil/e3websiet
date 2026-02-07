@@ -1,162 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ticket, Users, Zap, Trophy, Filter, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
 
-export const ACTIVITIES = [
-    {
-        id: 1,
-        title: 'Bumping Cars',
-        price: 150,
-        ageGroup: '7+ years',
-        category: 'Action',
-        image: '/bumping%20cars%20single/IMG_8417.jpg',
-        desc: 'High-octane fun for kids and adults alike in our bumping car arena.'
-    },
-    {
-        id: 2,
-        title: 'Trampoline Zone',
-        price: 200,
-        ageGroup: 'Kids',
-        category: 'Action',
-        image: '/trampoline/trampoline.webp',
-        desc: 'Anti-gravity world with giant trampolines and foam pits for ultimate fun.'
-    },
-    {
-        id: 3,
-        title: '360 Cycle',
-        price: 120,
-        ageGroup: 'Kids',
-        category: 'Rides',
-        image: '/360%20cycle/360-degree-cycle-500x500.webp',
-        desc: 'Experience the thrill of cycling in a full 360-degree loop.'
-    },
-    {
-        id: 4,
-        title: 'Columbus Mini',
-        price: 150,
-        ageGroup: 'Kids',
-        category: 'Rides',
-        image: '/columbus%20mini/IMG_8407.jpg',
-        desc: 'A mini version of the classic swinging ship ride for little adventurers.'
-    },
-    {
-        id: 5,
-        title: 'Joker Ride',
-        price: 120,
-        ageGroup: 'Kids',
-        category: 'Rides',
-        image: '/joker%20ride/IMG_8400.jpg',
-        desc: 'A fun and colorful ride that brings smiles to every face.'
-    },
-    {
-        id: 6,
-        title: 'Free Fall',
-        price: 200,
-        ageGroup: 'Youth',
-        category: 'Adventure',
-        image: '/free%20fall/IMG_8381.jpg',
-        desc: 'Experience the adrenaline rush of a sudden drop in safety.'
-    },
-    {
-        id: 7,
-        title: 'Sun & Moon',
-        price: 150,
-        ageGroup: 'Family',
-        category: 'Rides',
-        image: '/sun%20&%20moon/IMG_8389.jpg',
-        desc: 'A delightful ride for the whole family to enjoy together.'
-    },
-    {
-        id: 8,
-        title: 'Train Ride',
-        price: 100,
-        ageGroup: 'All Ages',
-        category: 'Rides',
-        image: '/train%20ticket/IMG_8410.jpg',
-        desc: 'All aboard! A scenic train journey around the park.'
-    },
-    {
-        id: 9,
-        title: 'Kids Soft Play',
-        price: 250,
-        ageGroup: 'Toddlers',
-        category: 'Kids',
-        image: '/soft%20play/WhatsApp_Image_2025-06-14_at_4.04.53_PM.jpeg',
-        desc: 'Safe and soft play area designed specifically for little ones.'
-    },
-    {
-        id: 10,
-        title: 'Bull Ride',
-        price: 100,
-        ageGroup: '10+',
-        category: 'Rides',
-        image: '/bull%20ride/IMG_8384.jpg',
-        desc: 'Hold on tight and test your balance on the mechanical bull.'
-    },
-    {
-        id: 11,
-        title: 'Balloon Shooting',
-        price: 150,
-        ageGroup: '10+',
-        category: 'Action',
-        image: '/baloon%20shooting/IMG_8435.jpg',
-        desc: 'Test your aim and precision at our shooting range.'
-    },
-    {
-        id: 12,
-        title: 'Bungee Jump',
-        price: 200,
-        ageGroup: '8+',
-        category: 'Adventure',
-        image: '/Bungee%20jump/bungee-jumping-trampoline.jpeg',
-        desc: 'Jump high and flip safely on our bungee trampolines.'
-    },
-    {
-        id: 13,
-        title: 'Paddle Boat',
-        price: 150,
-        ageGroup: 'Kids',
-        category: 'Rides',
-        image: '/paddle%20boat/paddle-boat.webp',
-        desc: 'Gentle boating fun on the water for kids.'
-    },
-    {
-        id: 14,
-        title: 'Mini Wheel',
-        price: 250,
-        ageGroup: 'All Ages',
-        category: 'Rides',
-        image: '/mini%20wheel%20ride/1.avif',
-        desc: 'Classic views from the top of our mini ferris wheel.'
-    },
-    {
-        id: 15,
-        title: 'Bouncy Castle',
-        price: 150,
-        ageGroup: 'Kids',
-        category: 'Kids',
-        image: '/bouncy/WhatsApp_Image_2025-06-14_at_4.02.45_PM.jpeg',
-        desc: 'Jump, bounce, and play in our colorful inflatable castle.'
-    },
-    {
-        id: 16,
-        title: 'Basket Ball',
-        price: 100,
-        ageGroup: 'All Ages',
-        category: 'Sports',
-        image: '/basket%20ball/images.jpg',
-        desc: 'Shoot some hoops and challenge your friends.'
-    }
-];
-
 const Play = () => {
     const { addToCart } = useStore();
     const [filter, setFilter] = useState('All');
+    const [activities, setActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchActivities = async () => {
+            try {
+                const res = await fetch('http://localhost:5001/api/products');
+                const data = await res.json();
+                // Filter for 'play' category items
+                const playItems = data.filter(item => item.category === 'play');
+                setActivities(playItems);
+            } catch (err) {
+                console.error("Failed to fetch activities", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchActivities();
+    }, []);
 
     const filteredActivities = filter === 'All'
-        ? ACTIVITIES
-        : ACTIVITIES.filter(a => a.ageGroup.includes(filter) || a.category === filter);
+        ? activities
+        : activities.filter(a => (a.ageGroup && a.ageGroup.includes(filter)) || a.stall === filter || a.category === filter);
+
+    if (loading) {
+        return <div className="min-h-screen pt-24 pb-12 flex justify-center items-center"><div className="text-xl font-bold text-riverside-teal">Loading Fun...</div></div>;
+    }
 
     return (
         <div className="bg-creamy-white min-h-screen pt-24 pb-12">
@@ -202,7 +78,7 @@ const Play = () => {
                     <AnimatePresence mode="popLayout">
                         {filteredActivities.map((activity, i) => (
                             <motion.div
-                                key={activity.id}
+                                key={activity._id || activity.id}
                                 layout
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -210,24 +86,25 @@ const Play = () => {
                                 className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-50 flex flex-col hover:shadow-xl transition-shadow group"
                             >
                                 <div className="h-24 overflow-hidden relative">
-                                    <img src={activity.image} alt={activity.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                    <img src={activity.image} alt={activity.name || activity.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                     <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-md font-black text-riverside-teal text-[10px]">
                                         {typeof activity.price === 'number' ? `₹${activity.price}` : activity.price}
                                     </div>
                                 </div>
                                 <div className="p-2 flex-grow flex flex-col">
                                     <div className="flex justify-between items-center mb-1">
-                                        <span className="text-sunset-orange font-bold uppercase text-[8px] tracking-widest">{activity.category}</span>
+                                        <span className="text-sunset-orange font-bold uppercase text-[8px] tracking-widest">{activity.stall || activity.category}</span>
                                         <span className="text-gray-400 text-[8px] font-bold">{activity.ageGroup}</span>
                                     </div>
-                                    <h3 className="text-xs font-bold mb-2 truncate">{activity.title}</h3>
+                                    <h3 className="text-xs font-bold mb-1 truncate">{activity.name || activity.title}</h3>
+                                    {activity.isCombo && <p className="text-[10px] text-riverside-teal font-bold mb-2">Any 5 Rides</p>}
                                     <button
                                         onClick={() => addToCart({
-                                            id: `play-${activity.id}`,
-                                            name: activity.title,
+                                            id: `play-${activity._id || activity.id}`,
+                                            name: activity.name || activity.title,
                                             price: typeof activity.price === 'number' ? activity.price : 0,
                                             image: activity.image,
-                                            stall: activity.category
+                                            stall: activity.stall || activity.category
                                         })}
                                         className="flex items-center justify-between w-full btn-orange text-[10px] py-1 px-2 rounded-md"
                                     >

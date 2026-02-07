@@ -37,7 +37,14 @@ class MockModel {
     }
 
     async deleteMany(query = {}) {
-        await fs.writeJson(this.filePath, []);
+        const data = await fs.readJson(this.filePath);
+        const newData = data.filter(item => {
+            for (let key in query) {
+                if (item[key] === query[key]) return false;
+            }
+            return true;
+        });
+        await fs.writeJson(this.filePath, newData);
     }
 
     async insertMany(docs) {

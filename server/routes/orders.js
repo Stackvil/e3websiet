@@ -5,7 +5,7 @@ const Order = new MockModel('Order');
 const Stripe = require('stripe');
 const { auth, admin } = require('../middleware/auth');
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
 
 /**
  * @swagger

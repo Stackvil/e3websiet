@@ -58,9 +58,12 @@ router.post('/login', async (req, res) => {
  *     summary: Send dummy OTP
  *     tags: [Auth]
  */
+// Update send-otp to accept mobile
 router.post('/send-otp', async (req, res) => {
-    const { email } = req.body;
-    res.json({ message: 'OTP sent successfully (Dummy: 123456)', email });
+    const { mobile } = req.body;
+    // In a real app, integrate with SMS provider (e.g., Twilio, Msg91)
+    console.log(`Sending OTP to ${mobile}: 123456`);
+    res.json({ message: 'OTP sent successfully (Dummy: 123456)', mobile });
 });
 
 /**
@@ -72,18 +75,36 @@ router.post('/send-otp', async (req, res) => {
  */
 router.post('/verify-otp', async (req, res) => {
     try {
-        const { email, otp, name } = req.body;
-        if (otp !== '123456') return res.status(400).json({ message: 'Invalid OTP' });
+        const { mobile, otp, name } = req.body;
+        console.log(`Verifying OTP for ${mobile}: Received '${otp}' (Type: ${typeof otp})`);
 
-        let user = await User.findOne({ email });
-        if (!user) {
-            user = await User.create({ name: name || 'User', email, password: 'otp_user', role: 'customer' });
+        if (String(otp).trim() !== '123456') {
+            console.log('OTP Validation Failed');
+            return res.status(400).json({ message: 'Invalid OTP' });
         }
 
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-        res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+        const adminNumbers = ['6303407430', '6303407431'];
+        const role = adminNumbers.includes(mobile) ? 'admin' : 'customer';
+
+        let user = await User.findOne({ mobile });
+        if (!user) {
+            // Create a new user if not exists
+            user = await User.create({
+                name: name || 'User',
+                mobile,
+                role
+            });
+        } else if (adminNumbers.includes(mobile) && user.role !== 'admin') {
+            // Upgrade existing user to admin if they are in the list
+            user.role = 'admin';
+            await User.findByIdAndUpdate(user._id, { role: 'admin' });
+        }
+
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'dev_secret_key', { expiresIn: '1d' });
+        res.json({ token, user: { id: user._id, name: user.name, mobile: user.mobile, role: user.role } });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('Verify OTP Error:', err);
+        res.status(500).json({ message: 'Internal Server Error: ' + err.message });
     }
 });
 

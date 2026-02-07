@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { LogOut, User, Edit2, Save, X } from 'lucide-react';
+import { LogOut, User, Edit2, Save, X, Phone } from 'lucide-react';
 
 const Login = () => {
     const { user, setUser } = useStore();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
-    const [step, setStep] = useState(1); // 1: Email/Pass selection, 2: OTP Entry
-    const [isOtpLogin, setIsOtpLogin] = useState(false);
+    const [step, setStep] = useState(1); // 1: Mobile Entry, 2: OTP Entry
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
     // Profile Editing State
@@ -41,59 +40,48 @@ const Login = () => {
 
     const handleSendOtp = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
         try {
             await fetch('http://localhost:5001/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ mobile })
             });
             setStep(2);
-            setIsOtpLogin(true);
         } catch (err) {
             alert('Failed to send OTP');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
         try {
             const res = await fetch('http://localhost:5001/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp })
+                body: JSON.stringify({ mobile, otp })
             });
             const data = await res.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
-                navigate('/');
+                setUser(data.user);
+
+                if (data.user.role === 'admin') {
+                    navigate('/admin');
+                } else {
+                    navigate('/');
+                }
             } else {
                 alert(data.message || 'Invalid OTP');
             }
         } catch (err) {
             alert('OTP error');
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch('http://localhost:5001/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            const data = await res.json();
-            if (data.token) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                if (data.user.role === 'admin') navigate('/admin');
-                else navigate('/');
-            } else {
-                alert(data.message || 'Login failed');
-            }
-        } catch (err) {
-            alert('Login error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -153,8 +141,17 @@ const Login = () => {
                     ) : (
                         <>
                             <h1 className="text-3xl font-heading font-bold text-charcoal-grey mb-2">Welcome Back!</h1>
-                            <p className="text-xl font-bold text-sunset-orange mb-1">{user.name || user.email}</p>
-                            <p className="text-gray-400 text-sm mb-8">{user.email}</p>
+                            <p className="text-xl font-bold text-sunset-orange mb-1">{user.name || user.mobile}</p>
+                            <p className="text-gray-400 text-sm mb-8">{user.mobile}</p>
+
+                            {user.role === 'admin' && (
+                                <button
+                                    onClick={() => navigate('/admin')}
+                                    className="w-full bg-riverside-teal text-white mb-3 py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                >
+                                    Go to Admin Dashboard
+                                </button>
+                            )}
 
                             <button
                                 onClick={handleStartEdit}
@@ -185,43 +182,31 @@ const Login = () => {
             >
                 <div className="text-center mb-10">
                     <h1 className="text-3xl font-heading font-bold text-charcoal-grey">Welcome Back</h1>
-                    <p className="text-gray-500 mt-2">Sign in to your Ethree account</p>
+                    <p className="text-gray-500 mt-2">Sign in using your mobile number</p>
                 </div>
 
-                <form onSubmit={step === 1 ? handleSubmit : handleVerifyOtp} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-bold text-charcoal-grey mb-2">Email Address</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={step === 2}
-                            className={`w-full px-5 py-3 rounded-xl border border-gray-200 focus:border-sunset-orange focus:ring-1 focus:ring-sunset-orange transition-all outline-none ${step === 2 ? 'bg-gray-50' : ''}`}
-                            placeholder="user@example.com"
-                            required
-                        />
-                    </div>
-
+                <form onSubmit={step === 1 ? handleSendOtp : handleVerifyOtp} className="space-y-6">
                     {step === 1 ? (
                         <>
                             <div>
-                                <label className="block text-sm font-bold text-charcoal-grey mb-2">Password</label>
+                                <label className="block text-sm font-bold text-charcoal-grey mb-2">Mobile Number</label>
                                 <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    type="tel"
+                                    value={mobile}
+                                    onChange={(e) => setMobile(e.target.value)}
                                     className="w-full px-5 py-3 rounded-xl border border-gray-200 focus:border-sunset-orange focus:ring-1 focus:ring-sunset-orange transition-all outline-none"
-                                    placeholder="••••••••"
+                                    placeholder="Enter your 10-digit number"
                                     required
                                 />
+                                <p className="text-xs text-gray-400 mt-2">Dummy OTP: 123456</p>
                             </div>
                             <button
                                 type="submit"
-                                className="w-full bg-sunset-orange text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-sunset-orange/20 transition-all active:scale-95"
+                                disabled={isLoading}
+                                className="w-full bg-sunset-orange text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-sunset-orange/20 transition-all active:scale-95 disabled:opacity-50"
                             >
-                                Sign In
+                                {isLoading ? 'Sending...' : 'Send OTP'}
                             </button>
-
                         </>
                     ) : (
                         <>
@@ -229,7 +214,7 @@ const Login = () => {
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                             >
-                                <label className="block text-sm font-bold text-charcoal-grey mb-2">Enter OTP (Sent to Email)</label>
+                                <label className="block text-sm font-bold text-charcoal-grey mb-2">Enter OTP</label>
                                 <input
                                     type="text"
                                     value={otp}
@@ -242,26 +227,21 @@ const Login = () => {
                             </motion.div>
                             <button
                                 type="submit"
-                                className="w-full bg-riverside-teal text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-riverside-teal/20 transition-all active:scale-95"
+                                disabled={isLoading}
+                                className="w-full bg-riverside-teal text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-riverside-teal/20 transition-all active:scale-95 disabled:opacity-50"
                             >
-                                Verify & Proceed
+                                {isLoading ? 'Verifying...' : 'Verify & Login'}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setStep(1)}
                                 className="w-full text-gray-400 text-sm font-bold hover:text-charcoal-grey"
                             >
-                                Back to Password
+                                Change Mobile Number
                             </button>
                         </>
                     )}
                 </form>
-
-                <div className="mt-8 pt-8 border-t text-center">
-                    <p className="text-gray-500 text-sm">
-                        Don't have an account? <button className="text-sunset-orange font-bold hover:underline">Register Now</button>
-                    </p>
-                </div>
             </motion.div>
         </div>
     );
