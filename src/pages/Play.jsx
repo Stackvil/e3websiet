@@ -63,9 +63,9 @@ const Play = () => {
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-6 py-2 rounded-full font-bold transition-all ${filter === f
+                            className={`px-6 py-2 rounded-full font-bold transition-all duration-300 transform hover:scale-105 active:scale-95 ${filter === f
                                 ? 'bg-sunset-orange text-white shadow-lg'
-                                : 'bg-white text-charcoal-grey hover:border-sunset-orange border border-gray-100'
+                                : 'bg-white text-charcoal-grey hover:border-sunset-orange border border-gray-100 hover:shadow-md'
                                 }`}
                         >
                             {f}
@@ -83,22 +83,28 @@ const Play = () => {
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-50 flex flex-col hover:shadow-xl transition-shadow group"
+                                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-50 flex flex-col hover:shadow-2xl hover:shadow-riverside-teal/10 hover:-translate-y-2 hover:border-riverside-teal/30 transition-all duration-500 group"
                             >
                                 <div className="h-24 overflow-hidden relative">
                                     <img src={activity.image} alt={activity.name || activity.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                    <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-md font-black text-riverside-teal text-[10px]">
+                                    <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-md font-black text-riverside-teal text-[10px] shadow-sm">
                                         {typeof activity.price === 'number' ? `₹${activity.price}` : activity.price}
                                     </div>
+                                    {activity.status === 'closed' && (
+                                        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+                                            <p className="text-white font-bold bg-red-500/80 px-2 py-1 rounded text-[10px] transform -rotate-12 border border-red-400">CLOSED</p>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="p-2 flex-grow flex flex-col">
                                     <div className="flex justify-between items-center mb-1">
                                         <span className="text-sunset-orange font-bold uppercase text-[8px] tracking-widest">{activity.stall || activity.category}</span>
                                         <span className="text-gray-400 text-[8px] font-bold">{activity.ageGroup}</span>
                                     </div>
-                                    <h3 className="text-xs font-bold mb-1 truncate">{activity.name || activity.title}</h3>
+                                    <h3 className="text-xs font-bold mb-1 truncate group-hover:text-riverside-teal transition-colors">{activity.name || activity.title}</h3>
                                     {activity.isCombo && <p className="text-[10px] text-riverside-teal font-bold mb-2">Any 5 Rides</p>}
                                     <button
+                                        disabled={activity.status === 'closed'}
                                         onClick={() => addToCart({
                                             id: `play-${activity._id || activity.id}`,
                                             name: activity.name || activity.title,
@@ -106,9 +112,12 @@ const Play = () => {
                                             image: activity.image,
                                             stall: activity.stall || activity.category
                                         })}
-                                        className="flex items-center justify-between w-full btn-orange text-[10px] py-1 px-2 rounded-md"
+                                        className={`flex items-center justify-between w-full text-[10px] py-1 px-2 rounded-md transition-all duration-300 transform hover:scale-105 active:scale-95 ${activity.status === 'closed'
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'btn-orange hover:shadow-lg'
+                                            }`}
                                     >
-                                        Book <Ticket size={12} />
+                                        {activity.status === 'closed' ? 'Closed' : 'Book'} <Ticket size={12} />
                                     </button>
                                 </div>
                             </motion.div>

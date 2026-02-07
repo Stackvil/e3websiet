@@ -36,7 +36,7 @@ const Home = () => {
                 {/* Parallax Background Placeholder */}
                 <div
                     className="absolute inset-0 z-0 bg-fixed bg-cover bg-center opacity-60"
-                    style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1517433367423-c7e5b0f35086?auto=format&fit=crop&w=1600&q=80")' }}
+                    style={{ backgroundImage: 'url("/ai-generated-a-very-large-ferris-wheel-is-seen-free-photo.jpeg")' }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal-grey to-transparent z-10" />
 

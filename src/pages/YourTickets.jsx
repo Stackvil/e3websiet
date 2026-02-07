@@ -5,7 +5,7 @@ import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
 
 const YourTickets = () => {
-    const { tickets, user } = useStore();
+    const { tickets, user, clearTickets } = useStore();
 
     // Filter tickets for current user if needed, or just show all if local storage is simple
     const userTickets = user ? tickets.filter(t => !t.userMobile || t.userMobile === user.mobile) : [];
@@ -24,9 +24,21 @@ const YourTickets = () => {
     }
 
     return (
-        <div className="min-h-screen bg-creamy-white pt-4 pb-12">
+        <div className="min-h-screen bg-creamy-white pt-24 pb-12">
             <div className="container mx-auto px-6">
-                <h1 className="text-3xl md:text-4xl font-heading font-bold text-charcoal-grey mb-8">Your Tickets</h1>
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-3xl md:text-4xl font-heading font-bold text-charcoal-grey">Your Tickets</h1>
+                    <button
+                        onClick={() => {
+                            if (window.confirm('Are you sure you want to clear your ticket history?')) {
+                                clearTickets();
+                            }
+                        }}
+                        className="text-red-500 hover:text-red-600 text-sm font-bold border border-red-200 bg-red-50 px-4 py-2 rounded-lg transition-colors hover:bg-red-100"
+                    >
+                        Clear History
+                    </button>
+                </div>
 
                 <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                     {userTickets.map((ticket) => (

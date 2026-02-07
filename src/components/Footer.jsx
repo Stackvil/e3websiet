@@ -51,12 +51,12 @@ const Footer = () => {
                     <div>
                         <h4 className="font-bold text-xs uppercase tracking-[0.4em] text-primary mb-10">Connect</h4>
                         <div className="space-y-8">
-                            <div className="flex gap-4">
+                            <a href="https://maps.app.goo.gl/hFphRTCW5GM6ttLF9" target="_blank" rel="noopener noreferrer" className="flex gap-4 hover:text-primary transition-colors">
                                 <MapPin className="text-primary flex-shrink-0" size={20} />
                                 <span className="text-text-secondary text-sm leading-relaxed">
                                     Opp. APSRTC Bus Stand, Padmavathi Ghat, Vijayawada, AP 520013
                                 </span>
-                            </div>
+                            </a>
                             <div className="flex items-center gap-4">
                                 <Phone className="text-primary flex-shrink-0" size={20} />
                                 <span className="text-text-secondary text-sm font-bold tracking-widest">

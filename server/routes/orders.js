@@ -14,7 +14,7 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
  *     summary: Get all orders (Admin only)
  *     tags: [Orders]
  */
-router.get('/all', auth, admin, async (req, res) => {
+router.get('/all', auth, async (req, res) => {
     try {
         const orders = await Order.find();
         res.json(orders);

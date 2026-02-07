@@ -30,7 +30,12 @@ class MockModel {
 
     async create(doc) {
         const data = await fs.readJson(this.filePath);
-        const newDoc = { ...doc, _id: Date.now().toString(), createdAt: new Date() };
+        // Respect provided _id and createdAt, or generate defaults
+        const newDoc = {
+            ...doc,
+            _id: doc._id || Date.now().toString(),
+            createdAt: doc.createdAt || new Date()
+        };
         data.push(newDoc);
         await fs.writeJson(this.filePath, data);
         return newDoc;

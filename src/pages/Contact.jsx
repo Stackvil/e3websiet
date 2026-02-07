@@ -29,7 +29,9 @@ const Contact = () => {
 
                             <div className="space-y-10">
                                 <div className="flex gap-6">
-                                    <MapPin className="text-riverside-teal shrink-0" size={28} />
+                                    <a href="https://maps.app.goo.gl/hFphRTCW5GM6ttLF9" target="_blank" rel="noopener noreferrer" className="shrink-0">
+                                        <MapPin className="text-riverside-teal hover:text-sunset-orange transition-colors" size={28} />
+                                    </a>
                                     <div>
                                         <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Address</p>
                                         <p className="font-bold text-charcoal-grey leading-relaxed">Opp. APSRTC Bus Stand, Padmavathi Ghat, Krishnalanka, Vijayawada 520013</p>
@@ -40,7 +42,7 @@ const Contact = () => {
                                     <Phone className="text-riverside-teal shrink-0" size={28} />
                                     <div>
                                         <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Phone</p>
-                                        <p className="font-bold text-charcoal-grey">070369 23456</p>
+                                        <p className="font-bold text-charcoal-grey">70369 23456</p>
                                     </div>
                                 </div>
 
@@ -67,19 +69,26 @@ const Contact = () => {
                             <div className="absolute inset-0 bg-riverside-teal/20" />
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="bg-white p-6 rounded-3xl shadow-2xl flex items-center gap-6 max-w-sm">
-                                    <div className="w-16 h-16 bg-riverside-teal rounded-2xl flex items-center justify-center text-white text-2xl font-black">E3</div>
+                                    <img src="/e3logo.jpeg" alt="E3 Logo" className="w-16 h-16 object-contain rounded-2xl" />
                                     <div>
                                         <h4 className="font-bold text-lg">Ethree Vijayawada</h4>
                                         <p className="text-xs text-gray-500 mb-4 font-body">Opp. APSRTC Bus Stand</p>
-                                        <button className="bg-sunset-orange text-white px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest">Open in Maps</button>
+                                        <a
+                                            href="https://maps.app.goo.gl/hFphRTCW5GM6ttLF9"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="bg-sunset-orange text-white px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest inline-block hover:bg-opacity-90 transition-opacity"
+                                        >
+                                            Open in Maps
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-8">
-                            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 flex items-center gap-6">
-                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-charcoal-grey">
+                            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 flex items-center gap-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-riverside-teal/30 group">
+                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-charcoal-grey group-hover:bg-riverside-teal group-hover:text-white transition-colors">
                                     <ParkingCircle size={32} />
                                 </div>
                                 <div>
@@ -87,8 +96,8 @@ const Contact = () => {
                                     <p className="text-sm text-gray-400">Fixed rate of ₹30 for all vehicles.</p>
                                 </div>
                             </div>
-                            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 flex items-center gap-6">
-                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-charcoal-grey">
+                            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 flex items-center gap-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-riverside-teal/30 group">
+                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-charcoal-grey group-hover:bg-riverside-teal group-hover:text-white transition-colors">
                                     <Bus size={32} />
                                 </div>
                                 <div>
@@ -101,7 +110,7 @@ const Contact = () => {
                 </div>
 
                 {/* Quick Contact Form */}
-                <section className="bg-sunset-orange text-white rounded-[4rem] p-12 md:p-20 relative overflow-hidden">
+                <section className="bg-sunset-orange text-white rounded-[4rem] p-12 md:p-20 relative overflow-hidden transition-transform hover:scale-[1.01] duration-700">
                     <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 blur-[100px] rounded-full -mb-48 -mr-48" />
                     <div className="relative z-10 grid md:grid-cols-2 gap-16 items-center">
                         <div>
@@ -110,16 +119,16 @@ const Contact = () => {
                                 Whether you're planning a large party or just want to know about today's special stall, our team is ready to help.
                             </p>
                             <div className="space-y-4">
-                                <div className="flex items-center gap-4 text-xl font-bold">
-                                    <Mail className="text-white/60" /> hello@ethree.in
+                                <div className="flex items-center gap-4 text-xl font-bold group cursor-pointer">
+                                    <Mail className="text-white/60 group-hover:text-white transition-colors" /> hello@ethree.in
                                 </div>
                             </div>
                         </div>
-                        <form className="space-y-4 bg-white/10 p-8 rounded-3xl backdrop-blur-md">
-                            <input type="text" placeholder="Full Name" className="w-full bg-white/10 border border-white/20 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-white/40 transition-all placeholder:text-white/60" />
-                            <input type="email" placeholder="Email Address" className="w-full bg-white/10 border border-white/20 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-white/40 transition-all placeholder:text-white/60" />
-                            <textarea placeholder="Your Message" rows="4" className="w-full bg-white/10 border border-white/20 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-white/40 transition-all placeholder:text-white/60" />
-                            <button className="w-full bg-white text-sunset-orange py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-opacity-90 transition-all flex items-center justify-center gap-3">
+                        <form className="space-y-4 bg-white/10 p-8 rounded-3xl backdrop-blur-md hover:bg-white/15 transition-colors duration-500">
+                            <input type="text" placeholder="Full Name" className="w-full bg-white/10 border border-white/20 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-white/40 transition-all placeholder:text-white/60 hover:bg-white/20" />
+                            <input type="email" placeholder="Email Address" className="w-full bg-white/10 border border-white/20 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-white/40 transition-all placeholder:text-white/60 hover:bg-white/20" />
+                            <textarea placeholder="Your Message" rows="4" className="w-full bg-white/10 border border-white/20 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-white/40 transition-all placeholder:text-white/60 hover:bg-white/20" />
+                            <button className="w-full bg-white text-sunset-orange py-4 rounded-xl font-bold uppercase tracking-[0.2em] hover:bg-opacity-90 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-xl flex items-center justify-center gap-3">
                                 Send Message <Send size={18} />
                             </button>
                         </form>

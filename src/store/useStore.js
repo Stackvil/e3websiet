@@ -57,9 +57,10 @@ const useStore = create(
             addTicket: (ticket) => set((state) => ({
                 tickets: [ticket, ...state.tickets]
             })),
+            clearTickets: () => set({ tickets: [] }),
         }),
         {
-            name: 'ethree-storage',
+            name: 'ethree-storage-v1',
         }
     )
 );
