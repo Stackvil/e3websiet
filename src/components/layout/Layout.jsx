@@ -39,11 +39,13 @@ const Header = () => {
                         </Link>
                     ))}
                     <Link to="/login" className="font-semibold text-charcoal-grey hover:text-sunset-orange transition-all duration-300 hover:scale-105">
-                        {user ? (user.name || 'User') : 'Login'}
+                        {user ? (user.role === 'admin' ? 'Admin' : (user.name || 'User')) : 'Login'}
                     </Link>
-                    <Link to="/" className="btn-orange flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform duration-300 shadow-lg hover:shadow-orange-500/30">
-                        Book Tickets <Ticket size={18} />
-                    </Link>
+                    {location.pathname !== '/' && (
+                        <Link to="/" className="btn-orange flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform duration-300 shadow-lg hover:shadow-orange-500/30">
+                            Book Tickets <Ticket size={18} />
+                        </Link>
+                    )}
                 </nav>
 
                 {/* Mobile Toggle */}
@@ -73,11 +75,13 @@ const Header = () => {
                                 </Link>
                             ))}
                             <Link to="/login" onClick={() => setIsOpen(false)} className="text-lg font-semibold">
-                                {user ? (user.name || 'User') : 'Login'}
+                                {user ? (user.role === 'admin' ? 'Admin' : (user.name || 'User')) : 'Login'}
                             </Link>
-                            <Link to="/" onClick={() => setIsOpen(false)} className="btn-orange text-center">
-                                Book Tickets
-                            </Link>
+                            {location.pathname !== '/' && (
+                                <Link to="/" onClick={() => setIsOpen(false)} className="btn-orange text-center">
+                                    Book Tickets
+                                </Link>
+                            )}
                         </div>
                     </motion.div>
                 )}

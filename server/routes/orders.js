@@ -56,7 +56,8 @@ router.post('/checkout', auth, async (req, res) => {
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
-                product: item.id
+                product: item.id,
+                details: item.details // Save event details
             })),
             totalAmount: items.reduce((acc, item) => acc + (item.price * item.quantity), 0),
             paymentMethod: 'stripe',

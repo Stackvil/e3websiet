@@ -79,8 +79,13 @@ const YourTickets = () => {
                                                     <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-charcoal-grey leading-tight text-[10px] truncate max-w-[60px]">{item.name}</h4>
+                                                    <h4 className="font-bold text-charcoal-grey leading-tight text-[10px]">{item.name}</h4>
                                                     <p className="text-[9px] text-gray-400">Qty: {item.quantity}</p>
+                                                    {item.details && (
+                                                        <p className="text-[9px] text-riverside-teal font-bold mt-0.5">
+                                                            {item.details.date} • {item.details.startTime}-{item.details.endTime}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                             <span className="font-bold text-xs text-charcoal-grey">₹{item.price * item.quantity}</span>

@@ -7,7 +7,7 @@ import useStore from '../store/useStore';
 const Success = () => {
     const [searchParams] = useSearchParams();
     const orderId = searchParams.get('orderId');
-    const { clearCart, addTicket, tickets } = useStore();
+    const { clearCart, addTicket, tickets, closeCart } = useStore();
     const [orderData, setOrderData] = useState(null);
     const [bookedItems, setBookedItems] = useState([]);
     const processedRef = useRef(false);
@@ -63,7 +63,8 @@ const Success = () => {
         };
 
         fetchOrder();
-    }, [orderId, clearCart, addTicket, tickets]);
+        closeCart(); // Ensure cart is closed on success page
+    }, [orderId, clearCart, addTicket, closeCart]);
 
     if (!orderId) return null;
 

@@ -122,7 +122,7 @@ const Dine = () => {
     const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
     return (
-        <div className="bg-creamy-white min-h-screen pt-24 pb-12">
+        <div className="bg-creamy-white min-h-screen pt-16 pb-12">
             <div className="container mx-auto px-6">
 
 

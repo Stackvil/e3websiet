@@ -54,9 +54,10 @@ const useStore = create(
             setUser: (user) => set({ user }),
 
             tickets: [], // Store for confirmed tickets
-            addTicket: (ticket) => set((state) => ({
-                tickets: [ticket, ...state.tickets]
-            })),
+            addTicket: (ticket) => set((state) => {
+                if (state.tickets.some(t => t.id === ticket.id)) return state;
+                return { tickets: [ticket, ...state.tickets] };
+            }),
             clearTickets: () => set({ tickets: [] }),
         }),
         {

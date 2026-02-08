@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState('bookings');
+    const [activeTab, setActiveTab] = useState('analytics');
     const [bookings, setBookings] = useState([]);
     const [products, setProducts] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -64,7 +66,7 @@ const AdminDashboard = () => {
         if (!window.confirm('Are you sure?')) return;
         const token = localStorage.getItem('token');
         try {
-            await fetch(`http://localhost:5001/api/products/${id}`, {
+            fetch(`http://localhost:5001/api/products/${id}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });
@@ -101,10 +103,10 @@ const AdminDashboard = () => {
     };
 
     const tabs = [
-        { id: 'bookings', label: 'Bookings', icon: Calendar },
+        { id: 'analytics', label: 'Analytics', icon: LayoutDashboard },
         { id: 'dine', label: 'Dine', icon: Utensils },
         { id: 'rides', label: 'Rides', icon: Gamepad2 },
-        { id: 'analytics', label: 'Analytics', icon: LayoutDashboard },
+        { id: 'bookings', label: 'Bookings', icon: Calendar },
     ];
 
     // Helper to get filtered products
@@ -117,7 +119,7 @@ const AdminDashboard = () => {
     const visibleProducts = getVisibleProducts();
 
     return (
-        <div className="min-h-screen bg-gray-50 flex pt-20">
+        <div className="min-h-screen bg-gray-50 flex">
             {/* Sidebar */}
             <div className="w-64 bg-white border-r h-[calc(100vh-80px)] fixed left-0">
                 <div className="p-6">
@@ -314,11 +316,100 @@ const AdminDashboard = () => {
                                 status === 'completed';
 
                             return isPaid;
-                        });
+                        }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                        const totalAmount = filteredTransactions.reduce((acc, tx) => acc + (tx.totalAmount || tx.amount || 0), 0);
+
+                        const generatePDF = () => {
+                            try {
+                                const doc = new jsPDF();
+
+                                // Title
+                                doc.setFontSize(18);
+                                doc.text('Ethree - Transaction Report', 14, 22);
+                                doc.setFontSize(11);
+                                doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+                                // Group by Date
+                                const filteredTransactions = transactions.filter(tx => {
+                                    const status = (tx.status || '').toLowerCase();
+                                    const paymentStatus = (tx.paymentStatus || '').toLowerCase();
+
+                                    const isPaid =
+                                        paymentStatus === 'paid' ||
+                                        paymentStatus === 'success' ||
+                                        paymentStatus === 'completed' ||
+                                        status === 'confirmed' ||
+                                        status === 'success' ||
+                                        status === 'completed';
+
+                                    return isPaid;
+                                }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                                const grouped = filteredTransactions.reduce((groups, tx) => {
+                                    const date = new Date(tx.createdAt).toLocaleDateString();
+                                    if (!groups[date]) {
+                                        groups[date] = [];
+                                    }
+                                    groups[date].push(tx);
+                                    return groups;
+                                }, {});
+
+                                let yPos = 40;
+
+                                Object.keys(grouped).forEach(date => {
+                                    const dateTrans = grouped[date];
+                                    const dayTotal = dateTrans.reduce((sum, tx) => sum + (tx.totalAmount || tx.amount || 0), 0);
+
+                                    // Check if we need a new page
+                                    if (yPos > 250) {
+                                        doc.addPage();
+                                        yPos = 20;
+                                    }
+
+                                    // Date Header
+                                    doc.setFontSize(14);
+                                    doc.setTextColor(0, 128, 128); // Riverside Teal-ish
+                                    doc.text(`${date} - Total: Rs. ${dayTotal}`, 14, yPos);
+                                    yPos += 10;
+
+                                    // Table for this date
+                                    const tableData = dateTrans.map(tx => [
+                                        `#${tx._id.slice(-6).toUpperCase()}`,
+                                        new Date(tx.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                                        tx.items ? tx.items.map(i => `${i.quantity}x ${i.name}`).join(', ').substring(0, 50) + (tx.items.length > 2 ? '...' : '') : 'N/A',
+                                        `Rs. ${tx.totalAmount || tx.amount}`
+                                    ]);
+
+                                    autoTable(doc, {
+                                        startY: yPos,
+                                        head: [['Order ID', 'Time', 'Items', 'Amount']],
+                                        body: tableData,
+                                        theme: 'grid',
+                                        headStyles: { fillColor: [41, 128, 185] }, // Blue-ish
+                                        styles: { fontSize: 8 },
+                                        margin: { left: 14, right: 14 }
+                                    });
+
+                                    yPos = doc.lastAutoTable.finalY + 15;
+                                });
+
+                                // Grand Total
+                                const totalAmount = filteredTransactions.reduce((acc, tx) => acc + (tx.totalAmount || tx.amount || 0), 0);
+                                doc.setFontSize(16);
+                                doc.setTextColor(255, 69, 0); // Orange-ish
+                                doc.text(`Grand Total Revenue: Rs. ${totalAmount}`, 14, yPos);
+
+                                doc.save('ethree_transactions.pdf');
+                            } catch (err) {
+                                console.error("PDF Generation Error:", err);
+                                alert("Failed to generate PDF. Please see console for details.");
+                            }
+                        };
 
                         return (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
                                     <div className="flex items-center gap-4">
                                         <h2 className="text-lg font-bold font-heading text-charcoal-grey">Ride & Event Bookings</h2>
                                         <button
@@ -329,9 +420,19 @@ const AdminDashboard = () => {
                                             <RefreshCw size={16} />
                                         </button>
                                     </div>
-                                    <span className="bg-riverside-teal/10 text-riverside-teal px-3 py-1 rounded-full text-xs font-bold">
-                                        Confirmed: {filteredTransactions.length}
-                                    </span>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-right">
+                                            <p className="text-xs text-gray-500 uppercase font-bold tracking-widest">Total Revenue</p>
+                                            <p className="text-xl font-bold text-riverside-teal">₹{totalAmount}</p>
+                                        </div>
+                                        <button
+                                            onClick={generatePDF}
+                                            className="bg-charcoal-grey text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-opacity-90 transition-colors text-xs uppercase tracking-wide"
+                                        >
+                                            <Download size={16} />
+                                            Export PDF
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
@@ -353,7 +454,9 @@ const AdminDashboard = () => {
                                                         </td>
                                                         <td className="px-6 py-4 text-sm text-gray-500">
                                                             {new Date(tx.createdAt).toLocaleDateString()}
-                                                            <span className="block text-xs text-gray-400">{new Date(tx.createdAt).toLocaleTimeString()}</span>
+                                                            <span className="block text-xs text-gray-400">
+                                                                {new Date(tx.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                                            </span>
                                                         </td>
                                                         <td className="px-6 py-4 text-sm text-gray-700">
                                                             {tx.items && tx.items.length > 0 ? (

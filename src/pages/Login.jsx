@@ -79,7 +79,8 @@ const Login = () => {
                 alert(data.message || 'Invalid OTP');
             }
         } catch (err) {
-            alert('OTP error');
+            console.error(err);
+            alert('Failed to connect to the server. Please ensure the backend is running.');
         } finally {
             setIsLoading(false);
         }
@@ -141,7 +142,9 @@ const Login = () => {
                     ) : (
                         <>
                             <h1 className="text-3xl font-heading font-bold text-charcoal-grey mb-2">Welcome Back!</h1>
-                            <p className="text-xl font-bold text-sunset-orange mb-1">{user.name || user.mobile}</p>
+                            <p className="text-xl font-bold text-sunset-orange mb-1">
+                                {user.role === 'admin' ? 'Admin' : (user.name || user.mobile)}
+                            </p>
                             <p className="text-gray-400 text-sm mb-8">{user.mobile}</p>
 
                             {user.role === 'admin' && (

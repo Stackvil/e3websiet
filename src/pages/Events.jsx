@@ -31,22 +31,108 @@ const Events = () => {
         setSelectedRoom(prev.name);
     };
 
+    const [availabilityStatus, setAvailabilityStatus] = useState(null); // 'checking', 'available', 'unavailable'
+
+    const checkAvailability = async (e) => {
+        if (e) e.preventDefault();
+        if (!selectedDate || !startTime || !endTime) {
+            alert('Please select date and time');
+            return;
+        }
+
+        setAvailabilityStatus('checking');
+        try {
+            const res = await fetch('http://localhost:5001/api/bookings/check-availability', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: selectedDate,
+                    startTime,
+                    endTime,
+                    roomName: selectedRoom
+                })
+            });
+            const data = await res.json();
+            if (data.available) {
+                setAvailabilityStatus('available');
+            } else {
+                setAvailabilityStatus('unavailable');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error checking availability');
+            setAvailabilityStatus(null);
+        }
+    };
+
+    const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+    const { user, tickets } = useStore();
+
+    // Filter tickets for current user events
+    const myEvents = user ? tickets.filter(t =>
+        (!t.userMobile || t.userMobile === user.mobile) &&
+        t.items.some(item => item.product && item.product.toString().startsWith('event-'))
+    ) : [];
+
+    const initiatePayment = async (room) => {
+        setIsPaymentProcessing(true);
+        try {
+            const totalPrice = room.price; // Assuming 1 hour or flat fee for now as per previous logic
+            const response = await fetch('http://localhost:5001/api/payment/initiate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    amount: totalPrice,
+                    firstname: user?.name?.split(' ')[0] || 'Guest',
+                    email: user?.email || 'guest@example.com',
+                    phone: user?.mobile || '9999999999',
+                    productinfo: `Event Booking: ${room.name}`,
+                    items: [{
+                        id: `event-${room.id}-${Date.now()}`,
+                        name: `${room.name} Booking`,
+                        price: room.price,
+                        quantity: 1, // Default quantity
+                        image: room.image,
+                        stall: 'Events',
+                        details: { date: selectedDate, startTime, endTime }
+                    }]
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.href = result.payment_url;
+            } else {
+                alert('Payment Initiation Failed: ' + result.message);
+                setIsPaymentProcessing(false);
+            }
+        } catch (error) {
+            console.error('Payment Error:', error);
+            alert(`Payment Error: ${error.message}`);
+            setIsPaymentProcessing(false);
+        }
+    };
+
     const handleBook = (e) => {
         e.preventDefault();
+        if (availabilityStatus !== 'available') {
+            checkAvailability();
+            return;
+        }
+
         const room = ROOMS.find(r => r.name === selectedRoom);
-        addToCart({
-            id: `event-${room.id}`,
-            name: `${room.name} Booking`,
-            price: room.price,
-            image: room.image,
-            stall: 'Events',
-            details: { date: selectedDate, startTime, endTime }
-        });
-        setBooked(true);
-        setTimeout(() => {
-            setBooked(false);
-            toggleCart();
-        }, 1000);
+
+        if (user) {
+            initiatePayment(room);
+        } else {
+            // If not logged in, maybe prompt login or allow guest checkout?
+            // For now, let's assume guest checkout is allowed or redirect to login
+            // Using the same initiatePayment logic which handles defaults
+            initiatePayment(room);
+        }
     };
 
     return (
@@ -64,7 +150,7 @@ const Events = () => {
                             </p>
                         </div>
 
-                        <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden">
+                        <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden mb-12">
                             <AnimatePresence mode="wait">
                                 {ROOMS.filter(r => r.name === selectedRoom).map(room => (
                                     <motion.div
@@ -128,6 +214,43 @@ const Events = () => {
                                 ))}
                             </AnimatePresence>
                         </div>
+
+                        {/* My Scheduled Events Section */}
+                        {myEvents.length > 0 && (
+                            <div className="mt-12">
+                                <h2 className="text-2xl font-heading font-bold text-charcoal-grey mb-6">My Scheduled Events</h2>
+                                <div className="space-y-4">
+                                    {myEvents.map(ticket => (
+                                        ticket.items.map((item, idx) => (
+                                            <div key={`${ticket.id}-${idx}`} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6">
+                                                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-grow">
+                                                    <h3 className="font-bold text-lg text-charcoal-grey">{item.name}</h3>
+                                                    {item.details && (
+                                                        <div className="flex gap-4 text-sm text-gray-500 mt-1">
+                                                            <div className="flex items-center gap-1">
+                                                                <Calendar size={14} className="text-sunset-orange" />
+                                                                <span>{item.details.date}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <Clock size={14} className="text-riverside-teal" />
+                                                                <span>{item.details.startTime} - {item.details.endTime}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <div className="mt-2 flex items-center gap-2">
+                                                        <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Confirmed</span>
+                                                        <span className="text-xs text-gray-400">Order ID: {ticket.id}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Right: Booking Form Container */}
@@ -196,12 +319,24 @@ const Events = () => {
                                     </div>
                                 </div>
 
-                                <div className="pt-4">
+                                <div className="pt-4 space-y-3">
+                                    {availabilityStatus === 'unavailable' && (
+                                        <p className="text-red-500 font-bold text-center">Slot Not Available. Please choose another time.</p>
+                                    )}
+                                    {availabilityStatus === 'available' && (
+                                        <p className="text-green-500 font-bold text-center">Slot Available! Proceed to Book.</p>
+                                    )}
+
                                     <button
                                         type="submit"
-                                        className="w-full bg-sunset-orange hover:bg-opacity-90 py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg"
+                                        onClick={availabilityStatus === 'available' ? handleBook : checkAvailability}
+                                        disabled={availabilityStatus === 'checking' || isPaymentProcessing}
+                                        className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg ${availabilityStatus === 'available'
+                                                ? 'bg-green-500 hover:bg-green-600 text-white'
+                                                : 'bg-sunset-orange hover:bg-opacity-90 text-white'
+                                            }`}
                                     >
-                                        {booked ? 'Submitting...' : 'Confirm Reservation'} <ArrowRight size={20} />
+                                        {availabilityStatus === 'checking' ? 'Checking...' : (isPaymentProcessing ? 'Processing Payment...' : (availabilityStatus === 'available' ? 'Confirm & Pay' : 'Check Availability'))} <ArrowRight size={20} />
                                     </button>
                                 </div>
                             </form>

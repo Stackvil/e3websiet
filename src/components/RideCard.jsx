@@ -28,7 +28,7 @@ const RideCard = ({ ride }) => {
         addToCart({
             id: `play-${ride._id || ride.id}`,
             name: ride.name || ride.title,
-            price: typeof ride.price === 'number' ? ride.price : 0,
+            price: Number(ride.price) || 0,
             image: ride.image,
             stall: ride.stall || ride.category
         }, quantity);
@@ -43,7 +43,7 @@ const RideCard = ({ ride }) => {
 
     return (
         <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all duration-500 group flex flex-col aspect-square w-full shadow-lg hover:shadow-2xl hover:shadow-sunset-orange/20 hover:-translate-y-2">
-            <div className="h-[55%] overflow-hidden relative">
+            <div className="h-[65%] overflow-hidden relative">
                 <img
                     src={displayImage}
                     alt={ride.name || ride.title}
@@ -63,7 +63,7 @@ const RideCard = ({ ride }) => {
                 )}
             </div>
 
-            <div className="p-1.5 flex flex-col h-[45%] justify-between">
+            <div className="p-1.5 flex flex-col h-[35%] justify-between">
                 <div className="flex flex-col items-center justify-center flex-grow">
                     <h3 className={`text-white font-bold leading-tight text-center line-clamp-2 ${ride.isCombo ? 'text-[10px]' : 'text-xs'}`}>{ride.name || ride.title}</h3>
                     {ride.isCombo && <p className="text-[8px] text-sunset-orange font-bold text-center mt-0 whitespace-nowrap leading-tight">Any 5 Rides</p>}
@@ -105,7 +105,7 @@ const RideCard = ({ ride }) => {
                                 : 'bg-sunset-orange hover:bg-orange-600 text-white shadow-orange-500/20'
                                 }`}
                         >
-                            {ride.status === 'closed' ? 'Closed' : 'Buy'} {ride.status !== 'closed' && <ArrowRight size={10} />}
+                            {ride.status === 'closed' ? 'Closed' : 'Buy Ticket'} {ride.status !== 'closed' && <ArrowRight size={10} />}
                         </button>
                     </div>
                 </div>
