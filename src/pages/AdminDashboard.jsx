@@ -21,25 +21,42 @@ const AdminDashboard = () => {
         const token = localStorage.getItem('token');
         const headers = { 'x-auth-token': token };
         try {
-            const [bookingsRes, productsRes] = await Promise.all([
-                fetch('http://localhost:5001/api/bookings', { headers }).catch(err => ({ ok: false, json: () => [] })),
-                fetch('http://localhost:5001/api/products')
-            ]);
+            console.log("Fetching admin data...");
 
-            const bookingsData = await bookingsRes.json();
-            const productsData = await productsRes.json();
+            // 1. Fetch Products
+            const productsRes = await fetch('http://127.0.0.1:5001/api/products');
+            if (productsRes.ok) {
+                const productsData = await productsRes.json();
+                if (Array.isArray(productsData)) setProducts(productsData);
+            } else {
+                console.error("Products fetch failed", productsRes.status);
+            }
 
-            if (Array.isArray(bookingsData)) setBookings(bookingsData);
-            if (Array.isArray(productsData)) setProducts(productsData);
+            // 2. Fetch Bookings (Safely)
+            try {
+                const bookingsRes = await fetch('http://127.0.0.1:5001/api/bookings', { headers });
+                if (bookingsRes.ok) {
+                    const bookingsData = await bookingsRes.json();
+                    console.log("Bookings data:", bookingsData);
+                    if (Array.isArray(bookingsData)) setBookings(bookingsData);
+                } else {
+                    console.error("Bookings fetch failed with status:", bookingsRes.status);
+                    // If 404/500, we might get JSON error, treat as empty
+                    setBookings([]);
+                }
+            } catch (bookingErr) {
+                console.error("Bookings network error:", bookingErr);
+                setBookings([]);
+            }
 
-            // Fetch Transactions separately to avoid breaking existing Promise.all if it fails (or add to it)
-            const transactionsRes = await fetch('http://localhost:5001/api/orders/all', { headers });
+            // 3. Fetch Transactions
+            const transactionsRes = await fetch('http://127.0.0.1:5001/api/orders/all', { headers });
             if (transactionsRes.ok) {
                 const transactionsData = await transactionsRes.json();
                 setTransactions(transactionsData);
             }
         } catch (err) {
-            console.error('Fetch error:', err);
+            console.error('Global Fetch error:', err);
         }
     };
 
@@ -66,7 +83,7 @@ const AdminDashboard = () => {
         if (!window.confirm('Are you sure?')) return;
         const token = localStorage.getItem('token');
         try {
-            fetch(`http://localhost:5001/api/products/${id}`, {
+            await fetch(`http://127.0.0.1:5001/api/products/${id}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });
@@ -80,8 +97,8 @@ const AdminDashboard = () => {
         e.preventDefault();
         const token = localStorage.getItem('token');
         const url = editingItem
-            ? `http://localhost:5001/api/products/${editingItem._id}`
-            : 'http://localhost:5001/api/products';
+            ? `http://127.0.0.1:5001/api/products/${editingItem._id}`
+            : 'http://127.0.0.1:5001/api/products';
         const method = editingItem ? 'PUT' : 'POST';
 
         try {
@@ -175,14 +192,11 @@ const AdminDashboard = () => {
                                         <span className="px-3 py-1 bg-riverside-teal/10 text-riverside-teal rounded-full text-xs font-bold font-heading">
                                             {booking.facility}
                                         </span>
-                                        <span className="text-gray-400 text-sm">#{booking.id}</span>
+                                        <span className="text-gray-400 text-sm">#{booking.bookingId || booking.id}</span>
                                     </div>
                                     <h3 className="font-bold text-lg text-charcoal-grey">{booking.name}</h3>
-                                    <p className="text-gray-500 text-sm mt-1">{booking.date}</p>
-                                    <div className="mt-6 flex gap-2">
-                                        <button className="flex-1 bg-riverside-teal text-white py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors">Confirm</button>
-                                        <button className="flex-1 border border-gray-200 text-gray-500 py-2 rounded-lg font-bold hover:bg-gray-50 transition-colors">Cancel</button>
-                                    </div>
+                                    <p className="text-gray-500 text-sm mt-1">{booking.date} • {booking.time}</p>
+
                                 </div>
                             ))}
                         </div>

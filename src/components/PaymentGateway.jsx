@@ -16,7 +16,7 @@ const PaymentGateway = ({ amount, isOpen, onClose }) => {
     const handlePay = async () => {
         setIsPaying(true);
         try {
-            const response = await fetch('http://localhost:5001/api/payment/initiate', {
+            const response = await fetch('http://127.0.0.1:5001/api/payment/confirm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

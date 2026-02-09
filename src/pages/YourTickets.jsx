@@ -49,18 +49,39 @@ const YourTickets = () => {
                             className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100 flex flex-col max-w-[13rem] mx-auto w-full"
                         >
                             {/* Prominent QR Code Section */}
-                            <div className="p-2 bg-white flex flex-col items-center justify-center border-b-2 border-dashed border-gray-100 relative">
-                                {/* Semi-circles for ticket punch effect */}
-                                <div className="absolute bottom-[-8px] left-[-8px] w-4 h-4 bg-creamy-white rounded-full" />
-                                <div className="absolute bottom-[-8px] right-[-8px] w-4 h-4 bg-creamy-white rounded-full" />
+                            {/* Conditional Display: Event Bill vs Ride QR */}
+                            {ticket.items.some(item => (item.id && typeof item.id === 'string' && item.id.startsWith('event-')) || item.stall === 'Events') ? (
+                                <div className="p-4 bg-riverside-teal/5 flex flex-col items-center justify-center border-b-2 border-dashed border-gray-100 relative min-h-[150px]">
+                                    {/* Semi-circles for ticket punch effect */}
+                                    <div className="absolute bottom-[-8px] left-[-8px] w-4 h-4 bg-creamy-white rounded-full" />
+                                    <div className="absolute bottom-[-8px] right-[-8px] w-4 h-4 bg-creamy-white rounded-full" />
 
-                                <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticket.id}`}
-                                    alt="Ticket QR"
-                                    className="w-28 h-28 mix-blend-multiply"
-                                />
-                                <p className="mt-1 text-[7px] text-gray-400 font-bold uppercase tracking-widest">Scan at Entry</p>
-                            </div>
+                                    <div className="text-center">
+                                        <h3 className="text-riverside-teal font-heading font-bold text-lg mb-2">Event Booking</h3>
+                                        <p className="text-[9px] text-gray-500 mb-4 uppercase tracking-wider font-bold">Receipt Generated</p>
+                                        <button
+                                            onClick={() => alert(`Downloading Bill for Order #${ticket.id}`)}
+                                            className="px-4 py-2 bg-white border border-gray-200 shadow-sm rounded-lg text-[10px] font-bold text-charcoal-grey hover:bg-gray-50 flex items-center justify-center gap-2 mx-auto"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                            Download Bill
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-2 bg-white flex flex-col items-center justify-center border-b-2 border-dashed border-gray-100 relative">
+                                    {/* Semi-circles for ticket punch effect */}
+                                    <div className="absolute bottom-[-8px] left-[-8px] w-4 h-4 bg-creamy-white rounded-full" />
+                                    <div className="absolute bottom-[-8px] right-[-8px] w-4 h-4 bg-creamy-white rounded-full" />
+
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticket.id}`}
+                                        alt="Ticket QR"
+                                        className="w-28 h-28 mix-blend-multiply"
+                                    />
+                                    <p className="mt-1 text-[7px] text-gray-400 font-bold uppercase tracking-widest">Scan at Entry</p>
+                                </div>
+                            )}
 
                             {/* Ride Details & Cost */}
                             <div className="p-2 bg-gray-50/50 flex-grow">
@@ -83,7 +104,14 @@ const YourTickets = () => {
                                                     <p className="text-[9px] text-gray-400">Qty: {item.quantity}</p>
                                                     {item.details && (
                                                         <p className="text-[9px] text-riverside-teal font-bold mt-0.5">
-                                                            {item.details.date} • {item.details.startTime}-{item.details.endTime}
+                                                            {item.details.date} • {(() => {
+                                                                const format = (t) => {
+                                                                    if (!t) return '';
+                                                                    const [h, m] = t.split(':').map(Number);
+                                                                    return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                                                                };
+                                                                return `${format(item.details.startTime)} - ${format(item.details.endTime)}`;
+                                                            })()}
                                                         </p>
                                                     )}
                                                 </div>

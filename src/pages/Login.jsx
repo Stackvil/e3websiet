@@ -42,14 +42,21 @@ const Login = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await fetch('http://localhost:5001/api/auth/send-otp', {
+            const res = await fetch('http://127.0.0.1:5001/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mobile })
             });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Server error');
+            }
+
             setStep(2);
         } catch (err) {
-            alert('Failed to send OTP');
+            console.error('OTP Error:', err);
+            alert(`Failed to send OTP: ${err.message}. Is the server running?`);
         } finally {
             setIsLoading(false);
         }
@@ -59,7 +66,7 @@ const Login = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const res = await fetch('http://localhost:5001/api/auth/verify-otp', {
+            const res = await fetch('http://127.0.0.1:5001/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mobile, otp })

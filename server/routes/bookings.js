@@ -30,18 +30,38 @@ router.get('/', auth, admin, async (req, res) => {
             if (!order.items) return [];
 
             return order.items
-                .filter(item => item.product && item.product.toString().startsWith('event-'))
-                .map(item => ({
-                    id: order._id,
-                    name: order.user ? (order.user.name || 'User') : 'Guest', // This might need population if user is just ID
-                    facility: item.name,
-                    date: item.details?.date || 'N/A',
-                    time: `${item.details?.startTime} - ${item.details?.endTime}`,
-                    status: order.paymentStatus === 'paid' ? 'confirmed' : 'pending',
-                    price: item.price,
-                    quantity: item.quantity
-                }));
+                .filter(item => {
+                    const id = item.id || item.product || '';
+                    const isEvent = id.toString().startsWith('event-') || item.stall === 'Events';
+                    const isPaid =
+                        order.paymentStatus === 'paid' ||
+                        order.paymentStatus === 'success' ||
+                        order.status === 'success' ||
+                        order.status === 'confirmed';
+
+                    return isEvent && isPaid;
+                })
+                .map((item, idx) => {
+                    const formatTime = (t) => {
+                        if (!t) return '';
+                        const [h, m] = t.split(':').map(Number);
+                        return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                    };
+                    return {
+                        id: item.id || `${order._id}-${idx}`, // Unique Item ID
+                        bookingId: order.txnid || order._id, // Order ID for display
+                        name: order.firstname || (order.user ? (order.user.name || 'User') : 'Guest'),
+                        facility: item.name,
+                        date: item.details?.date || 'N/A',
+                        time: item.details?.startTime ? `${formatTime(item.details.startTime)} - ${formatTime(item.details.endTime)}` : 'N/A',
+                        status: (order.status || order.paymentStatus || 'pending'),
+                        price: item.price,
+                        quantity: item.quantity
+                    };
+                });
         });
+
+        console.log(`Found ${eventBookings.length} event bookings`);
 
         res.json(eventBookings);
     } catch (err) {

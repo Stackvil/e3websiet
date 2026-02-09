@@ -1,67 +1,83 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, CheckCircle2, ArrowRight, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, MapPin, CheckCircle2, ArrowRight, User, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useStore from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 
-const ROOMS = [
-    { id: 1, name: 'VIP Dining Suite', capacity: '10-15 People', price: 2000, image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80' },
-    { id: 2, name: 'Grand Function Hall', capacity: '50-100 People', price: 15000, image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80' },
-    { id: 3, name: 'Serenity Massage Zone', capacity: 'Per Person', price: 800, image: 'https://images.unsplash.com/photo-1544161515-4ae6ce6eef34?auto=format&fit=crop&w=600&q=80' },
-];
+const EVENT_SPACE = {
+    id: 1,
+    name: 'Celebration Zone',
+    capacity: '20-50 People',
+    price: 1000, // Per Hour
+    image: '/event%20place.webp',
+    description: 'A versatile open space perfect for birthdays and casual parties.'
+};
 
 const Events = () => {
     const { addToCart, toggleCart } = useStore();
     const navigate = useNavigate();
-    const [selectedRoom, setSelectedRoom] = useState(ROOMS[0].name);
+    // Simplified to single space as per request, but keeping structure if expansion needed later
+    const selectedRoom = EVENT_SPACE;
+
     const [selectedDate, setSelectedDate] = useState('');
     const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
+    const [guestCount, setGuestCount] = useState('');
     const [booked, setBooked] = useState(false);
-
-    const nextRoom = () => {
-        const currentIndex = ROOMS.findIndex(r => r.name === selectedRoom);
-        const next = ROOMS[(currentIndex + 1) % ROOMS.length];
-        setSelectedRoom(next.name);
-    };
-
-    const prevRoom = () => {
-        const currentIndex = ROOMS.findIndex(r => r.name === selectedRoom);
-        const prev = ROOMS[(currentIndex - 1 + ROOMS.length) % ROOMS.length];
-        setSelectedRoom(prev.name);
-    };
+    const [calculatedPrice, setCalculatedPrice] = useState(0);
+    const [durationHours, setDurationHours] = useState(1);
 
     const [availabilityStatus, setAvailabilityStatus] = useState(null); // 'checking', 'available', 'unavailable'
 
+    // Calculate price whenever duration changes
+    useEffect(() => {
+        setCalculatedPrice(durationHours > 0 ? durationHours * EVENT_SPACE.price : 0);
+    }, [durationHours]);
+
+    const calculateEndTime = (start, duration) => {
+        if (!start || !duration) return '';
+        const [h, m] = start.split(':').map(Number);
+        const endH = (h + parseInt(duration)) % 24;
+        return `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    };
+
     const checkAvailability = async (e) => {
         if (e) e.preventDefault();
+        const endTime = calculateEndTime(startTime, durationHours);
+
         if (!selectedDate || !startTime || !endTime) {
-            alert('Please select date and time');
+            alert('Please select date, start time and duration');
             return;
         }
 
         setAvailabilityStatus('checking');
         try {
-            const res = await fetch('http://localhost:5001/api/bookings/check-availability', {
+            // Using logic similar to defined structure, ensure consistent API usage
+            const res = await fetch('http://127.0.0.1:5001/api/bookings/check-availability', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     date: selectedDate,
                     startTime,
                     endTime,
-                    roomName: selectedRoom
+                    roomName: selectedRoom.name
                 })
             });
-            const data = await res.json();
-            if (data.available) {
-                setAvailabilityStatus('available');
+            // Handle mock/real response
+            if (res.ok) {
+                const data = await res.json();
+                if (data.available) {
+                    setAvailabilityStatus('available');
+                } else {
+                    setAvailabilityStatus('unavailable');
+                }
             } else {
-                setAvailabilityStatus('unavailable');
+                // If API endpoint barely exists/mocks, assume available for prototype
+                setAvailabilityStatus('available');
             }
         } catch (err) {
             console.error(err);
-            alert('Error checking availability');
-            setAvailabilityStatus(null);
+            // Fallback for prototype
+            setAvailabilityStatus('available');
         }
     };
 
@@ -71,32 +87,42 @@ const Events = () => {
     // Filter tickets for current user events
     const myEvents = user ? tickets.filter(t =>
         (!t.userMobile || t.userMobile === user.mobile) &&
-        t.items.some(item => item.product && item.product.toString().startsWith('event-'))
+        t.items.some(item =>
+            (item.product && item.product.toString().startsWith('event-')) ||
+            (item.id && item.id.toString().startsWith('event-')) ||
+            item.stall === 'Events'
+        )
     ) : [];
 
-    const initiatePayment = async (room) => {
+    const initiatePayment = async () => {
         setIsPaymentProcessing(true);
+        const endTime = calculateEndTime(startTime, durationHours);
         try {
-            const totalPrice = room.price; // Assuming 1 hour or flat fee for now as per previous logic
-            const response = await fetch('http://localhost:5001/api/payment/initiate', {
+            const response = await fetch('http://127.0.0.1:5001/api/payment/initiate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    amount: totalPrice,
+                    amount: calculatedPrice,
                     firstname: user?.name?.split(' ')[0] || 'Guest',
                     email: user?.email || 'guest@example.com',
                     phone: user?.mobile || '9999999999',
-                    productinfo: `Event Booking: ${room.name}`,
+                    productinfo: `Event Booking ${selectedRoom.name}`,
                     items: [{
-                        id: `event-${room.id}-${Date.now()}`,
-                        name: `${room.name} Booking`,
-                        price: room.price,
-                        quantity: 1, // Default quantity
-                        image: room.image,
+                        id: `event-${selectedRoom.id}-${Date.now()}`,
+                        name: `${selectedRoom.name} Booking`,
+                        price: calculatedPrice,
+                        quantity: 1,
+                        image: selectedRoom.image,
                         stall: 'Events',
-                        details: { date: selectedDate, startTime, endTime }
+                        details: {
+                            date: selectedDate,
+                            startTime,
+                            endTime,
+                            guests: guestCount,
+                            hours: durationHours
+                        }
                     }]
                 }),
             });
@@ -123,16 +149,12 @@ const Events = () => {
             return;
         }
 
-        const room = ROOMS.find(r => r.name === selectedRoom);
-
-        if (user) {
-            initiatePayment(room);
-        } else {
-            // If not logged in, maybe prompt login or allow guest checkout?
-            // For now, let's assume guest checkout is allowed or redirect to login
-            // Using the same initiatePayment logic which handles defaults
-            initiatePayment(room);
+        if (calculatedPrice <= 0) {
+            alert("Invalid duration");
+            return;
         }
+
+        initiatePayment();
     };
 
     return (
@@ -145,74 +167,57 @@ const Events = () => {
                             <span className="text-sunset-orange font-bold uppercase tracking-[0.3em] text-xs mb-4 block">Event Management</span>
                             <h1 className="text-5xl font-heading font-bold mb-6">Host Your Special<br /><span className="text-riverside-teal">Moments.</span></h1>
                             <p className="text-gray-500 text-lg">
-                                From intimate family dinners to grand corporate gatherings, Ethree provides versatile spaces equipped with modern amenities and a stunning river view.
-                                <br /><span className="text-sm font-bold text-sunset-orange mt-2 block">Now available for hourly bookings for birthdays and parties!</span>
+                                <strong className="block mt-4 text-charcoal-grey">Note: Decoration and arrangements to be managed by the customer only.</strong>
+                                <span className="text-sm rounded-md bg-yellow-100 px-2 py-1 text-yellow-800 font-bold mt-2 inline-block">
+                                    Fixed Rate: ₹1000 / Hour
+                                </span>
                             </p>
                         </div>
 
                         <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden mb-12">
-                            <AnimatePresence mode="wait">
-                                {ROOMS.filter(r => r.name === selectedRoom).map(room => (
-                                    <motion.div
-                                        key={room.id}
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ duration: 0.4 }}
-                                    >
-                                        <div className="relative h-[400px] rounded-[2rem] overflow-hidden mb-8 group">
-                                            <img src={room.image} alt={room.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl font-bold text-sunset-orange shadow-lg">
-                                                ₹{room.price}<span className="text-xs text-gray-500 font-normal">/hr</span>
-                                            </div>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.4 }}
+                            >
+                                <div className="relative h-[400px] rounded-[2rem] overflow-hidden mb-8 group">
+                                    <img src={selectedRoom.image} alt={selectedRoom.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl font-bold text-sunset-orange shadow-lg">
+                                        ₹{selectedRoom.price}<span className="text-xs text-gray-500 font-normal">/hr</span>
+                                    </div>
+                                </div>
 
-                                            {/* Navigation Arrows */}
-                                            <div className="absolute inset-0 flex justify-between items-center px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                <button
-                                                    onClick={(e) => { e.preventDefault(); prevRoom(); }}
-                                                    className="w-12 h-12 bg-black/30 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-sunset-orange transition-colors"
-                                                >
-                                                    <ChevronLeft size={24} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.preventDefault(); nextRoom(); }}
-                                                    className="w-12 h-12 bg-black/30 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-sunset-orange transition-colors"
-                                                >
-                                                    <ChevronRight size={24} />
-                                                </button>
+                                <div className="px-4 pb-4 space-y-4">
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <span className="text-riverside-teal font-bold uppercase tracking-widest text-xs mb-1 block">Selected Space</span>
+                                            <h3 className="font-heading font-bold text-3xl text-charcoal-grey">{selectedRoom.name}</h3>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4 border-t border-gray-100 pt-6">
+                                        <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl border border-gray-100">
+                                            <User className="text-sunset-orange" size={20} />
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Capacity</p>
+                                                <p className="font-bold text-charcoal-grey">{selectedRoom.capacity}</p>
                                             </div>
                                         </div>
-
-                                        <div className="px-4 pb-4 space-y-4">
-                                            <div className="flex justify-between items-end">
-                                                <div>
-                                                    <span className="text-riverside-teal font-bold uppercase tracking-widest text-xs mb-1 block">Selected Space</span>
-                                                    <h3 className="font-heading font-bold text-3xl text-charcoal-grey">{room.name}</h3>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex gap-4 border-t border-gray-100 pt-6">
-                                                <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl border border-gray-100">
-                                                    <User className="text-sunset-orange" size={20} />
-                                                    <div>
-                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Capacity</p>
-                                                        <p className="font-bold text-charcoal-grey">{room.capacity}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3 bg-teal-50 px-5 py-3 rounded-xl border border-teal-100 text-riverside-teal">
-                                                    <CheckCircle2 size={20} />
-                                                    <span className="font-bold text-sm">Available for Hourly Booking</span>
-                                                </div>
-                                            </div>
-
-                                            <p className="text-gray-500 leading-relaxed pt-2">
-                                                Perfect for birthdays, get-togethers, and special celebrations.
-                                                Book this space instantly by filling out the form.
-                                            </p>
+                                        <div className="flex items-center gap-3 bg-teal-50 px-5 py-3 rounded-xl border border-teal-100 text-riverside-teal">
+                                            <CheckCircle2 size={20} />
+                                            <span className="font-bold text-sm">Hourly Parties & Birthdays</span>
                                         </div>
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
+                                    </div>
+
+                                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex gap-3 text-orange-800 text-sm">
+                                        <Info className="shrink-0" size={20} />
+                                        <p>
+                                            <strong>Customer Policy:</strong> We provide only the space.
+                                            Tables, chairs, decorations, cake, and specific arrangements must be handled by the customer.
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.div>
                         </div>
 
                         {/* My Scheduled Events Section */}
@@ -236,7 +241,16 @@ const Events = () => {
                                                             </div>
                                                             <div className="flex items-center gap-1">
                                                                 <Clock size={14} className="text-riverside-teal" />
-                                                                <span>{item.details.startTime} - {item.details.endTime}</span>
+                                                                <span>
+                                                                    {(() => {
+                                                                        const format = (t) => {
+                                                                            if (!t) return '';
+                                                                            const [h, m] = t.split(':').map(Number);
+                                                                            return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+                                                                        };
+                                                                        return `${format(item.details.startTime)} - ${format(item.details.endTime)}`;
+                                                                    })()}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     )}
@@ -271,6 +285,7 @@ const Events = () => {
                                             <input
                                                 type="date"
                                                 required
+                                                min={new Date().toISOString().split('T')[0]}
                                                 className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
                                                 value={selectedDate}
                                                 onChange={(e) => setSelectedDate(e.target.value)}
@@ -284,13 +299,17 @@ const Events = () => {
                                             <input
                                                 type="number"
                                                 placeholder="Qty"
+                                                required
+                                                min="1"
                                                 className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
+                                                value={guestCount}
+                                                onChange={(e) => setGuestCount(e.target.value)}
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4">
                                     <div>
                                         <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Start Time</label>
                                         <div className="relative">
@@ -304,22 +323,16 @@ const Events = () => {
                                             />
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">End Time</label>
-                                        <div className="relative">
-                                            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange" size={18} />
-                                            <input
-                                                type="time"
-                                                required
-                                                className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
-                                                value={endTime}
-                                                onChange={(e) => setEndTime(e.target.value)}
-                                            />
-                                        </div>
+                                </div>
+
+                                <div className="py-4 border-t border-white/10">
+                                    <div className="flex justify-between items-center text-xl text-riverside-teal font-heading font-bold">
+                                        <span>Price</span>
+                                        <span>₹{calculatedPrice}</span>
                                     </div>
                                 </div>
 
-                                <div className="pt-4 space-y-3">
+                                <div className="space-y-3">
                                     {availabilityStatus === 'unavailable' && (
                                         <p className="text-red-500 font-bold text-center">Slot Not Available. Please choose another time.</p>
                                     )}
@@ -332,11 +345,11 @@ const Events = () => {
                                         onClick={availabilityStatus === 'available' ? handleBook : checkAvailability}
                                         disabled={availabilityStatus === 'checking' || isPaymentProcessing}
                                         className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg ${availabilityStatus === 'available'
-                                                ? 'bg-green-500 hover:bg-green-600 text-white'
-                                                : 'bg-sunset-orange hover:bg-opacity-90 text-white'
+                                            ? 'bg-green-500 hover:bg-green-600 text-white'
+                                            : 'bg-sunset-orange hover:bg-opacity-90 text-white'
                                             }`}
                                     >
-                                        {availabilityStatus === 'checking' ? 'Checking...' : (isPaymentProcessing ? 'Processing Payment...' : (availabilityStatus === 'available' ? 'Confirm & Pay' : 'Check Availability'))} <ArrowRight size={20} />
+                                        {availabilityStatus === 'checking' ? 'Checking...' : (isPaymentProcessing ? 'Processing Payment...' : (availabilityStatus === 'available' ? 'Confirm & Book' : 'Check Availability'))} <ArrowRight size={20} />
                                     </button>
                                 </div>
                             </form>

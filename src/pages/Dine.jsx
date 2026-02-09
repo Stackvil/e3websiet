@@ -68,7 +68,7 @@ const Dine = () => {
     useEffect(() => {
         const fetchDineItems = async () => {
             try {
-                const res = await fetch('http://localhost:5001/api/products');
+                const res = await fetch('http://127.0.0.1:5001/api/products');
                 const data = await res.json();
                 // Filter for dine items and fallback to local category if cuisine is missing (for legacy or mixed data)
                 const dineItems = data.filter(item => item.category === 'dine' || item.category === 'food');
