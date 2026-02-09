@@ -3,12 +3,109 @@ import { motion } from 'framer-motion';
 import { Ticket, Calendar, Clock, MapPin, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const YourTickets = () => {
     const { tickets, user, clearTickets } = useStore();
 
     // Filter tickets for current user if needed, or just show all if local storage is simple
-    const userTickets = user ? tickets.filter(t => !t.userMobile || t.userMobile === user.mobile) : [];
+    // Filter tickets for current user and remove expired ones (older than 24h)
+    const userTickets = user ? tickets.filter(t => {
+        if (t.userMobile && t.userMobile !== user.mobile) return false;
+
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+        const now = new Date();
+
+        // Check if it's an event ticket
+        const eventItem = t.items.find(item =>
+            (item.id && typeof item.id === 'string' && item.id.startsWith('event-')) ||
+            item.stall === 'Events'
+        );
+
+        // Keep event bookings permanently (as per user request)
+        if (eventItem) return true;
+
+        // For rides: Hide after 24 hours from purchase
+        const referenceDate = new Date(t.date);
+
+        // Validate date parsing
+        if (isNaN(referenceDate.getTime())) return true;
+
+        const expiryDate = new Date(referenceDate.getTime() + ONE_DAY_MS);
+
+        return now < expiryDate;
+    }) : [];
+
+    const handleDownloadBill = (ticket) => {
+        const doc = new jsPDF();
+
+        // Company Header
+        doc.setFontSize(22);
+        doc.setTextColor(41, 128, 185); // Riverside Teal-ish
+        doc.text('Ethree', 105, 20, null, null, 'center');
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text('Eat. Enjoy. Entertain.', 105, 26, null, null, 'center');
+
+        // Invoice Title
+        doc.setFontSize(16);
+        doc.setTextColor(0);
+        doc.text('INVOICE / RECEIPT', 14, 40);
+
+        // Ticket Details
+        doc.setFontSize(10);
+        doc.setTextColor(80);
+        doc.text(`Order ID: #${ticket.id}`, 14, 50);
+        doc.text(`Date: ${new Date(ticket.date).toLocaleDateString()}`, 14, 55);
+
+        // Use the name from the ticket (booking) if available, otherwise fallback to user profile
+        const customerName = ticket.firstname || ticket.name || (user ? user.name : 'Guest');
+        const customerMobile = ticket.phone || ticket.mobile || (user ? user.mobile : '');
+
+        doc.text(`Customer: ${customerName}`, 14, 65);
+        if (customerMobile) {
+            doc.text(`Mobile: ${customerMobile}`, 14, 70);
+        }
+
+        // Helper to format time to 12-hour AM/PM
+        const formatTime = (timeStr) => {
+            if (!timeStr) return '';
+            const [h, m] = timeStr.split(':').map(Number);
+            const period = h >= 12 ? 'PM' : 'AM';
+            const hours = h % 12 || 12;
+            return `${hours}:${m.toString().padStart(2, '0')} ${period}`;
+        };
+
+        // Table Data
+        const tableBody = ticket.items.map(item => [
+            { content: item.name, styles: { fontStyle: 'bold' } },
+            item.details ? `${item.details.date} (${formatTime(item.details.startTime)} - ${formatTime(item.details.endTime)})` : 'N/A',
+            item.quantity,
+            `Rs. ${item.price}`
+        ]);
+
+        autoTable(doc, {
+            startY: 80,
+            head: [['Item', 'Details', 'Qty', 'Price']],
+            body: tableBody,
+            theme: 'striped',
+            headStyles: { fillColor: [41, 128, 185] },
+            styles: { fontSize: 10 },
+        });
+
+        // Total
+        const finalY = doc.lastAutoTable.finalY || 100;
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`Total Amount: Rs. ${ticket.total}`, 14, finalY + 15);
+        doc.setTextColor(100);
+        doc.setFontSize(10);
+        doc.text('Thank you for choosing Ethree!', 105, finalY + 30, null, null, 'center');
+
+        doc.save(`Ethree_Bill_${ticket.id}.pdf`);
+    };
 
     if (!user || userTickets.length === 0) {
         return (
@@ -60,7 +157,7 @@ const YourTickets = () => {
                                         <h3 className="text-riverside-teal font-heading font-bold text-lg mb-2">Event Booking</h3>
                                         <p className="text-[9px] text-gray-500 mb-4 uppercase tracking-wider font-bold">Receipt Generated</p>
                                         <button
-                                            onClick={() => alert(`Downloading Bill for Order #${ticket.id}`)}
+                                            onClick={() => handleDownloadBill(ticket)}
                                             className="px-4 py-2 bg-white border border-gray-200 shadow-sm rounded-lg text-[10px] font-bold text-charcoal-grey hover:bg-gray-50 flex items-center justify-center gap-2 mx-auto"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
@@ -80,6 +177,9 @@ const YourTickets = () => {
                                         className="w-28 h-28 mix-blend-multiply"
                                     />
                                     <p className="mt-1 text-[7px] text-gray-400 font-bold uppercase tracking-widest">Scan at Entry</p>
+                                    {ticket.items.some(i => i.isCombo || i.name.toLowerCase().includes('combo')) && (
+                                        <p className="text-[7px] text-sunset-orange font-bold uppercase tracking-widest mt-0.5 text-center">Use this QR any 5 rides</p>
+                                    )}
                                 </div>
                             )}
 

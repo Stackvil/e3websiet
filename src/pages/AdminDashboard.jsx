@@ -123,7 +123,7 @@ const AdminDashboard = () => {
         { id: 'analytics', label: 'Analytics', icon: LayoutDashboard },
         { id: 'dine', label: 'Dine', icon: Utensils },
         { id: 'rides', label: 'Rides', icon: Gamepad2 },
-        { id: 'bookings', label: 'Bookings', icon: Calendar },
+        { id: 'bookings', label: 'Event Bookings', icon: Calendar },
     ];
 
     // Helper to get filtered products
@@ -185,20 +185,31 @@ const AdminDashboard = () => {
 
 
                     {activeTab === 'bookings' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {bookings.map((booking) => (
-                                <div key={booking.id} className="bg-white p-6 rounded-xl border shadow-sm">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <span className="px-3 py-1 bg-riverside-teal/10 text-riverside-teal rounded-full text-xs font-bold font-heading">
-                                            {booking.facility}
-                                        </span>
-                                        <span className="text-gray-400 text-sm">#{booking.bookingId || booking.id}</span>
-                                    </div>
-                                    <h3 className="font-bold text-lg text-charcoal-grey">{booking.name}</h3>
-                                    <p className="text-gray-500 text-sm mt-1">{booking.date} • {booking.time}</p>
+                        <div>
+                            <div className="flex justify-end mb-4">
+                                <button
+                                    onClick={fetchData}
+                                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-riverside-teal font-bold transition-colors bg-white px-4 py-2 rounded-lg border border-gray-100 shadow-sm"
+                                >
+                                    <RefreshCw size={16} />
+                                    Refresh List
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {bookings.map((booking) => (
+                                    <div key={booking.id} className="bg-white p-6 rounded-xl border shadow-sm">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <span className="px-3 py-1 bg-riverside-teal/10 text-riverside-teal rounded-full text-xs font-bold font-heading">
+                                                {booking.facility}
+                                            </span>
+                                            <span className="text-gray-400 text-sm">#{booking.bookingId || booking.id}</span>
+                                        </div>
+                                        <h3 className="font-bold text-lg text-charcoal-grey">{booking.name}</h3>
+                                        <p className="text-gray-500 text-sm mt-1">{booking.date} • {booking.time}</p>
 
-                                </div>
-                            ))}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 

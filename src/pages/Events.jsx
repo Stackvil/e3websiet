@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, Clock, MapPin, CheckCircle2, ArrowRight, User, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useStore from '../store/useStore';
@@ -14,14 +14,52 @@ const EVENT_SPACE = {
 };
 
 const Events = () => {
-    const { addToCart, toggleCart } = useStore();
+    const { addToCart, toggleCart, user, tickets } = useStore();
     const navigate = useNavigate();
     // Simplified to single space as per request, but keeping structure if expansion needed later
     const selectedRoom = EVENT_SPACE;
 
     const [selectedDate, setSelectedDate] = useState('');
+    const [inputValue, setInputValue] = useState('');
+    const dateInputRef = useRef(null);
+
+    // Sync input value when selectedDate changes (e.g. from picker)
+    useEffect(() => {
+        if (selectedDate) {
+            setInputValue(selectedDate.split('-').reverse().join('/'));
+        }
+    }, [selectedDate]);
+
+    // Handle manual text input
+    const handleDateInputChange = (e) => {
+        const val = e.target.value;
+        setInputValue(val);
+
+        // Simple validation for dd/mm/yyyy
+        const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+        const match = val.match(dateRegex);
+
+        if (match) {
+            const [_, day, month, year] = match;
+            const isoDate = `${year}-${month}-${day}`;
+            // Validate logical date (e.g. not 31/02)
+            const dateObj = new Date(isoDate);
+            if (!isNaN(dateObj.getTime())) {
+                setSelectedDate(isoDate);
+            }
+        }
+    };
+
     const [startTime, setStartTime] = useState('');
     const [guestCount, setGuestCount] = useState('');
+    const [name, setName] = useState('');
+
+    // Pre-fill name if user is logged in
+    useEffect(() => {
+        if (user?.name) {
+            setName(user.name);
+        }
+    }, [user]);
     const [booked, setBooked] = useState(false);
     const [calculatedPrice, setCalculatedPrice] = useState(0);
     const [durationHours, setDurationHours] = useState(1);
@@ -82,7 +120,6 @@ const Events = () => {
     };
 
     const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
-    const { user, tickets } = useStore();
 
     // Filter tickets for current user events
     const myEvents = user ? tickets.filter(t =>
@@ -105,7 +142,7 @@ const Events = () => {
                 },
                 body: JSON.stringify({
                     amount: calculatedPrice,
-                    firstname: user?.name?.split(' ')[0] || 'Guest',
+                    firstname: name || user?.name?.split(' ')[0] || 'Guest',
                     email: user?.email || 'guest@example.com',
                     phone: user?.mobile || '9999999999',
                     productinfo: `Event Booking ${selectedRoom.name}`,
@@ -237,7 +274,7 @@ const Events = () => {
                                                         <div className="flex gap-4 text-sm text-gray-500 mt-1">
                                                             <div className="flex items-center gap-1">
                                                                 <Calendar size={14} className="text-sunset-orange" />
-                                                                <span>{item.details.date}</span>
+                                                                <span>{item.details.date.split('-').reverse().join('/')}</span>
                                                             </div>
                                                             <div className="flex items-center gap-1">
                                                                 <Clock size={14} className="text-riverside-teal" />
@@ -276,17 +313,45 @@ const Events = () => {
                             <p className="text-gray-400 text-sm mb-8">Book spaces for your limited-hour events.</p>
 
                             <form onSubmit={handleBook} className="space-y-6">
+                                <div>
+                                    <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Name</label>
+                                    <div className="relative">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange" size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="Your Name"
+                                            required
+                                            className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Date</label>
                                         <div className="relative">
-                                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange" size={18} />
+                                            <Calendar
+                                                className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange z-20 cursor-pointer hover:text-orange-600 transition-colors"
+                                                size={18}
+                                                onClick={() => dateInputRef.current?.showPicker()}
+                                            />
+                                            {/* Visual Input (Editable) */}
                                             <input
-                                                type="date"
-                                                required
-                                                min={new Date().toISOString().split('T')[0]}
+                                                type="text"
+                                                placeholder="dd/mm/yyyy"
                                                 className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
+                                                value={inputValue}
+                                                onChange={handleDateInputChange}
+                                            />
+                                            {/* Hidden Date Input for Picker */}
+                                            <input
+                                                ref={dateInputRef}
+                                                type="date"
+                                                tabIndex={-1}
+                                                min={new Date().toISOString().split('T')[0]}
+                                                className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
                                                 value={selectedDate}
                                                 onChange={(e) => setSelectedDate(e.target.value)}
                                             />
