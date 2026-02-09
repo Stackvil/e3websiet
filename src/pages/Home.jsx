@@ -3,22 +3,32 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, Play, Zap, Utensils, Star, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useStore from '../store/useStore';
+
 import RideCard from '../components/RideCard';
+import localProducts from '../data/products.json';
 
 const Home = () => {
     const { addToCart, toggleCart } = useStore();
     const [activities, setActivities] = useState([]);
 
+
+
     useEffect(() => {
         const fetchActivities = async () => {
+            let data = [];
             try {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
                 const res = await fetch(`${API_URL}/api/products`);
-                const data = await res.json();
+                if (!res.ok) throw new Error('API Failed');
+                data = await res.json();
+            } catch (err) {
+                console.warn("Failed to fetch activities from API, using local data", err);
+                data = localProducts;
+            }
+
+            if (data) {
                 const playItems = data.filter(item => item.category === 'play'); // Display all rides
                 setActivities(playItems);
-            } catch (err) {
-                console.error("Failed to fetch activities", err);
             }
         };
         fetchActivities();

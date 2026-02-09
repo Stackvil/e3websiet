@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ticket, Users, Zap, Trophy, Filter, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
+import localProducts from '../data/products.json';
 
 const Play = () => {
     const { addToCart } = useStore();
@@ -13,18 +14,22 @@ const Play = () => {
     const fetchActivities = async () => {
         setLoading(true);
         setError(null);
+        let data = [];
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             const res = await fetch(`${API_URL}/api/products`);
             if (!res.ok) throw new Error('Failed to fetch data');
-            const data = await res.json();
-            // Filter for 'play' category items
-            const playItems = data.filter(item => item.category === 'play');
-            setActivities(playItems);
+            data = await res.json();
         } catch (err) {
-            console.error("Failed to fetch activities", err);
-            setError("Failed to load rides. Please ensure the server is running.");
+            console.error("Failed to fetch activities, using fallback", err);
+            data = localProducts;
         } finally {
+            if (data && data.length > 0) {
+                const playItems = data.filter(item => item.category === 'play');
+                setActivities(playItems);
+            } else {
+                setError("Failed to load rides. Please ensure the server is running.");
+            }
             setLoading(false);
         }
     };
