@@ -14,7 +14,8 @@ const Play = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('http://127.0.0.1:5001/api/products');
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const res = await fetch(`${API_URL}/api/products`);
             if (!res.ok) throw new Error('Failed to fetch data');
             const data = await res.json();
             // Filter for 'play' category items

@@ -80,6 +80,13 @@ const Events = () => {
 
     const checkAvailability = async (e) => {
         if (e) e.preventDefault();
+
+        if (!user) {
+            alert('Please login to check availability and book events.');
+            navigate('/login');
+            return;
+        }
+
         const endTime = calculateEndTime(startTime, durationHours);
 
         if (!selectedDate || !startTime || !endTime) {
@@ -89,8 +96,9 @@ const Events = () => {
 
         setAvailabilityStatus('checking');
         try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             // Using logic similar to defined structure, ensure consistent API usage
-            const res = await fetch('http://127.0.0.1:5001/api/bookings/check-availability', {
+            const res = await fetch(`${API_URL}/api/bookings/check-availability`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -135,7 +143,8 @@ const Events = () => {
         setIsPaymentProcessing(true);
         const endTime = calculateEndTime(startTime, durationHours);
         try {
-            const response = await fetch('http://127.0.0.1:5001/api/payment/initiate', {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${API_URL}/api/payment/initiate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

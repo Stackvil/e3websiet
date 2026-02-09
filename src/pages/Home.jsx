@@ -12,7 +12,8 @@ const Home = () => {
     useEffect(() => {
         const fetchActivities = async () => {
             try {
-                const res = await fetch('http://127.0.0.1:5001/api/products');
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+                const res = await fetch(`${API_URL}/api/products`);
                 const data = await res.json();
                 const playItems = data.filter(item => item.category === 'play'); // Display all rides
                 setActivities(playItems);

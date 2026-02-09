@@ -23,8 +23,10 @@ const AdminDashboard = () => {
         try {
             console.log("Fetching admin data...");
 
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
             // 1. Fetch Products
-            const productsRes = await fetch('http://127.0.0.1:5001/api/products');
+            const productsRes = await fetch(`${API_URL}/api/products`);
             if (productsRes.ok) {
                 const productsData = await productsRes.json();
                 if (Array.isArray(productsData)) setProducts(productsData);

@@ -42,7 +42,8 @@ const Login = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const res = await fetch('http://127.0.0.1:5001/api/auth/send-otp', {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const res = await fetch(`${API_URL}/api/auth/send-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mobile })
@@ -66,7 +67,8 @@ const Login = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            const res = await fetch('http://127.0.0.1:5001/api/auth/verify-otp', {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mobile, otp })

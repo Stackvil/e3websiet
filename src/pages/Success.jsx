@@ -18,7 +18,8 @@ const Success = () => {
 
             try {
                 // Fetch Order Details from Backend
-                const response = await fetch(`http://127.0.0.1:5001/api/payment/status/${orderId}`);
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+                const response = await fetch(`${API_URL}/api/payment/status/${orderId}`);
                 const result = await response.json();
 
                 if (result.success) {
