@@ -18,6 +18,7 @@ const AdminDashboard = () => {
     const [platformStats, setPlatformStats] = useState({ web: 0, mobile: 0 });
     const navigate = useNavigate();
     const { setUser } = useStore();
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
     const fetchData = async () => {
         const token = localStorage.getItem('token');
@@ -25,20 +26,35 @@ const AdminDashboard = () => {
         try {
             console.log("Fetching admin data...");
 
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            // 1. Fetch Products from E3 endpoints only
+            try {
+                const [e3RidesRes, e3DineRes] = await Promise.all([
+                    fetch(`${API_URL}/api/e3/rides`),
+                    fetch(`${API_URL}/api/e3/dine`)
+                ]);
 
-            // 1. Fetch Products
-            const productsRes = await fetch(`${API_URL}/api/products`);
-            if (productsRes.ok) {
-                const productsData = await productsRes.json();
-                if (Array.isArray(productsData)) setProducts(productsData);
-            } else {
-                console.error("Products fetch failed", productsRes.status);
+                const allProducts = [];
+
+                if (e3RidesRes.ok) {
+                    const e3Rides = await e3RidesRes.json();
+                    allProducts.push(...e3Rides);
+                }
+
+                if (e3DineRes.ok) {
+                    const e3Dine = await e3DineRes.json();
+                    allProducts.push(...e3Dine);
+                }
+
+                setProducts(allProducts);
+                console.log("Fetched E3 products:", allProducts.length);
+            } catch (productsErr) {
+                console.error("E3 Products fetch failed", productsErr);
+                setProducts([]);
             }
 
             // 2. Fetch Bookings (Safely)
             try {
-                const bookingsRes = await fetch('http://127.0.0.1:5001/api/bookings', { headers });
+                const bookingsRes = await fetch(`${API_URL}/api/bookings`, { headers });
                 if (bookingsRes.ok) {
                     const bookingsData = await bookingsRes.json();
                     console.log("Bookings data:", bookingsData);
@@ -54,14 +70,14 @@ const AdminDashboard = () => {
             }
 
             // 3. Fetch Transactions
-            const transactionsRes = await fetch('http://127.0.0.1:5001/api/orders/all', { headers });
+            const transactionsRes = await fetch(`${API_URL}/api/orders/all`, { headers });
             if (transactionsRes.ok) {
                 const transactionsData = await transactionsRes.json();
                 setTransactions(transactionsData);
             }
 
             // 4. Fetch Sponsors
-            const sponsorsRes = await fetch('http://127.0.0.1:5001/api/sponsors');
+            const sponsorsRes = await fetch(`${API_URL}/api/sponsors`);
             if (sponsorsRes.ok) {
                 const sponsorsData = await sponsorsRes.json();
                 setSponsors(sponsorsData);
@@ -69,7 +85,7 @@ const AdminDashboard = () => {
 
             // 5. Fetch Platform Analytics
             try {
-                const statsRes = await fetch('http://127.0.0.1:5001/api/analytics/stats', { headers });
+                const statsRes = await fetch(`${API_URL}/api/analytics/stats`, { headers });
                 if (statsRes.ok) {
                     const statsData = await statsRes.json();
                     setPlatformStats(statsData);
@@ -105,7 +121,7 @@ const AdminDashboard = () => {
         if (!window.confirm('Are you sure?')) return;
         const token = localStorage.getItem('token');
         try {
-            await fetch(`http://127.0.0.1:5001/api/products/${id}`, {
+            await fetch(`${API_URL}/api/products/${id}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });
@@ -119,8 +135,8 @@ const AdminDashboard = () => {
         e.preventDefault();
         const token = localStorage.getItem('token');
         const url = editingItem
-            ? `http://127.0.0.1:5001/api/products/${editingItem._id}`
-            : 'http://127.0.0.1:5001/api/products';
+            ? `${API_URL}/api/products/${editingItem._id}`
+            : `${API_URL}/api/products`;
         const method = editingItem ? 'PUT' : 'POST';
 
         try {
@@ -146,7 +162,7 @@ const AdminDashboard = () => {
         if (!window.confirm('Are you sure you want to delete this sponsor?')) return;
         const token = localStorage.getItem('token');
         try {
-            await fetch(`http://127.0.0.1:5001/api/sponsors/${id}`, {
+            await fetch(`${API_URL}/api/sponsors/${id}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });
@@ -160,7 +176,7 @@ const AdminDashboard = () => {
         e.preventDefault();
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://127.0.0.1:5001/api/sponsors', {
+            const res = await fetch(`${API_URL}/api/sponsors`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({
@@ -460,93 +476,95 @@ const AdminDashboard = () => {
                         };
 
                         return (
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
-                                    <h2 className="text-lg font-bold font-heading text-charcoal-grey">Ride & Event Bookings</h2>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <p className="text-xs text-gray-500 uppercase font-bold tracking-widest">Total Revenue</p>
-                                            <p className="text-xl font-bold text-riverside-teal">₹{totalAmount}</p>
+                            <>
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
+                                        <h2 className="text-lg font-bold font-heading text-charcoal-grey">Ride & Event Bookings</h2>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                <p className="text-xs text-gray-500 uppercase font-bold tracking-widest">Total Revenue</p>
+                                                <p className="text-xl font-bold text-riverside-teal">₹{totalAmount}</p>
+                                            </div>
+                                            <button onClick={generatePDF} className="bg-charcoal-grey text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-opacity-90 transition-colors text-xs uppercase tracking-wide">
+                                                <Download size={16} /> Export PDF
+                                            </button>
                                         </div>
-                                        <button onClick={generatePDF} className="bg-charcoal-grey text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-opacity-90 transition-colors text-xs uppercase tracking-wide">
-                                            <Download size={16} /> Export PDF
-                                        </button>
                                     </div>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead className="bg-gray-50 border-b border-gray-100">
-                                            <tr>
-                                                <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Order ID</th>
-                                                <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Date</th>
-                                                <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Items</th>
-                                                <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Amount</th>
-                                                <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-50">
-                                            {filteredTransactions.map((tx) => (
-                                                <tr key={tx._id} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-6 py-4 text-sm font-medium text-gray-900 font-mono">#{tx._id.slice(-6).toUpperCase()}</td>
-                                                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
-                                                    <td className="px-6 py-4 text-sm text-gray-700">
-                                                        {tx.items ? tx.items.map(i => `${i.quantity}x ${i.name}`).join(', ') : 'No items'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm font-bold text-riverside-teal">₹{tx.totalAmount || tx.amount}</td>
-                                                    <td className="px-6 py-4"><span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border bg-green-50 text-green-600 border-green-200">Confirmed</span></td>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead className="bg-gray-50 border-b border-gray-100">
+                                                <tr>
+                                                    <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Order ID</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Date</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Items</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Amount</th>
+                                                    <th className="px-6 py-4 font-bold text-gray-500 text-xs uppercase tracking-wider">Status</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {filteredTransactions.map((tx) => (
+                                                    <tr key={tx._id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 text-sm font-medium text-gray-900 font-mono">#{tx._id.slice(-6).toUpperCase()}</td>
+                                                        <td className="px-6 py-4 text-sm text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                                            {tx.items ? tx.items.map(i => `${i.quantity}x ${i.name}`).join(', ') : 'No items'}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm font-bold text-riverside-teal">₹{tx.totalAmount || tx.amount}</td>
+                                                        <td className="px-6 py-4"><span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border bg-green-50 text-green-600 border-green-200">Confirmed</span></td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
 
-                                    </table>
-                                </div>
-                            </div>
-
-                             {/* Platform Analytics Card */ }
-                        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 className="text-lg font-bold font-heading text-charcoal-grey mb-4">Platform Usage</h3>
-                                <div className="flex items-center justify-center gap-8 mb-6">
-                                    <div className="text-center">
-                                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2 text-blue-500">
-                                            <LayoutDashboard size={32} />
-                                        </div>
-                                        <p className="font-bold text-2xl text-charcoal-grey">{platformStats.web || 0}</p>
-                                        <p className="text-xs text-gray-500 uppercase tracking-wide">Web</p>
-                                    </div>
-                                    <div className="h-12 w-px bg-gray-200"></div>
-                                    <div className="text-center">
-                                        <div className="w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-2 text-purple-500">
-                                            <Users size={32} />
-                                        </div>
-                                        <p className="font-bold text-2xl text-charcoal-grey">{platformStats.mobile || 0}</p>
-                                        <p className="text-xs text-gray-500 uppercase tracking-wide">Mobile</p>
+                                        </table>
                                     </div>
                                 </div>
 
-                                {/* Progress Bar */}
-                                <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden flex">
-                                    <div className="bg-blue-500 h-full" style={{ width: `${webPercent}%` }}></div>
-                                    <div className="bg-purple-500 h-full" style={{ width: `${mobilePercent}%` }}></div>
-                                </div>
-                                <div className="flex justify-between text-xs text-gray-500 mt-2">
-                                    <span>Web: {webPercent}%</span>
-                                    <span>Mobile: {mobilePercent}%</span>
-                                </div>
-                            </div>
+                                {/* Platform Analytics Card */}
+                                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                        <h3 className="text-lg font-bold font-heading text-charcoal-grey mb-4">Platform Usage</h3>
+                                        <div className="flex items-center justify-center gap-8 mb-6">
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2 text-blue-500">
+                                                    <LayoutDashboard size={32} />
+                                                </div>
+                                                <p className="font-bold text-2xl text-charcoal-grey">{platformStats.web || 0}</p>
+                                                <p className="text-xs text-gray-500 uppercase tracking-wide">Web</p>
+                                            </div>
+                                            <div className="h-12 w-px bg-gray-200"></div>
+                                            <div className="text-center">
+                                                <div className="w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-2 text-purple-500">
+                                                    <Users size={32} />
+                                                </div>
+                                                <p className="font-bold text-2xl text-charcoal-grey">{platformStats.mobile || 0}</p>
+                                                <p className="text-xs text-gray-500 uppercase tracking-wide">Mobile</p>
+                                            </div>
+                                        </div>
 
-                            {/* Placeholder for Ticket Stats or other metrics */}
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-center items-center text-center">
-                                <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4 text-green-500">
-                                    <Ticket size={32} />
+                                        {/* Progress Bar */}
+                                        <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden flex">
+                                            <div className="bg-blue-500 h-full" style={{ width: `${webPercent}%` }}></div>
+                                            <div className="bg-purple-500 h-full" style={{ width: `${mobilePercent}%` }}></div>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-gray-500 mt-2">
+                                            <span>Web: {webPercent}%</span>
+                                            <span>Mobile: {mobilePercent}%</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Placeholder for Ticket Stats or other metrics */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-center items-center text-center">
+                                        <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4 text-green-500">
+                                            <Ticket size={32} />
+                                        </div>
+                                        <h3 className="text-lg font-bold font-heading text-charcoal-grey">Total Tickets Sold</h3>
+                                        <p className="text-4xl font-bold text-riverside-teal mt-2">{bookings.length + filteredTransactions.length}</p>
+                                        <p className="text-sm text-gray-500 mt-1">Across all platforms</p>
+                                    </div>
                                 </div>
-                                <h3 className="text-lg font-bold font-heading text-charcoal-grey">Total Tickets Sold</h3>
-                                <p className="text-4xl font-bold text-riverside-teal mt-2">{bookings.length + filteredTransactions.length}</p>
-                                <p className="text-sm text-gray-500 mt-1">Across all platforms</p>
-                            </div>
-                        </div>
+                            </>
                         );
-                    }) ()}
+                    })()}
 
                     {/* Bookings Section */}
                     {

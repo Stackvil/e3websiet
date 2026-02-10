@@ -3,6 +3,8 @@ const router = express.Router();
 const MockModel = require('../utils/mockDB');
 const Sponsor = new MockModel('Sponsor');
 const { auth, admin } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const { addSponsorSchema } = require('../schemas/validationSchemas');
 
 /**
  * @swagger
@@ -91,7 +93,7 @@ router.get('/', async (req, res) => {
  *       403:
  *         description: Admin access required
  */
-router.post('/', [auth, admin], async (req, res) => {
+router.post('/', [auth, admin, validate(addSponsorSchema)], async (req, res) => {
     try {
         const { name, image, website, tier } = req.body;
         const newSponsor = await Sponsor.create({

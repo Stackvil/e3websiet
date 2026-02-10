@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const MockModel = require('../utils/mockDB');
 const User = new MockModel('User');
+const validate = require('../middleware/validate');
+const { registerSchema, loginSchema, sendOtpSchema, verifyOtpSchema, bypassLoginSchema } = require('../schemas/validationSchemas');
 
 /**
  * @swagger
@@ -12,7 +14,7 @@ const User = new MockModel('User');
  *     summary: Register a new user
  *     tags: [Auth]
  */
-router.post('/register', async (req, res) => {
+router.post('/register', validate(registerSchema), async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
         let user = await User.findOne({ email });
@@ -35,7 +37,7 @@ router.post('/register', async (req, res) => {
  *     summary: Login a user
  *     tags: [Auth]
  */
-router.post('/login', async (req, res) => {
+router.post('/login', validate(loginSchema), async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
@@ -59,7 +61,7 @@ router.post('/login', async (req, res) => {
  *     tags: [Auth]
  */
 // Update send-otp to accept mobile
-router.post('/send-otp', async (req, res) => {
+router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
     const { mobile } = req.body;
     // In a real app, integrate with SMS provider (e.g., Twilio, Msg91)
     console.log(`Sending OTP to ${mobile}: 123456`);
@@ -73,7 +75,7 @@ router.post('/send-otp', async (req, res) => {
  *     summary: Verify dummy OTP and login
  *     tags: [Auth]
  */
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
     try {
         const { mobile, otp, name } = req.body;
         console.log(`Verifying OTP for ${mobile}: Received '${otp}' (Type: ${typeof otp})`);
@@ -131,7 +133,7 @@ router.post('/verify-otp', async (req, res) => {
  *       400:
  *         description: Invalid input
  */
-router.post('/bypass-login', async (req, res) => {
+router.post('/bypass-login', validate(bypassLoginSchema), async (req, res) => {
     try {
         const { mobile } = req.body;
         if (!mobile) return res.status(400).json({ message: 'Mobile number is required' });

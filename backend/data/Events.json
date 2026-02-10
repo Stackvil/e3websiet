@@ -1,0 +1,26 @@
+[
+    {
+        "name": "VIP Dining Suite",
+        "start_time": "2026-01-25T13:27:34.863Z",
+        "end_time": "2026-01-25T14:27:34.863Z",
+        "location": "E4",
+        "price": 2000,
+        "type": "hall",
+        "status": "on",
+        "image": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80",
+        "_id": "mb9vpgapo",
+        "createdAt": "2026-01-25T13:27:34.863Z"
+    },
+    {
+        "name": "VIP Dining Suite",
+        "start_time": "2026-01-25T13:27:34.863Z",
+        "end_time": "2026-01-25T14:27:34.863Z",
+        "location": "E3",
+        "price": 2000,
+        "type": "hall",
+        "status": "on",
+        "image": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80",
+        "_id": "jkpoli123",
+        "createdAt": "2026-01-25T13:27:34.863Z"
+    }
+]

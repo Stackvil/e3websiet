@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import useStore from '../store/useStore';
 
 import RideCard from '../components/RideCard';
+import Sponsors from '../components/Sponsors';
 import localProducts from '../data/products.json';
 
 const Home = () => {
@@ -18,17 +19,16 @@ const Home = () => {
             let data = [];
             try {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-                const res = await fetch(`${API_URL}/api/products`);
+                const res = await fetch(`${API_URL}/api/e3/rides`);
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();
             } catch (err) {
-                console.warn("Failed to fetch activities from API, using local data", err);
-                data = localProducts;
+                console.warn("Failed to fetch E3 rides from API, using local data", err);
+                data = localProducts.filter(item => item.category === 'play');
             }
 
             if (data) {
-                const playItems = data.filter(item => item.category === 'play'); // Display all rides
-                setActivities(playItems);
+                setActivities(data);
             }
         };
         fetchActivities();

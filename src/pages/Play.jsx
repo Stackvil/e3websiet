@@ -17,16 +17,15 @@ const Play = () => {
         let data = [];
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-            const res = await fetch(`${API_URL}/api/products`);
+            const res = await fetch(`${API_URL}/api/e3/rides`);
             if (!res.ok) throw new Error('Failed to fetch data');
             data = await res.json();
         } catch (err) {
-            console.error("Failed to fetch activities, using fallback", err);
-            data = localProducts;
+            console.error("Failed to fetch E3 rides, using fallback", err);
+            data = localProducts.filter(item => item.category === 'play');
         } finally {
             if (data && data.length > 0) {
-                const playItems = data.filter(item => item.category === 'play');
-                setActivities(playItems);
+                setActivities(data);
             } else {
                 setError("Failed to load rides. Please ensure the server is running.");
             }

@@ -3,6 +3,8 @@ const router = express.Router();
 const MockModel = require('../utils/mockDB');
 const Booking = new MockModel('Booking');
 const { auth, admin } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const { checkAvailabilitySchema } = require('../schemas/validationSchemas');
 
 /**
  * @swagger
@@ -99,7 +101,7 @@ router.get('/', auth, admin, async (req, res) => {
  *       200:
  *         description: Availability status
  */
-router.post('/check-availability', async (req, res) => {
+router.post('/check-availability', validate(checkAvailabilitySchema), async (req, res) => {
     try {
         const { date, startTime, endTime, roomName } = req.body;
 

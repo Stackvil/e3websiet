@@ -98,13 +98,17 @@ app.get('/', (req, res) => {
 
 // Import Routes
 const authRoutes = require('./routes/auth');
-const productRoutes = require('./routes/products');
+const e3Routes = require('./routes/e3');
+const e4Routes = require('./routes/e4');
+const eventRoutes = require('./routes/events');
 const orderRoutes = require('./routes/orders');
 const bookingRoutes = require('./routes/bookings');
 const paymentRoutes = require('./routes/payment');
 
 app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
+app.use('/api/e3', e3Routes);
+app.use('/api/e4', e4Routes);
+app.use('/api/events', eventRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payment', paymentRoutes);

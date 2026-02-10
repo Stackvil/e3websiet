@@ -2,9 +2,22 @@ const supabase = require('./supabaseClient');
 
 class MockModel {
     constructor(name) {
-        // Map model names to table names
-        // User -> users, Product -> products, Order -> orders
-        this.table = name.toLowerCase() + 's';
+        // Map model names to table names with special handling
+        const tableMappings = {
+            'user': 'users',
+            'order': 'orders',
+            'e3ride': 'e3rides',
+            'e3dine': 'e3dines',
+            'e4ride': 'e4rides',
+            'e4dine': 'e4dines',
+            'event': 'events',
+            'sponsor': 'sponsors',
+            'analytics': 'analytics', // Already plural, don't add 's'
+            'booking': 'bookings'
+        };
+
+        const lowerName = name.toLowerCase();
+        this.table = tableMappings[lowerName] || lowerName + 's';
     }
 
     async find(query = {}) {

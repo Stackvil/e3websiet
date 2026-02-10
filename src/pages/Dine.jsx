@@ -71,18 +71,16 @@ const Dine = () => {
             let data = [];
             try {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-                const res = await fetch(`${API_URL}/api/products`);
+                const res = await fetch(`${API_URL}/api/e3/dine`);
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();
             } catch (err) {
-                console.warn("Failed to fetch dine items, using fallback", err);
-                data = localProducts;
+                console.warn("Failed to fetch E3 dine items, using fallback", err);
+                data = localProducts.filter(item => item.category === 'dine' || item.category === 'food');
             }
 
             if (data) {
-                // Filter for dine items and fallback to local category if cuisine is missing (for legacy or mixed data)
-                const dineItems = data.filter(item => item.category === 'dine' || item.category === 'food');
-                setMenuItems(dineItems);
+                setMenuItems(data);
             }
         };
         fetchDineItems();

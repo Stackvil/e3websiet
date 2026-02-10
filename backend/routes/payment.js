@@ -3,6 +3,8 @@ const router = express.Router();
 const crypto = require('crypto');
 const MockModel = require('../utils/mockDB');
 const Order = new MockModel('Order');
+const validate = require('../middleware/validate');
+const { initiatePaymentSchema } = require('../schemas/validationSchemas');
 
 // Environment Variables (Make sure these are set in your .env file)
 // EASEBUZZ_KEY=...
@@ -61,7 +63,7 @@ function generateHash(data, salt) {
  *       200:
  *         description: Payment initiated successfully
  */
-router.post('/initiate', async (req, res) => {
+router.post('/initiate', validate(initiatePaymentSchema), async (req, res) => {
     try {
         const { amount, firstname, email, phone, productinfo, items } = req.body;
         const config = getEasebuzzConfig();

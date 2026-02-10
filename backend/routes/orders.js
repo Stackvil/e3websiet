@@ -4,6 +4,8 @@ const MockModel = require('../utils/mockDB');
 const Order = new MockModel('Order');
 const Stripe = require('stripe');
 const { auth, admin } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const { checkoutSchema } = require('../schemas/validationSchemas');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
 
@@ -72,6 +74,11 @@ router.get('/', auth, async (req, res) => {
  *                 type: array
  *                 items:
  *                   type: object
+ *                   required:
+ *                     - id
+ *                     - name
+ *                     - price
+ *                     - quantity
  *                   properties:
  *                     id:
  *                       type: string
@@ -81,11 +88,22 @@ router.get('/', auth, async (req, res) => {
  *                       type: number
  *                     quantity:
  *                       type: integer
+ *                     details:
+ *                       type: object
+ *                       properties:
+ *                         date:
+ *                           type: string
+ *                         startTime:
+ *                           type: string
+ *                         endTime:
+ *                           type: string
+ *                         guests:
+ *                           type: string
  *     responses:
  *       200:
  *         description: Checkout session created
  */
-router.post('/checkout', auth, async (req, res) => {
+router.post('/checkout', [auth, validate(checkoutSchema)], async (req, res) => {
     try {
         const { items } = req.body;
 
