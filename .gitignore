@@ -31,7 +31,7 @@ android/app/src/main/assets/capacitor.plugins.json
 android/capacitor-cordova-android-plugins/
 !android/.gitignore
 !android/app/.gitignore
-
+ethree-cb6f8-firebase-adminsdk-fbsvc-2b153eee19.*
 # Environment variables
 .env
 .env.production

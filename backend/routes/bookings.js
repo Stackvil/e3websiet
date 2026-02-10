@@ -56,14 +56,10 @@ router.get('/', auth, admin, async (req, res) => {
                         time: item.details?.startTime ? `${formatTime(item.details.startTime)} - ${formatTime(item.details.endTime)}` : 'N/A',
                         status: (order.status || order.paymentStatus || 'pending'),
                         price: item.price,
-                        quantity: item.quantity,
-                        createdAt: order.createdAt // Include for sorting
+                        quantity: item.quantity
                     };
                 });
         });
-
-        // Sort by creation date (newest first)
-        eventBookings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         console.log(`Found ${eventBookings.length} event bookings`);
 
@@ -79,73 +75,58 @@ router.get('/', auth, admin, async (req, res) => {
  *   post:
  *     summary: Check if a slot is available
  *     tags: [Bookings]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - date
+ *               - startTime
+ *               - endTime
+ *               - roomName
+ *             properties:
+ *               date:
+ *                 type: string
+ *               startTime:
+ *                 type: string
+ *               endTime:
+ *                 type: string
+ *               roomName:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Availability status
  */
 router.post('/check-availability', async (req, res) => {
     try {
         const { date, startTime, endTime, roomName } = req.body;
-        console.log(`Checking availability for ${roomName} on ${date} from ${startTime} to ${endTime}`);
 
         const orders = await Order.find();
 
-        // Helper to convert "HH:mm" to minutes
-        const toMinutes = (timeStr) => {
-            const [h, m] = timeStr.split(':').map(Number);
-            return h * 60 + m;
-        };
-
-        const reqStart = toMinutes(startTime);
-        const reqEnd = toMinutes(endTime);
-
-        const conflictingOrder = orders.find(order => {
+        // Simple overlap check
+        // In a real app, this would be more robust with Date objects
+        const isBooked = orders.some(order => {
             // Only check paid/confirmed orders
-            const isConfirmed =
-                order.paymentStatus === 'paid' ||
-                order.paymentStatus === 'success' ||
-                order.status === 'success' ||
-                order.status === 'confirmed';
+            if (order.paymentStatus !== 'paid' && order.paymentStatus !== 'success' && order.status !== 'confirmed') return false;
 
-            if (!isConfirmed) return false;
-
-            return order.items && order.items.some(item => {
-                // Check if it's the same room (flexible match)
-                if (!item.name.includes(roomName.replace(' Booking', ''))) return false;
+            return order.items.some(item => {
+                // Check if it's the same room
+                if (!item.name.includes(roomName)) return false;
 
                 // Check date
                 if (item.details?.date !== date) return false;
 
-                // Check time overlap
-                if (item.details?.startTime && item.details?.endTime) {
-                    const bookedStart = toMinutes(item.details.startTime);
-                    const bookedEnd = toMinutes(item.details.endTime);
-
-                    // Add 2 hours (120 minutes) buffer AFTER the event ends
-                    // "after the every evnt end sont allow 2hrs for booking the slot"
-                    const BUFFER_MINS = 120;
-                    const effectiveBookedEnd = bookedEnd + BUFFER_MINS;
-
-                    // Overlap Logic: 
-                    // New Req Start < Existing End + Buffer AND New Req End > Existing Start
-                    const isOverlapping = reqStart < effectiveBookedEnd && reqEnd > bookedStart;
-
-                    if (isOverlapping) {
-                        console.log(`Conflict found with Order #${order._id} (${bookedStart}-${bookedEnd} + 2hr buffer -> ${effectiveBookedEnd})`);
-                    }
-                    return isOverlapping;
-                }
-                return false;
+                // Check time overlap (Simplified: exact match or just assume overlap if same date/room for now)
+                // For a proper implementation, we'd convert start/end to comparable values
+                // For this demo, let's just check if the date matches for that room
+                return true;
             });
         });
 
-        if (conflictingOrder) {
-            console.log('Slot unavailable');
-            res.json({ available: false, message: 'Slot already booked' });
-        } else {
-            console.log('Slot available');
-            res.json({ available: true });
-        }
-
+        res.json({ available: !isBooked });
     } catch (err) {
-        console.error('Availability Check Error:', err);
         res.status(500).json({ message: err.message });
     }
 });

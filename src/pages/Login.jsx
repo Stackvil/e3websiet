@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { LogOut, User, Edit2, Save, X, Phone } from 'lucide-react';
 
+import { API_URL } from '../config/api';
+
 const Login = () => {
     const { user, setUser } = useStore();
     const [mobile, setMobile] = useState('');
-    const [otp, setOtp] = useState('');
-    const [step, setStep] = useState(1); // 1: Mobile Entry, 2: OTP Entry
+
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -38,34 +39,21 @@ const Login = () => {
         setIsEditing(false);
     };
 
-    const handleSendOtp = async (e) => {
-        e.preventDefault();
+    const handleBypassLogin = async (e) => {
+        e?.preventDefault();
         setIsLoading(true);
+
         try {
-            await fetch('http://localhost:5001/api/auth/send-otp', {
+            // Send mobile directly to backend bypass endpoint
+            const res = await fetch(`${API_URL}/auth/bypass-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mobile })
             });
-            setStep(2);
-        } catch (err) {
-            alert('Failed to send OTP');
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
-    const handleVerifyOtp = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        try {
-            const res = await fetch('http://localhost:5001/api/auth/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile, otp })
-            });
             const data = await res.json();
-            if (data.token) {
+
+            if (res.ok && data.token) {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 setUser(data.user);
@@ -76,11 +64,11 @@ const Login = () => {
                     navigate('/');
                 }
             } else {
-                alert(data.message || 'Invalid OTP');
+                alert(data.message || 'Login failed');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to connect to the server. Please ensure the backend is running.');
+            alert('Login Failed: ' + err.message);
         } finally {
             setIsLoading(false);
         }
@@ -188,63 +176,27 @@ const Login = () => {
                     <p className="text-gray-500 mt-2">Sign in using your mobile number</p>
                 </div>
 
-                <form onSubmit={step === 1 ? handleSendOtp : handleVerifyOtp} className="space-y-6">
-                    {step === 1 ? (
-                        <>
-                            <div>
-                                <label className="block text-sm font-bold text-charcoal-grey mb-2">Mobile Number</label>
-                                <input
-                                    type="tel"
-                                    value={mobile}
-                                    onChange={(e) => setMobile(e.target.value)}
-                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 focus:border-sunset-orange focus:ring-1 focus:ring-sunset-orange transition-all outline-none"
-                                    placeholder="Enter your 10-digit number"
-                                    required
-                                />
-                                <p className="text-xs text-gray-400 mt-2">Dummy OTP: 123456</p>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full bg-sunset-orange text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-sunset-orange/20 transition-all active:scale-95 disabled:opacity-50"
-                            >
-                                {isLoading ? 'Sending...' : 'Send OTP'}
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                            >
-                                <label className="block text-sm font-bold text-charcoal-grey mb-2">Enter OTP</label>
-                                <input
-                                    type="text"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    className="w-full px-5 py-3 rounded-xl border border-gray-200 focus:border-sunset-orange focus:ring-1 focus:ring-sunset-orange transition-all outline-none"
-                                    placeholder="123456"
-                                    maxLength={6}
-                                    required
-                                />
-                            </motion.div>
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full bg-riverside-teal text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-riverside-teal/20 transition-all active:scale-95 disabled:opacity-50"
-                            >
-                                {isLoading ? 'Verifying...' : 'Verify & Login'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setStep(1)}
-                                className="w-full text-gray-400 text-sm font-bold hover:text-charcoal-grey"
-                            >
-                                Change Mobile Number
-                            </button>
-                        </>
-                    )}
+                <form onSubmit={handleBypassLogin} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-bold text-charcoal-grey mb-2">Mobile Number</label>
+                        <input
+                            type="tel"
+                            value={mobile}
+                            onChange={(e) => setMobile(e.target.value)}
+                            className="w-full px-5 py-3 rounded-xl border border-gray-200 focus:border-sunset-orange focus:ring-1 focus:ring-sunset-orange transition-all outline-none"
+                            placeholder="Enter your number"
+                            required
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full bg-sunset-orange text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-sunset-orange/20 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                        {isLoading ? 'Logging in...' : 'Direct Login'}
+                    </button>
                 </form>
+
             </motion.div>
         </div>
     );

@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Ethree Entertainment</string>
-    <string name="title_activity_main">Ethree Entertainment</string>
-    <string name="package_name">com.ethree.app</string>
-    <string name="custom_url_scheme">com.ethree.app</string>
-</resources>

@@ -4,6 +4,8 @@ import { CheckCircle, ArrowRight, User } from 'lucide-react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import useStore from '../store/useStore';
 
+import { API_URL } from '../config/api';
+
 const Success = () => {
     const [searchParams] = useSearchParams();
     const orderId = searchParams.get('orderId');
@@ -18,7 +20,7 @@ const Success = () => {
 
             try {
                 // Fetch Order Details from Backend
-                const response = await fetch(`http://127.0.0.1:5001/api/payment/status/${orderId}`);
+                const response = await fetch(`${API_URL}/payment/status/${orderId}`);
                 const result = await response.json();
 
                 if (result.success) {

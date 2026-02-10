@@ -2,27 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ticket, Users, Zap, Trophy, Filter, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
+import localProducts from '../data/products.json';
 
 const Play = () => {
     const { addToCart } = useStore();
     const [filter, setFilter] = useState('All');
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchActivities = async () => {
-            try {
-                const res = await fetch('http://localhost:5001/api/products');
-                const data = await res.json();
-                // Filter for 'play' category items
+    const fetchActivities = async () => {
+        setLoading(true);
+        setError(null);
+        let data = [];
+        try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const res = await fetch(`${API_URL}/api/products`);
+            if (!res.ok) throw new Error('Failed to fetch data');
+            data = await res.json();
+        } catch (err) {
+            console.error("Failed to fetch activities, using fallback", err);
+            data = localProducts;
+        } finally {
+            if (data && data.length > 0) {
                 const playItems = data.filter(item => item.category === 'play');
                 setActivities(playItems);
-            } catch (err) {
-                console.error("Failed to fetch activities", err);
-            } finally {
-                setLoading(false);
+            } else {
+                setError("Failed to load rides. Please ensure the server is running.");
             }
-        };
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchActivities();
     }, []);
 
@@ -31,7 +43,21 @@ const Play = () => {
         : activities.filter(a => (a.ageGroup && a.ageGroup.includes(filter)) || a.stall === filter || a.category === filter);
 
     if (loading) {
-        return <div className="min-h-screen pt-24 pb-12 flex justify-center items-center"><div className="text-xl font-bold text-riverside-teal">Loading Fun...</div></div>;
+        return <div className="min-h-screen pt-24 pb-12 flex justify-center items-center"><div className="text-xl font-bold text-riverside-teal animate-pulse">Loading Fun...</div></div>;
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen pt-24 pb-12 flex flex-col justify-center items-center gap-4">
+                <div className="text-xl font-bold text-red-500">{error}</div>
+                <button
+                    onClick={fetchActivities}
+                    className="px-6 py-2 bg-sunset-orange text-white rounded-full font-bold shadow-lg hover:shadow-xl transition-all"
+                >
+                    Retry
+                </button>
+            </div>
+        );
     }
 
     return (

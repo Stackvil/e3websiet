@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, ShoppingCart, Clock, Filter, ShoppingBag, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import useStore from '../store/useStore';
+import localProducts from '../data/products.json';
 
 // Map stall names to their menu images in public/menus
 const menuImages = {
@@ -67,14 +68,21 @@ const Dine = () => {
 
     useEffect(() => {
         const fetchDineItems = async () => {
+            let data = [];
             try {
-                const res = await fetch('http://localhost:5001/api/products');
-                const data = await res.json();
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+                const res = await fetch(`${API_URL}/api/products`);
+                if (!res.ok) throw new Error('API Failed');
+                data = await res.json();
+            } catch (err) {
+                console.warn("Failed to fetch dine items, using fallback", err);
+                data = localProducts;
+            }
+
+            if (data) {
                 // Filter for dine items and fallback to local category if cuisine is missing (for legacy or mixed data)
                 const dineItems = data.filter(item => item.category === 'dine' || item.category === 'food');
                 setMenuItems(dineItems);
-            } catch (err) {
-                console.error("Failed to fetch dine items", err);
             }
         };
         fetchDineItems();
