@@ -32,17 +32,25 @@ const AdminDashboard = () => {
             if (productsRes.ok) {
                 const productsData = await productsRes.json();
                 if (Array.isArray(productsData)) setProducts(productsData);
+            } else {
+                console.error("Products fetch failed", productsRes.status);
             }
 
-            // 2. Fetch Bookings
+            // 2. Fetch Bookings (Safely)
             try {
                 const bookingsRes = await fetch('http://127.0.0.1:5001/api/bookings', { headers });
                 if (bookingsRes.ok) {
                     const bookingsData = await bookingsRes.json();
+                    console.log("Bookings data:", bookingsData);
                     if (Array.isArray(bookingsData)) setBookings(bookingsData);
+                } else {
+                    console.error("Bookings fetch failed with status:", bookingsRes.status);
+                    // If 404/500, we might get JSON error, treat as empty
+                    setBookings([]);
                 }
             } catch (bookingErr) {
                 console.error("Bookings network error:", bookingErr);
+                setBookings([]);
             }
 
             // 3. Fetch Transactions
