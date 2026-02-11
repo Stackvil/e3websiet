@@ -33,8 +33,8 @@ const AdminDashboard = () => {
             // 1. Fetch Products from E3 endpoints only
             try {
                 const [e3RidesRes, e3DineRes] = await Promise.all([
-                    fetch(`${API_URL}/api/e3/rides`),
-                    fetch(`${API_URL}/api/e3/dine`)
+                    fetch(`${API_URL}/e3/rides`),
+                    fetch(`${API_URL}/e3/dine`)
                 ]);
 
                 const allProducts = [];
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
 
             // 2. Fetch Bookings (Safely)
             try {
-                const bookingsRes = await fetch(`${API_URL}/api/bookings`, { headers });
+                const bookingsRes = await fetch(`${API_URL}/bookings`, { headers });
                 if (bookingsRes.ok) {
                     const bookingsData = await bookingsRes.json();
                     console.log("Bookings data:", bookingsData);
@@ -75,14 +75,14 @@ const AdminDashboard = () => {
             }
 
             // 3. Fetch Transactions
-            const transactionsRes = await fetch(`${API_URL}/api/orders/all`, { headers });
+            const transactionsRes = await fetch(`${API_URL}/orders/all`, { headers });
             if (transactionsRes.ok) {
                 const transactionsData = await transactionsRes.json();
                 setTransactions(transactionsData);
             }
 
             // 4. Fetch Sponsors
-            const sponsorsRes = await fetch(`${API_URL}/api/sponsors`);
+            const sponsorsRes = await fetch(`${API_URL}/sponsors`);
             if (sponsorsRes.ok) {
                 const sponsorsData = await sponsorsRes.json();
                 setSponsors(sponsorsData);
@@ -90,7 +90,7 @@ const AdminDashboard = () => {
 
             // 5. Fetch Platform Analytics
             try {
-                const statsRes = await fetch(`${API_URL}/api/analytics/stats`, { headers });
+                const statsRes = await fetch(`${API_URL}/analytics/stats`, { headers });
                 if (statsRes.ok) {
                     const statsData = await statsRes.json();
                     setPlatformStats(statsData);
@@ -123,16 +123,43 @@ const AdminDashboard = () => {
     };
 
     const handleDeleteItem = async (id) => {
-        if (!window.confirm('Are you sure?')) return;
+        if (!window.confirm('Are you sure you want to delete this item?')) return;
         const token = localStorage.getItem('token');
+
+        // Find the item to determine its category
+        const item = products.find(p => p._id === id);
+        if (!item) {
+            alert('Item not found');
+            return;
+        }
+
+        // Determine the correct endpoint based on category
+        let endpoint = '';
+        if (item.category === 'play') {
+            endpoint = `/e3/rides/${id}`;
+        } else if (item.category === 'dine') {
+            endpoint = `/e3/dine/${id}`;
+        } else {
+            alert('Unknown item category');
+            return;
+        }
+
         try {
-            await fetch(`${API_URL}/api/products/${id}`, {
+            const res = await fetch(`${API_URL}${endpoint}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });
-            setProducts(products.filter(p => p._id !== id));
+
+            if (res.ok) {
+                setProducts(products.filter(p => p._id !== id));
+                alert('Item deleted successfully');
+            } else {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Failed to delete item');
+            }
         } catch (err) {
-            alert('Error deleting item');
+            console.error('Delete error:', err);
+            alert(`Error deleting item: ${err.message}`);
         }
     };
 
@@ -142,9 +169,9 @@ const AdminDashboard = () => {
 
         // Determine endpoint based on category
         let endpoint = '';
-        if (formData.category === 'play') endpoint = '/api/e3/rides';
-        else if (formData.category === 'dine') endpoint = '/api/e3/dine';
-        else endpoint = '/api/e3/rides'; // Default fallback, though should be strict
+        if (formData.category === 'play') endpoint = '/e3/rides';
+        else if (formData.category === 'dine') endpoint = '/e3/dine';
+        else endpoint = '/e3/rides'; // Default fallback, though should be strict
 
         const url = editingItem
             ? `${API_URL}${endpoint}/${editingItem._id}` // Note: Backend update routes might not exist yet, but assuming standard REST
@@ -208,7 +235,7 @@ const AdminDashboard = () => {
         if (!window.confirm('Are you sure you want to delete this sponsor?')) return;
         const token = localStorage.getItem('token');
         try {
-            await fetch(`${API_URL}/api/sponsors/${id}`, {
+            await fetch(`${API_URL}/sponsors/${id}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
             });
@@ -222,7 +249,7 @@ const AdminDashboard = () => {
         e.preventDefault();
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`${API_URL}/api/sponsors`, {
+            const res = await fetch(`${API_URL}/sponsors`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                 body: JSON.stringify({
@@ -428,7 +455,13 @@ const AdminDashboard = () => {
                                         <div className="p-2 flex flex-col h-[35%] justify-between bg-charcoal-grey">
                                             <div className="flex flex-col items-center justify-center flex-grow">
                                                 <h3 className="text-white font-bold text-xs leading-tight text-center line-clamp-2">{ride.name}</h3>
-                                                {ride.isCombo && <p className="text-[10px] text-sunset-orange font-bold text-center mt-0.5">Any 5 Rides</p>}
+                                                {ride.isCombo && (
+                                                    <div className="mt-1 px-2 py-0.5 bg-sunset-orange/90 border-2 border-white/80 rounded-md shadow-lg">
+                                                        <p className="text-[9px] text-white font-black text-center whitespace-nowrap uppercase tracking-wide">
+                                                            Any 5 Rides
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-2 mt-1">

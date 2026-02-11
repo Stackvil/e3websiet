@@ -69,7 +69,7 @@ const Contact = () => {
                             <div className="absolute inset-0 bg-riverside-teal/20" />
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="bg-white p-6 rounded-3xl shadow-2xl flex items-center gap-6 max-w-sm">
-                                    <img src="/e3logo.jpeg" alt="E3 Logo" className="w-16 h-16 object-contain rounded-2xl" />
+                                    <img src="/e3logo.png" alt="E3 Logo" className="w-16 h-16 object-contain rounded-2xl" />
                                     <div>
                                         <h4 className="font-bold text-lg">Ethree Vijayawada</h4>
                                         <p className="text-xs text-gray-500 mb-4 font-body">Opp. APSRTC Bus Stand</p>

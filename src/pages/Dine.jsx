@@ -71,7 +71,7 @@ const Dine = () => {
         const fetchDineItems = async () => {
             let data = [];
             try {
-                const res = await fetch(`${API_URL}/api/e3/dine`);
+                const res = await fetch(`${API_URL}/e3/dine`);
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();
             } catch (err) {

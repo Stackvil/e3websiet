@@ -150,4 +150,160 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
     }
 });
 
+/**
+ * @swagger
+ * /api/e3/rides/{id}:
+ *   put:
+ *     summary: Update a ride (Admin only)
+ *     tags: [E3]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Ride updated
+ *       404:
+ *         description: Ride not found
+ *       403:
+ *         description: Admin access required
+ */
+router.put('/rides/:id', [auth, admin], async (req, res) => {
+    try {
+        const updatedItem = await E3Ride.findByIdAndUpdate(req.params.id, req.body);
+        if (!updatedItem) {
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+        res.json(updatedItem);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/e3/rides/{id}:
+ *   delete:
+ *     summary: Delete a ride (Admin only)
+ *     tags: [E3]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Ride deleted
+ *       404:
+ *         description: Ride not found
+ *       403:
+ *         description: Admin access required
+ */
+router.delete('/rides/:id', [auth, admin], async (req, res) => {
+    try {
+        // Check if ride exists first
+        const existing = await E3Ride.findOne({ _id: req.params.id });
+        if (!existing) {
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+
+        // Delete the ride
+        await E3Ride.deleteMany({ _id: req.params.id });
+        res.json({ message: 'Ride deleted successfully' });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/e3/dine/{id}:
+ *   put:
+ *     summary: Update a dine item (Admin only)
+ *     tags: [E3]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Dine item updated
+ *       404:
+ *         description: Dine item not found
+ *       403:
+ *         description: Admin access required
+ */
+router.put('/dine/:id', [auth, admin], async (req, res) => {
+    try {
+        const updatedItem = await E3Dine.findByIdAndUpdate(req.params.id, req.body);
+        if (!updatedItem) {
+            return res.status(404).json({ message: 'Dine item not found' });
+        }
+        res.json(updatedItem);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/e3/dine/{id}:
+ *   delete:
+ *     summary: Delete a dine item (Admin only)
+ *     tags: [E3]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Dine item deleted
+ *       404:
+ *         description: Dine item not found
+ *       403:
+ *         description: Admin access required
+ */
+router.delete('/dine/:id', [auth, admin], async (req, res) => {
+    try {
+        // Check if dine item exists first
+        const existing = await E3Dine.findOne({ _id: req.params.id });
+        if (!existing) {
+            return res.status(404).json({ message: 'Dine item not found' });
+        }
+
+        // Delete the dine item
+        await E3Dine.deleteMany({ _id: req.params.id });
+        res.json({ message: 'Dine item deleted successfully' });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
 module.exports = router;

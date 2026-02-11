@@ -17,7 +17,7 @@ const Play = () => {
         setError(null);
         let data = [];
         try {
-            const res = await fetch(`${API_URL}/api/e3/rides`);
+            const res = await fetch(`${API_URL}/e3/rides`);
             if (!res.ok) throw new Error('Failed to fetch data');
             data = await res.json();
         } catch (err) {
@@ -127,7 +127,13 @@ const Play = () => {
                                         <span className="text-gray-400 text-[8px] font-bold">{activity.ageGroup}</span>
                                     </div>
                                     <h3 className="text-xs font-bold mb-1 truncate group-hover:text-riverside-teal transition-colors">{activity.name || activity.title}</h3>
-                                    {activity.isCombo && <p className="text-[10px] text-riverside-teal font-bold mb-2">Any 5 Rides</p>}
+                                    {activity.isCombo && (
+                                        <div className="mb-2 inline-block px-2 py-0.5 bg-riverside-teal/90 border-2 border-white rounded-md shadow-md">
+                                            <p className="text-[9px] text-white font-black text-center whitespace-nowrap uppercase tracking-wide">
+                                                Any 5 Rides
+                                            </p>
+                                        </div>
+                                    )}
                                     <button
                                         disabled={activity.status === 'closed'}
                                         onClick={() => addToCart({

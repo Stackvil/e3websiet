@@ -98,7 +98,7 @@ const Events = () => {
         setAvailabilityStatus('checking');
         try {
             // Using logic similar to defined structure, ensure consistent API usage
-            const res = await fetch(`${API_URL}/api/bookings/check-availability`, {
+            const res = await fetch(`${API_URL}/bookings/check-availability`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -143,7 +143,7 @@ const Events = () => {
         setIsPaymentProcessing(true);
         const endTime = calculateEndTime(startTime, durationHours);
         try {
-            const response = await fetch(`${API_URL}/api/payment/initiate`, {
+            const response = await fetch(`${API_URL}/payment/initiate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

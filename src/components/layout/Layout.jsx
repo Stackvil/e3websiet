@@ -22,7 +22,7 @@ const Header = () => {
         <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-gray-200 py-4 px-6">
             <div className="container mx-auto flex justify-between items-center">
                 <Link to="/" className="flex items-center gap-2">
-                    <img src="/e3logo.jpeg" alt="E3 Logo" className="h-20 w-auto object-contain rounded-lg" />
+                    <img src="/e3logo.png" alt="E3 Logo" className="h-20 w-auto object-contain rounded-lg" />
                 </Link>
 
                 {/* Desktop Nav */}
@@ -43,7 +43,7 @@ const Header = () => {
                     </Link>
                     {location.pathname !== '/' && (
                         <Link to="/" className="btn-orange flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform duration-300 shadow-lg hover:shadow-orange-500/30">
-                            Book Tickets <Ticket size={18} />
+                            Book Ride <Ticket size={18} />
                         </Link>
                     )}
                 </nav>
@@ -79,7 +79,7 @@ const Header = () => {
                             </Link>
                             {location.pathname !== '/' && (
                                 <Link to="/" onClick={() => setIsOpen(false)} className="btn-orange text-center">
-                                    Book Tickets
+                                    Book Ride
                                 </Link>
                             )}
                         </div>
@@ -127,7 +127,7 @@ const Layout = ({ children }) => {
             <footer className={`bg-white border-t border-gray-100 pt-12 pb-32 md:pb-24 px-6 mt-auto transition-all duration-300 ${isAdmin ? 'md:ml-64' : ''}`}>
                 <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
                     <div className="col-span-2">
-                        <img src="/e3logo.jpeg" alt="E3 Logo" className="h-24 w-auto object-contain mb-6 rounded-lg transition-transform hover:scale-105 duration-500" />
+                        <img src="/e3logo.png" alt="E3 Logo" className="h-24 w-auto object-contain mb-6 rounded-lg transition-transform hover:scale-105 duration-500" />
                         <p className="text-gray-500 max-w-sm">
                             Eat, Enjoy, and Entertainment - Vijayawada's premier open-air family hub on the banks of Krishna River.
                         </p>

@@ -19,7 +19,7 @@ const Home = () => {
         const fetchActivities = async () => {
             let data = [];
             try {
-                const res = await fetch(`${API_URL}/api/e3/rides`);
+                const res = await fetch(`${API_URL}/e3/rides`);
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();
             } catch (err) {
@@ -65,7 +65,7 @@ const Home = () => {
                     </motion.div>
 
                     <div className="w-full">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2">
                             {activities.map((ride, index) => (
                                 <motion.div
                                     key={ride._id || ride.id}

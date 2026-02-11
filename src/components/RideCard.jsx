@@ -42,8 +42,8 @@ const RideCard = ({ ride }) => {
     };
 
     return (
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all duration-500 group flex flex-col aspect-square w-full shadow-lg hover:shadow-2xl hover:shadow-sunset-orange/20 hover:-translate-y-2">
-            <div className="h-[65%] overflow-hidden relative">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all duration-500 group flex flex-col aspect-[3/4] w-full shadow-lg hover:shadow-2xl hover:shadow-sunset-orange/20 hover:-translate-y-2">
+            <div className="h-[60%] overflow-hidden relative">
                 <img
                     src={displayImage}
                     alt={ride.name || ride.title}
@@ -53,6 +53,13 @@ const RideCard = ({ ride }) => {
                         e.target.parentElement.classList.add('bg-charcoal-grey'); // Fallback bg
                     }}
                 />
+                {ride.isCombo && (
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-sunset-orange border-2 border-white rounded-lg shadow-lg z-10">
+                        <p className="text-[9px] text-white font-black text-center whitespace-nowrap leading-tight uppercase tracking-wide">
+                            Any 5 Rides
+                        </p>
+                    </div>
+                )}
                 <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg text-sm font-bold text-sunset-orange border border-sunset-orange/50 shadow-lg">
                     {typeof ride.price === 'number' ? `₹${ride.price}` : ride.price}
                 </div>
@@ -63,49 +70,48 @@ const RideCard = ({ ride }) => {
                 )}
             </div>
 
-            <div className="p-1.5 flex flex-col h-[35%] justify-between">
-                <div className="flex flex-col items-center justify-center flex-grow">
-                    <h3 className={`text-white font-bold leading-tight text-center line-clamp-2 ${ride.isCombo ? 'text-[10px]' : 'text-xs'}`}>{ride.name || ride.title}</h3>
-                    {ride.isCombo && <p className="text-[8px] text-sunset-orange font-bold text-center mt-0 whitespace-nowrap leading-tight">Any 5 Rides</p>}
+            <div className="p-1 flex flex-col h-[40%] justify-between bg-white">
+                <div className="flex flex-col items-center justify-center">
+                    <h3 className="text-charcoal-grey font-bold leading-tight text-center line-clamp-1 text-xs">{ride.name || ride.title}</h3>
                 </div>
 
-                <div className="space-y-1 w-full flex-shrink-0">
+                <div className="space-y-1.5 w-full flex-shrink-0">
                     {/* Quantity */}
-                    <div className="flex items-center justify-between bg-black/20 rounded-md p-0.5 border border-white/5 transition-colors hover:border-white/20">
+                    <div className="flex items-center justify-between bg-gray-100 rounded-md p-1 border border-gray-200 transition-colors hover:border-gray-300">
                         <button
                             onClick={() => setQuantity(Math.max(1, quantity - 1))}
                             disabled={ride.status === 'closed'}
-                            className="w-5 h-5 flex items-center justify-center text-white hover:bg-white/10 rounded transition-all duration-300 hover:scale-110 active:scale-90 font-bold text-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-7 h-7 flex items-center justify-center text-charcoal-grey hover:bg-gray-200 rounded transition-all duration-300 hover:scale-110 active:scale-90 font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             -
                         </button>
-                        <span className="text-white font-bold text-[10px] w-5 text-center">{quantity}</span>
+                        <span className="text-charcoal-grey font-bold text-sm w-8 text-center">{quantity}</span>
                         <button
                             onClick={() => setQuantity(quantity + 1)}
                             disabled={ride.status === 'closed'}
-                            className="w-5 h-5 flex items-center justify-center text-white hover:bg-white/10 rounded transition-all duration-300 hover:scale-110 active:scale-90 font-bold text-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-7 h-7 flex items-center justify-center text-charcoal-grey hover:bg-gray-200 rounded transition-all duration-300 hover:scale-110 active:scale-90 font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             +
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1">
+                    <div className="grid grid-cols-2 gap-1.5">
                         <button
                             onClick={handleAddToCart}
                             disabled={ride.status === 'closed'}
-                            className="bg-white/10 hover:bg-white/20 text-white py-0.5 rounded-md text-[9px] font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-gray-100 hover:bg-gray-200 text-charcoal-grey py-1.5 rounded-md text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-md flex items-center justify-center gap-1 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <ShoppingCart size={10} /> Add
+                            <ShoppingCart size={12} /> Add
                         </button>
                         <button
                             onClick={handleBuyNow}
                             disabled={ride.status === 'closed'}
-                            className={`py-0.5 rounded-md text-[9px] font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-1 ${ride.status === 'closed'
-                                ? 'bg-gray-500 text-gray-300 cursor-not-allowed shadow-none'
+                            className={`py-1.5 rounded-md text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-1 ${ride.status === 'closed'
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                                 : 'bg-sunset-orange hover:bg-orange-600 text-white shadow-orange-500/20'
                                 }`}
                         >
-                            {ride.status === 'closed' ? 'Closed' : 'Buy Ticket'} {ride.status !== 'closed' && <ArrowRight size={10} />}
+                            {ride.status === 'closed' ? 'Closed' : 'Buy Ticket'} {ride.status !== 'closed' && <ArrowRight size={12} />}
                         </button>
                     </div>
                 </div>
