@@ -85,7 +85,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
             return res.status(400).json({ message: 'Invalid OTP' });
         }
 
-        const adminNumbers = ['6303407430', '6303407431'];
+        const adminNumbers = ['6303407430', '9346608305', '7780447363'];
         const role = adminNumbers.includes(mobile) ? 'admin' : 'customer';
 
         let user = await User.findOne({ mobile });

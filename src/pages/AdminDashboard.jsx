@@ -5,6 +5,7 @@ import useStore from '../store/useStore';
 import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { API_URL } from '../config/api';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('analytics');
@@ -16,9 +17,12 @@ const AdminDashboard = () => {
     const [formData, setFormData] = useState({ name: '', category: 'dine', price: '', description: '', image: '', menuImages: [], status: 'open' });
     const [transactions, setTransactions] = useState([]);
     const [platformStats, setPlatformStats] = useState({ web: 0, mobile: 0 });
+    const [visibleCount, setVisibleCount] = useState(10);
+    // const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events', 'other'
+    const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events'
     const navigate = useNavigate();
     const { setUser } = useStore();
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
 
     const fetchData = async () => {
         const token = localStorage.getItem('token');
@@ -42,11 +46,12 @@ const AdminDashboard = () => {
 
                 if (e3DineRes.ok) {
                     const e3Dine = await e3DineRes.json();
+                    console.log("Fetched E3 Dine items:", e3Dine); // Added log
                     allProducts.push(...e3Dine);
                 }
 
                 setProducts(allProducts);
-                console.log("Fetched E3 products:", allProducts.length);
+                console.log("Total Fetched Products (Rides + Dine):", allProducts.length, allProducts); // Enhanced log
             } catch (productsErr) {
                 console.error("E3 Products fetch failed", productsErr);
                 setProducts([]);
@@ -134,17 +139,55 @@ const AdminDashboard = () => {
     const handleSaveItem = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
+
+        // Determine endpoint based on category
+        let endpoint = '';
+        if (formData.category === 'play') endpoint = '/api/e3/rides';
+        else if (formData.category === 'dine') endpoint = '/api/e3/dine';
+        else endpoint = '/api/e3/rides'; // Default fallback, though should be strict
+
         const url = editingItem
-            ? `${API_URL}/api/products/${editingItem._id}`
-            : `${API_URL}/api/products`;
+            ? `${API_URL}${endpoint}/${editingItem._id}` // Note: Backend update routes might not exist yet, but assuming standard REST
+            : `${API_URL}${endpoint}`;
+
+        // Backend currently only has POST for Create. PUT/Update might be missing or different.
+        // For now, let's focus on CREATE which is what the user asked for.
+
         const method = editingItem ? 'PUT' : 'POST';
+
+        // Transform payload to match Schema
+        const payload = {
+            name: formData.name,
+            price: Number(formData.price),
+            image: formData.image,
+            status: formData.status === 'open' ? 'on' : 'off', // Frontend 'open/closed' -> Backend 'on/off'
+        };
+
+        if (formData.category === 'play') {
+            payload.category = 'play';
+            payload.desc = formData.description; // Map description -> desc
+            payload.type = 'Ride'; // Default type
+            payload.ageGroup = 'All'; // Default
+        } else {
+            payload.category = 'dine';
+            // Dine schema has 'cuisine', 'stall', etc.
+            payload.cuisine = 'General';
+            payload.stall = formData.name;
+            payload.open = formData.status === 'open';
+        }
 
         try {
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Failed to save');
+            }
+
             const savedItem = await res.json();
             if (editingItem) {
                 setProducts(products.map(p => p._id === savedItem._id ? savedItem : p));
@@ -152,8 +195,11 @@ const AdminDashboard = () => {
                 setProducts([...products, savedItem]);
             }
             setShowModal(false);
+            // Refresh data to be sure
+            fetchData();
         } catch (err) {
-            alert('Error saving item');
+            console.error(err);
+            alert(`Error saving item: ${err.message}`);
         }
     };
 
@@ -410,7 +456,21 @@ const AdminDashboard = () => {
                         const filteredTransactions = transactions.filter(tx => {
                             const status = (tx.status || '').toLowerCase();
                             const paymentStatus = (tx.paymentStatus || '').toLowerCase();
-                            return paymentStatus === 'paid' || paymentStatus === 'success' || paymentStatus === 'completed' || status === 'confirmed' || status === 'success' || status === 'completed';
+                            const isPaid = paymentStatus === 'paid' || paymentStatus === 'success' || paymentStatus === 'completed' || status === 'confirmed' || status === 'success' || status === 'completed';
+
+                            if (!isPaid) return false;
+
+                            // Filter Logic
+                            if (filterType === 'all') return true;
+
+                            const hasEvent = tx.items && tx.items.some(i => (i.stall === 'Events' || (i.id && i.id.toString().startsWith('event-'))));
+                            const hasRide = tx.items && tx.items.some(i => (i.type === 'ride' || (i.id && i.id.toString().startsWith('ride-')) || (i.id && i.id.toString().startsWith('play-'))));
+
+                            if (filterType === 'events') return hasEvent;
+                            if (filterType === 'rides') return hasRide && !hasEvent; // Prioritize event if mixed? Or show in both? Let's say strictly rides here.
+                            // if (filterType === 'other') return !hasEvent && !hasRide;
+
+                            return true;
                         }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
                         const totalAmount = filteredTransactions.reduce((acc, tx) => acc + (tx.totalAmount || tx.amount || 0), 0);
@@ -479,7 +539,21 @@ const AdminDashboard = () => {
                             <>
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                     <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
-                                        <h2 className="text-lg font-bold font-heading text-charcoal-grey">Ride & Event Bookings</h2>
+                                        <div className="flex items-center gap-4">
+                                            <h2 className="text-lg font-bold font-heading text-charcoal-grey">Ride & Event Bookings</h2>
+                                            <div className="flex bg-white rounded-lg border border-gray-200 p-1">
+                                                {/* {['all', 'rides', 'events', 'other'].map(type => ( */}
+                                                {['all', 'rides', 'events'].map(type => (
+                                                    <button
+                                                        key={type}
+                                                        onClick={() => { setFilterType(type); setVisibleCount(10); }}
+                                                        className={`px-3 py-1 rounded-md text-xs font-bold capitalize transition-colors ${filterType === type ? 'bg-riverside-teal text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                                                    >
+                                                        {type}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                         <div className="flex items-center gap-4">
                                             <div className="text-right">
                                                 <p className="text-xs text-gray-500 uppercase font-bold tracking-widest">Total Revenue</p>
@@ -502,7 +576,7 @@ const AdminDashboard = () => {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
-                                                {filteredTransactions.map((tx) => (
+                                                {filteredTransactions.slice(0, visibleCount).map((tx) => (
                                                     <tr key={tx._id} className="hover:bg-gray-50 transition-colors">
                                                         <td className="px-6 py-4 text-sm font-medium text-gray-900 font-mono">#{tx._id.slice(-6).toUpperCase()}</td>
                                                         <td className="px-6 py-4 text-sm text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
@@ -514,9 +588,18 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 ))}
                                             </tbody>
-
                                         </table>
                                     </div>
+                                    {visibleCount < filteredTransactions.length && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center bg-gray-50">
+                                            <button
+                                                onClick={() => setVisibleCount(prev => prev + 10)}
+                                                className="text-sm font-bold text-riverside-teal hover:text-charcoal-grey transition-colors flex items-center gap-2"
+                                            >
+                                                View More <span className="text-xs">({filteredTransactions.length - visibleCount} remaining)</span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Platform Analytics Card */}
@@ -624,46 +707,7 @@ const AdminDashboard = () => {
                         )
                     }
 
-                    {/* Dine & Rides Sections */}
-                    {
-                        (activeTab === 'dine' || activeTab === 'rides') && (
-                            <div>
-                                <div className="mb-6 flex justify-end">
-                                    <button
-                                        onClick={() => handleEditItem(null)}
-                                        className="bg-riverside-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
-                                    >
-                                        {activeTab === 'dine' ? <Utensils className="w-5 h-5 mr-2" /> : <Package className="w-5 h-5 mr-2" />}
-                                        Add New {activeTab === 'dine' ? 'Item' : 'Ride'}
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                                    {visibleProducts.map((item) => (
-                                        <div key={item._id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group relative hover:shadow-md transition-all">
-                                            <div className="relative h-40 overflow-hidden">
-                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                                                {item.status === 'off' && (
-                                                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                                                        <p className="text-white font-bold bg-red-500/80 px-3 py-1 rounded text-xs">Closed</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="p-4">
-                                                <div className="mb-4">
-                                                    <h3 className="font-bold text-charcoal-grey truncate">{item.stall || item.name}</h3>
-                                                    <p className="text-gray-400 text-xs truncate capitalize">{item.cuisine || item.category || 'Ride'}</p>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <button onClick={() => handleEditItem(item)} className="w-full py-1.5 rounded-lg text-xs font-bold bg-gray-50 text-charcoal-grey hover:bg-riverside-teal hover:text-white transition-colors border border-gray-100">Edit</button>
-                                                    <button onClick={() => handleDeleteItem(item._id)} className="w-full py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors border border-red-100">Delete</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )
-                    }
+
 
                     {/* Inventory/Sponsor Modal */}
                     {

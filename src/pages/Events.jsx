@@ -3,6 +3,7 @@ import { Calendar, Clock, MapPin, CheckCircle2, ArrowRight, User, ChevronLeft, C
 import { motion, AnimatePresence } from 'framer-motion';
 import useStore from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config/api';
 
 const EVENT_SPACE = {
     id: 1,
@@ -96,7 +97,6 @@ const Events = () => {
 
         setAvailabilityStatus('checking');
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             // Using logic similar to defined structure, ensure consistent API usage
             const res = await fetch(`${API_URL}/api/bookings/check-availability`, {
                 method: 'POST',
@@ -143,7 +143,6 @@ const Events = () => {
         setIsPaymentProcessing(true);
         const endTime = calculateEndTime(startTime, durationHours);
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             const response = await fetch(`${API_URL}/api/payment/initiate`, {
                 method: 'POST',
                 headers: {

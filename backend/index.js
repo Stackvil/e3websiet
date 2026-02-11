@@ -31,7 +31,7 @@ app.use((req, res, next) => {
         const platform = req.headers['x-platform'] || 'unknown';
         const userAgent = req.headers['user-agent'] || '-';
 
-        logger.log(`${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms - Platform: ${platform}`);
+        // logger.log(`${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms - Platform: ${platform}`); // Disabled per user request
 
         // Persist to Analytics DB (Fire and forget)
         Analytics.create({
@@ -60,6 +60,10 @@ const swaggerOptions = {
         },
         servers: [
             {
+                url: 'https://e3-e4-backend.vercel.app',
+                description: 'Production Server'
+            },
+            {
                 url: `http://localhost:${PORT}`,
                 description: 'Local Server'
             },
@@ -85,7 +89,14 @@ const swaggerOptions = {
 let swaggerDocs;
 try {
     swaggerDocs = swaggerJsdoc(swaggerOptions);
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
+        customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui.min.css',
+        customJs: [
+            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-bundle.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-standalone-preset.min.js'
+        ],
+        customSiteTitle: "Ethree API Documentation"
+    }));
 } catch (err) {
     console.error("Failed to initialize Swagger:", err);
 }
@@ -119,3 +130,5 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
 });
+
+module.exports = app;

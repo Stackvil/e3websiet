@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, ShoppingCart, Clock, Filter, ShoppingBag, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import useStore from '../store/useStore';
 import localProducts from '../data/products.json';
+import { API_URL } from '../config/api';
 
 // Map stall names to their menu images in public/menus
 const menuImages = {
@@ -70,7 +71,6 @@ const Dine = () => {
         const fetchDineItems = async () => {
             let data = [];
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
                 const res = await fetch(`${API_URL}/api/e3/dine`);
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();

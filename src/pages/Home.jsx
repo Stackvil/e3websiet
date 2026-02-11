@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, Play, Zap, Utensils, Star, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { API_URL } from '../config/api';
 
 import RideCard from '../components/RideCard';
 import Sponsors from '../components/Sponsors';
@@ -18,7 +19,6 @@ const Home = () => {
         const fetchActivities = async () => {
             let data = [];
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
                 const res = await fetch(`${API_URL}/api/e3/rides`);
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();

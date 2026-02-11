@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Ticket, Users, Zap, Trophy, Filter, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
 import localProducts from '../data/products.json';
+import { API_URL } from '../config/api';
 
 const Play = () => {
     const { addToCart } = useStore();
@@ -16,7 +17,6 @@ const Play = () => {
         setError(null);
         let data = [];
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             const res = await fetch(`${API_URL}/api/e3/rides`);
             if (!res.ok) throw new Error('Failed to fetch data');
             data = await res.json();
