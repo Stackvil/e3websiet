@@ -6,6 +6,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js --ignore data/",
     "build": "echo 'No build step required for backend'",
+    "generate-docs": "node generate-docs.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

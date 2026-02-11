@@ -87,6 +87,7 @@ const addEventSchema = z.object({
 // Order Schemas
 const checkoutSchema = z.object({
     body: z.object({
+        location: z.enum(['E3', 'E4']),
         items: z.array(z.object({
             id: z.string(),
             name: z.string(),

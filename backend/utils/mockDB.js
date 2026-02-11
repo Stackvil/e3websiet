@@ -5,7 +5,9 @@ class MockModel {
         // Map model names to table names with special handling
         const tableMappings = {
             'user': 'users',
-            'order': 'orders',
+            'order': 'orders', // Keeping for backward compatibility if needed, or migration
+            'e3order': 'e3orders',
+            'e4order': 'e4orders',
             'e3ride': 'e3rides',
             'e3dine': 'e3dines',
             'e4ride': 'e4rides',

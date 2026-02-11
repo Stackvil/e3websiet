@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const MockModel = require('../utils/mockDB');
-const Order = new MockModel('Order');
+const E3Order = new MockModel('E3Order');
+const E4Order = new MockModel('E4Order');
 const Stripe = require('stripe');
 const { auth, admin } = require('../middleware/auth');
 const validate = require('../middleware/validate');
@@ -13,8 +14,15 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
  * @swagger
  * /api/orders/all:
  *   get:
- *     summary: Get all orders (Admin only)
+ *     summary: Get all orders (Admin only) - defaults to E3
  *     tags: [Orders]
+ *     parameters:
+ *       - in: query
+ *         name: location
+ *         schema:
+ *           type: string
+ *           enum: [E3, E4]
+ *         description: Location filter (defaults to E3)
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -25,7 +33,14 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
  */
 router.get('/all', auth, async (req, res) => {
     try {
-        const orders = await Order.find();
+        const location = req.query.location || 'E3';
+        let orders;
+
+        if (location === 'E4') {
+            orders = await E4Order.find();
+        } else {
+            orders = await E3Order.find();
+        }
         res.json(orders);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -46,8 +61,20 @@ router.get('/all', auth, async (req, res) => {
  */
 router.get('/', auth, async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user.id });
-        res.json(orders);
+        // Fetch from both tables and merge, or filter by query. Merging for simplicity.
+        const e3Orders = await E3Order.find({ user: req.user.id });
+        const e4Orders = await E4Order.find({ user: req.user.id });
+
+        // Add location tag to response
+        const allOrders = [
+            ...e3Orders.map(o => ({ ...o, location: 'E3' })),
+            ...e4Orders.map(o => ({ ...o, location: 'E4' }))
+        ];
+
+        // Sort by date if possible (mockDB doesn't sort, so do it here)
+        allOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json(allOrders);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -105,9 +132,12 @@ router.get('/', auth, async (req, res) => {
  */
 router.post('/checkout', [auth, validate(checkoutSchema)], async (req, res) => {
     try {
-        const { items } = req.body;
+        const { items, location } = req.body;
+        const targetLocation = location || 'E3'; // Default to E3 if not specified (though schema requires it now)
 
-        const order = await Order.create({
+        const OrderModel = targetLocation === 'E4' ? E4Order : E3Order;
+
+        const order = await OrderModel.create({
             user: req.user.id,
             items: items.map(item => ({
                 name: item.name,
