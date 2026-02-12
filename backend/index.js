@@ -21,7 +21,7 @@ global.EASEBUZZ_CONFIG = {
 // Middleware
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'https://e3websiet.vercel.app'],
     credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
