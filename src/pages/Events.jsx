@@ -14,11 +14,31 @@ const EVENT_SPACE = {
     description: 'A versatile open space perfect for birthdays and casual parties.'
 };
 
-const Events = () => {
+const Events = ({ location = 'E3' }) => {
     const { addToCart, toggleCart, user, tickets } = useStore();
     const navigate = useNavigate();
-    // Simplified to single space as per request, but keeping structure if expansion needed later
-    const selectedRoom = EVENT_SPACE;
+
+    const [events, setEvents] = useState([]);
+    const [selectedRoom, setSelectedRoom] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchEvents = async () => {
+            try {
+                const res = await fetch(`${API_URL}/events?location=${location}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setEvents(data);
+                    if (data.length > 0) setSelectedRoom(data[0]); // Default to first event
+                }
+            } catch (err) {
+                console.error("Failed to fetch events", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchEvents();
+    }, [location]);
 
     const [selectedDate, setSelectedDate] = useState('');
     const [inputValue, setInputValue] = useState('');
@@ -67,10 +87,12 @@ const Events = () => {
 
     const [availabilityStatus, setAvailabilityStatus] = useState(null); // 'checking', 'available', 'unavailable'
 
-    // Calculate price whenever duration changes
+    // Calculate price whenever duration or selectedRoom changes
     useEffect(() => {
-        setCalculatedPrice(durationHours > 0 ? durationHours * EVENT_SPACE.price : 0);
-    }, [durationHours]);
+        if (selectedRoom) {
+            setCalculatedPrice(durationHours > 0 ? durationHours * selectedRoom.price : 0);
+        }
+    }, [durationHours, selectedRoom]);
 
     const calculateEndTime = (start, duration) => {
         if (!start || !duration) return '';
@@ -84,7 +106,7 @@ const Events = () => {
 
         if (!user) {
             alert('Please login to check availability and book events.');
-            navigate('/login');
+            navigate(location === 'E4' ? '/e4/login' : '/login');
             return;
         }
 
@@ -142,25 +164,26 @@ const Events = () => {
     const initiatePayment = async () => {
         setIsPaymentProcessing(true);
         const endTime = calculateEndTime(startTime, durationHours);
+        const token = localStorage.getItem('token');
+
         try {
-            const response = await fetch(`${API_URL}/payment/initiate`, {
+            // Use the main order checkout endpoint for consistency
+            const response = await fetch(`${API_URL}/orders/${location.toLowerCase()}/checkout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    amount: calculatedPrice,
-                    firstname: name || user?.name?.split(' ')[0] || 'Guest',
-                    email: user?.email || 'guest@example.com',
-                    phone: user?.mobile || '9999999999',
-                    productinfo: `Event Booking ${selectedRoom.name}`,
+                    location: location, // Pass location (E3/E4)
                     items: [{
-                        id: `event-${selectedRoom.id}-${Date.now()}`,
-                        name: `${selectedRoom.name} Booking`,
-                        price: calculatedPrice,
-                        quantity: 1,
-                        image: selectedRoom.image,
-                        stall: 'Events',
+                        id: selectedRoom?._id || `event-${Date.now()}`,
+                        product: selectedRoom?._id,
+                        name: `${selectedRoom?.name} Booking`,
+                        price: selectedRoom?.price, // Hourly price
+                        quantity: durationHours, // Duration as quantity? Or logic needs adjustment. 
+                        // Actually, backend calc is price * quantity. So price=hourly, quantity=hours works.
+                        image: selectedRoom?.image,
                         details: {
                             date: selectedDate,
                             startTime,
@@ -174,10 +197,10 @@ const Events = () => {
 
             const result = await response.json();
 
-            if (result.success) {
+            if (result.success || result.payment_url) {
                 window.location.href = result.payment_url;
             } else {
-                alert('Payment Initiation Failed: ' + result.message);
+                alert('Payment Initiation Failed: ' + (result.message || 'Unknown Error'));
                 setIsPaymentProcessing(false);
             }
         } catch (error) {
@@ -214,56 +237,61 @@ const Events = () => {
                             <p className="text-gray-500 text-lg">
                                 <strong className="block mt-4 text-charcoal-grey">Note: Decoration and arrangements to be managed by the customer only.</strong>
                                 <span className="text-sm rounded-md bg-yellow-100 px-2 py-1 text-yellow-800 font-bold mt-2 inline-block">
-                                    Fixed Rate: ₹1000 / Hour
+                                    Fixed Rate: ₹{selectedRoom ? selectedRoom.price : '1000'} / Hour
                                 </span>
                             </p>
                         </div>
 
-                        <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden mb-12">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.4 }}
-                            >
-                                <div className="relative h-[400px] rounded-[2rem] overflow-hidden mb-8 group">
-                                    <img src={selectedRoom.image} alt={selectedRoom.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl font-bold text-sunset-orange shadow-lg">
-                                        ₹{selectedRoom.price}<span className="text-xs text-gray-500 font-normal">/hr</span>
-                                    </div>
-                                </div>
+                        {loading && <p>Loading events...</p>}
+                        {!loading && !selectedRoom && <p>No events found for this location.</p>}
 
-                                <div className="px-4 pb-4 space-y-4">
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <span className="text-riverside-teal font-bold uppercase tracking-widest text-xs mb-1 block">Selected Space</span>
-                                            <h3 className="font-heading font-bold text-3xl text-charcoal-grey">{selectedRoom.name}</h3>
+                        {selectedRoom && (
+                            <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden mb-12">
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.4 }}
+                                >
+                                    <div className="relative h-[400px] rounded-[2rem] overflow-hidden mb-8 group">
+                                        <img src={selectedRoom?.image} alt={selectedRoom?.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl font-bold text-sunset-orange shadow-lg">
+                                            ₹{selectedRoom?.price}<span className="text-xs text-gray-500 font-normal">/hr</span>
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-4 border-t border-gray-100 pt-6">
-                                        <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl border border-gray-100">
-                                            <User className="text-sunset-orange" size={20} />
+                                    <div className="px-4 pb-4 space-y-4">
+                                        <div className="flex justify-between items-end">
                                             <div>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Capacity</p>
-                                                <p className="font-bold text-charcoal-grey">{selectedRoom.capacity}</p>
+                                                <span className="text-riverside-teal font-bold uppercase tracking-widest text-xs mb-1 block">Selected Space</span>
+                                                <h3 className="font-heading font-bold text-3xl text-charcoal-grey">{selectedRoom.name}</h3>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 bg-teal-50 px-5 py-3 rounded-xl border border-teal-100 text-riverside-teal">
-                                            <CheckCircle2 size={20} />
-                                            <span className="font-bold text-sm">Hourly Parties & Birthdays</span>
+
+                                        <div className="flex gap-4 border-t border-gray-100 pt-6">
+                                            <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl border border-gray-100">
+                                                <User className="text-sunset-orange" size={20} />
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Capacity</p>
+                                                    <p className="font-bold text-charcoal-grey">{selectedRoom.capacity}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3 bg-teal-50 px-5 py-3 rounded-xl border border-teal-100 text-riverside-teal">
+                                                <CheckCircle2 size={20} />
+                                                <span className="font-bold text-sm">Hourly Parties & Birthdays</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex gap-3 text-orange-800 text-sm">
+                                            <Info className="shrink-0" size={20} />
+                                            <p>
+                                                <strong>Customer Policy:</strong> We provide only the space.
+                                                Tables, chairs, decorations, cake, and specific arrangements must be handled by the customer.
+                                            </p>
                                         </div>
                                     </div>
-
-                                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex gap-3 text-orange-800 text-sm">
-                                        <Info className="shrink-0" size={20} />
-                                        <p>
-                                            <strong>Customer Policy:</strong> We provide only the space.
-                                            Tables, chairs, decorations, cake, and specific arrangements must be handled by the customer.
-                                        </p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </div>
+                                </motion.div>
+                            </div>
+                        )}
 
                         {/* My Scheduled Events Section */}
                         {myEvents.length > 0 && (

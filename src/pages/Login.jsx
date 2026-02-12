@@ -6,11 +6,12 @@ import { LogOut, User, Edit2, Save, X, Phone } from 'lucide-react';
 
 import { API_URL } from '../config/api';
 
-const Login = () => {
+const Login = ({ location = 'E3' }) => {
     const { user, setUser } = useStore();
     const [mobile, setMobile] = useState('');
 
     const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState('');
     const navigate = useNavigate();
 
     // Profile Editing State
@@ -22,7 +23,7 @@ const Login = () => {
         setUser(null);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        navigate('/');
+        navigate(location === 'E4' ? '/e4/login' : '/');
     };
 
     const handleStartEdit = () => {
@@ -41,11 +42,14 @@ const Login = () => {
 
     const handleBypassLogin = async (e) => {
         e?.preventDefault();
+        setMessage(''); // Assuming message state exists or remove if not used in snippet context
         setIsLoading(true);
+
+        const targetLocation = location.toLowerCase() === 'e4' ? 'e4' : 'e3';
 
         try {
             // Send mobile directly to backend bypass endpoint
-            const res = await fetch(`${API_URL}/auth/bypass-login`, {
+            const res = await fetch(`${API_URL}/auth/${targetLocation}/bypass-login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mobile })
@@ -61,7 +65,12 @@ const Login = () => {
                 if (data.user.role === 'admin') {
                     navigate('/admin');
                 } else {
-                    navigate('/');
+                    if (location === 'E4') {
+                        // navigate('/e4/events'); // Deprecated, using generic route
+                        navigate('/events');
+                    } else {
+                        navigate('/');
+                    }
                 }
             } else {
                 alert(data.message || 'Login failed');
@@ -172,7 +181,9 @@ const Login = () => {
                 className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-gray-100"
             >
                 <div className="text-center mb-10">
-                    <h1 className="text-3xl font-heading font-bold text-charcoal-grey">Welcome Back</h1>
+                    <h1 className="text-3xl font-heading font-bold text-charcoal-grey">
+                        {location === 'E4' ? 'E4 Login' : 'Welcome Back'}
+                    </h1>
                     <p className="text-gray-500 mt-2">Sign in using your mobile number</p>
                 </div>
 

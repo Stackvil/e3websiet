@@ -25,6 +25,7 @@ function App() {
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/tickets" element={<YourTickets />} />
                     <Route path="/success" element={<Success />} />
+
                 </Routes>
             </Layout>
         </Router>

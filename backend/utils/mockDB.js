@@ -15,7 +15,13 @@ class MockModel {
             'event': 'events',
             'sponsor': 'sponsors',
             'analytics': 'analytics', // Already plural, don't add 's'
-            'booking': 'bookings'
+            'booking': 'bookings',
+            'e3user': 'e3users',
+            'e4user': 'e4users',
+            'e3order': 'e3orders',
+            'e4order': 'e4orders',
+            'e3analytics': 'e3analytics',
+            'e4analytics': 'e4analytics'
         };
 
         const lowerName = name.toLowerCase();

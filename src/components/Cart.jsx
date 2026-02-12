@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
+import { API_URL } from '../config/api';
+
 const Cart = () => {
     const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, clearCart, user, setUser } = useStore();
     const [isPaymentOpen, setIsPaymentOpen] = useState(false); // Kept for logic compatibility but unused for modal
@@ -14,30 +16,30 @@ const Cart = () => {
     const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const initiatePayment = async () => {
+    const initiatePayment = async (overrideUser = null) => {
         setIsProcessing(true);
+        const currentUser = overrideUser || user;
+        const token = localStorage.getItem('token');
+
         try {
-            const response = await fetch('http://127.0.0.1:5001/api/payment/initiate', {
+            const response = await fetch(`${API_URL}/orders/checkout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    amount: totalPrice,
-                    firstname: user?.name?.split(' ')[0] || 'User',
-                    email: user?.email || 'noprovided@example.com',
-                    phone: user?.mobile || user?.phone || mobile || '9999999999',
-                    productinfo: `Booking for ${cart.length} items`,
-                    items: cart
+                    items: cart,
+                    location: 'E3' // Hardcoded for E3 site
                 }),
             });
 
             const result = await response.json();
 
-            if (result.success) {
+            if (result.success || result.payment_url) {
                 window.location.href = result.payment_url;
             } else {
-                alert('Payment Initiation Failed: ' + result.message);
+                alert('Payment Initiation Failed: ' + (result.message || 'Unknown Error'));
                 setIsProcessing(false);
             }
         } catch (error) {
@@ -64,7 +66,7 @@ const Cart = () => {
         try {
             if (!isOtpSent) {
                 // Send OTP
-                const response = await fetch('http://127.0.0.1:5001/api/auth/send-otp', {
+                const response = await fetch(`${API_URL}/auth/send-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mobile })
@@ -76,7 +78,7 @@ const Cart = () => {
                 }
             } else {
                 // Verify OTP
-                const response = await fetch('http://127.0.0.1:5001/api/auth/verify-otp', {
+                const response = await fetch(`${API_URL}/auth/verify-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mobile, otp })
@@ -84,33 +86,13 @@ const Cart = () => {
                 const data = await response.json();
 
                 if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
                     setUser(data.user);
                     setShowAuthModal(false);
-                    // Proceed to payment immediately with the new user data
-                    setIsProcessing(true);
-                    // Call initiate payment logic manually since we have data
-                    // Or just rely on state update? State update might be slow for immediate call, pass user explicitly
 
-                    // Re-using initiatePayment logic but with explicit user data
-                    const paymentRes = await fetch('http://127.0.0.1:5001/api/payment/initiate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            amount: totalPrice,
-                            firstname: data.user.name?.split(' ')[0] || 'User',
-                            email: data.user.email || 'noprovided@example.com',
-                            phone: data.user.mobile || mobile,
-                            productinfo: `Booking for ${cart.length} items`,
-                            items: cart
-                        }),
-                    });
-                    const result = await paymentRes.json();
-                    if (result.success) {
-                        window.location.href = result.payment_url;
-                    } else {
-                        alert('Payment Failed: ' + result.message);
-                        setIsProcessing(false);
-                    }
+                    // Proceed to payment immediately with the new user data
+                    initiatePayment(data.user);
                 } else {
                     alert(data.message || 'Verification Failed');
                 }

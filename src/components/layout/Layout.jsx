@@ -95,17 +95,17 @@ const FooterInfoBar = ({ isAdmin }) => {
         <div className={`fixed bottom-0 bg-charcoal-grey text-white py-2 px-6 z-40 text-xs md:text-sm transition-all duration-300 ${isAdmin ? 'md:left-64 md:right-0' : 'left-0 w-full'
             }`}>
             <div className="container mx-auto flex justify-center md:justify-between items-center flex-wrap gap-4">
-                <div className="flex items-center gap-2">
-                    <Info size={14} className="text-sunset-orange" />
-                    <span>Parking: <span className="font-bold">₹30</span></span>
-                </div>
-                <a href="https://maps.app.goo.gl/hFphRTCW5GM6ttLF9" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:underline hover:text-riverside-teal transition-colors">
+                {/* <div className="flex items-center gap-2"> */}
+                {/* <Info size={14} className="text-sunset-orange" /> */}
+                {/* <span>Parking: <span className="font-bold">₹30</span></span> */}
+                {/* </div> */}
+                <a href="https://maps.app.goo.gl/hFphRTCW5GM6ttLF9" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:underline hover:text-riverside-teal transition-colors">
                     <MapPin size={14} className="text-riverside-teal" />
-                    <span>Location: <span className="font-bold">Opp PNBS</span></span>
+                    <span>Location: <span className="font-bold">Opposite APSRTC Bus Stand, Krishnalanka, Vijayawada – 520013, Andhra Pradesh. </span></span>
                 </a>
                 <div className="flex items-center gap-2">
                     <Clock size={14} className="text-green-400" />
-                    <span>Status: <span className="font-bold uppercase">Open Now</span> until 11 PM</span>
+                    <span>Status: <span className="font-bold uppercase">Open Now</span> until 12 PM</span>
                 </div>
             </div>
         </div>
