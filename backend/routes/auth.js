@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const MockModel = require('../utils/mockDB');
 const validate = require('../middleware/validate');
-const { registerSchema, loginSchema, sendOtpSchema, verifyOtpSchema, bypassLoginSchema } = require('../schemas/validationSchemas');
+const { registerSchema, loginSchema, sendOtpSchema, verifyOtpSchema } = require('../schemas/validationSchemas');
 
 // Initialize Models
 const User = new MockModel('User');
@@ -56,40 +56,7 @@ const loginHandler = (type) => async (req, res) => {
     }
 };
 
-// Generic Bypass Login Handler
-const bypassLoginHandler = (type) => async (req, res) => {
-    try {
-        const { mobile } = req.body;
-        if (!mobile) return res.status(400).json({ message: 'Mobile number is required' });
 
-        const adminNumbers = ['6303407430', '6303407431'];
-        const Model = getModel(type);
-
-        let user = await Model.findOne({ mobile });
-
-        // If user doesn't exist, create one
-        if (!user) {
-            const role = adminNumbers.includes(mobile) ? 'admin' : 'customer';
-            user = await Model.create({
-                name: 'User',
-                mobile,
-                role,
-                email: '',
-                password: '' // No password for mobile users
-            });
-        } else if (adminNumbers.includes(mobile) && user.role !== 'admin') {
-            // Upgrade to admin if needed
-            user = await Model.findByIdAndUpdate(user._id, { role: 'admin' });
-        }
-
-        const token = jwt.sign({ id: user._id, role: user.role, type }, process.env.JWT_SECRET || 'dev_secret_key', { expiresIn: '1d' });
-        res.json({ token, user: { id: user._id, name: user.name, mobile: user.mobile, role: user.role, email: user.email } });
-
-    } catch (err) {
-        console.error('Bypass Login Error:', err);
-        res.status(500).json({ message: err.message });
-    }
-};
 
 /**
  * Routes Configuration
@@ -98,7 +65,7 @@ const bypassLoginHandler = (type) => async (req, res) => {
 // Legacy/Default Routes (Maps to User/E3User typically, depending on legacy need. Mapping to generic User for now)
 router.post('/register', validate(registerSchema), registerHandler('default'));
 router.post('/login', validate(loginSchema), loginHandler('default'));
-router.post('/bypass-login', validate(bypassLoginSchema), bypassLoginHandler('default'));
+
 
 // E3 Specific Routes
 /**
@@ -119,14 +86,7 @@ router.post('/e3/register', validate(registerSchema), registerHandler('e3'));
  */
 router.post('/e3/login', validate(loginSchema), loginHandler('e3'));
 
-/**
- * @swagger
- * /api/auth/e3/bypass-login:
- *   post:
- *     summary: Direct access login for E3 (Mobile only)
- *     tags: [Auth - E3]
- */
-router.post('/e3/bypass-login', validate(bypassLoginSchema), bypassLoginHandler('e3'));
+
 
 // E4 Specific Routes
 /**
@@ -147,46 +107,89 @@ router.post('/e4/register', validate(registerSchema), registerHandler('e4'));
  */
 router.post('/e4/login', validate(loginSchema), loginHandler('e4'));
 
-/**
- * @swagger
- * /api/auth/e4/bypass-login:
- *   post:
- *     summary: Direct access login for E4 (Mobile only)
- *     tags: [Auth - E4]
- */
-router.post('/e4/bypass-login', validate(bypassLoginSchema), bypassLoginHandler('e4'));
 
 
-// OTP Routes (Keeping generic for now, typically SMS service is shared)
+
+const supabase = require('../utils/supabaseHelper');
+
+// OTP Routes (Real Supabase Auth Integration)
 router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
-    const { mobile } = req.body;
-    console.log(`Sending OTP to ${mobile}: 123456`);
-    res.json({ message: 'OTP sent successfully (Dummy: 123456)', mobile });
+    try {
+        const { mobile } = req.body;
+        // Ensure +91 prefix for Indian numbers if not present
+        const phoneNumber = mobile.startsWith('+') ? mobile : `+91${mobile}`;
+
+        const { data, error } = await supabase.auth.signInWithOtp({
+            phone: phoneNumber,
+        });
+
+        if (error) {
+            console.error('Supabase OTP Send Error:', error);
+            return res.status(error.status || 500).json({ message: error.message });
+        }
+
+        res.json({ message: 'OTP sent successfully', mobile });
+    } catch (err) {
+        console.error('Auth Send OTP Error:', err);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
 });
 
 router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
-    // Note: Verify OTP creates users. This logic needs to know WHICH user table to create in.
-    // Assuming 'default' User table for generic verify-otp for now.
-    // If strict separation needed here, we need /e3/verify-otp etc.
-    // For now, retaining legacy behavior for this specific route.
     try {
-        const { mobile, otp, name } = req.body;
-        if (String(otp).trim() !== '123456') return res.status(400).json({ message: 'Invalid OTP' });
+        const { mobile, otp, name, location } = req.body;
+        const phoneNumber = mobile.startsWith('+') ? mobile : `+91${mobile}`;
+
+        const { data, error } = await supabase.auth.verifyOtp({
+            phone: phoneNumber,
+            token: otp,
+            type: 'sms',
+        });
+
+        if (error) {
+            console.error('Supabase OTP Verify Error:', error);
+            return res.status(error.status || 400).json({ message: error.message });
+        }
+
+        // OTP Verified! Now synchronize with our Postgres tables
+        const type = (location || 'E3').toLowerCase();
+        const Model = getModel(type);
 
         const adminNumbers = ['6303407430', '9346608305', '7780447363'];
         const role = adminNumbers.includes(mobile) ? 'admin' : 'customer';
 
-        let user = await User.findOne({ mobile });
+        let user = await Model.findOne({ mobile });
         if (!user) {
-            user = await User.create({ name: name || 'User', mobile, role });
+            user = await Model.create({
+                name: name || 'User',
+                mobile,
+                role,
+                email: '',
+                password: ''
+            });
         } else if (adminNumbers.includes(mobile) && user.role !== 'admin') {
-            await User.findByIdAndUpdate(user._id, { role: 'admin' });
+            user = await Model.findByIdAndUpdate(user._id, { role: 'admin' });
         }
 
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'dev_secret_key', { expiresIn: '1d' });
-        res.json({ token, user: { id: user._id, name: user.name, mobile: user.mobile, role: user.role } });
+        const token = jwt.sign(
+            { id: user._id, role: user.role, type },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                mobile: user.mobile,
+                role: user.role,
+                email: user.email
+            }
+        });
     } catch (err) {
-        res.status(500).json({ message: 'Internal Server Error: ' + err.message });
+        console.error('Auth Verify OTP Error:', err);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 });
 

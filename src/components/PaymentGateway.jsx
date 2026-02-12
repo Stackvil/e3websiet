@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CreditCard, Smartphone, Building, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
+import { API_URL } from '../config/api';
 
 const PaymentGateway = ({ amount, isOpen, onClose }) => {
     const [method, setMethod] = useState('upi'); // upi, card, netbanking
@@ -15,29 +16,51 @@ const PaymentGateway = ({ amount, isOpen, onClose }) => {
 
     const handlePay = async () => {
         setIsPaying(true);
+        const token = localStorage.getItem('token');
+        const location = cart[0]?.location || 'E3'; // Assume location based on first item or default
+
         try {
-            const response = await fetch('http://127.0.0.1:5001/api/payment/confirm', {
+            const response = await fetch(`${API_URL}/orders/${location.toLowerCase()}/checkout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    amount: amount,
-                    firstname: user?.name?.split(' ')[0] || 'User',
-                    email: user?.email || 'user@example.com',
-                    phone: user?.phone || '9999999999',
-                    productinfo: `Booking for ${cart.length} items`,
-                    items: cart // Send cart items to save in backend order
+                    items: cart.map(item => ({
+                        id: item._id || item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity || 1,
+                        details: item.details
+                    }))
                 }),
             });
 
             const result = await response.json();
 
-            if (result.success) {
-                // Redirect to Easebuzz Payment Page
-                window.location.href = result.payment_url;
+            if (result.success && result.access_key) {
+                if (result.mode === 'iframe' && window.EasebuzzCheckout) {
+                    const easebuzzCheckout = new window.EasebuzzCheckout(result.key, result.env);
+                    const options = {
+                        access_key: result.access_key,
+                        onResponse: (response) => {
+                            if (response.status === 'success') {
+                                navigate(`/success?orderId=${result.txnid}&location=${location}`);
+                                onClose();
+                            } else {
+                                navigate(`/failed?orderId=${result.txnid}&location=${location}`);
+                                onClose();
+                            }
+                        }
+                    };
+                    easebuzzCheckout.initiatePayment(options);
+                    setIsPaying(false);
+                } else {
+                    window.location.href = result.payment_url;
+                }
             } else {
-                alert('Payment Initiation Failed: ' + result.message);
+                alert('Payment Initiation Failed: ' + (result.message || 'Error'));
                 setIsPaying(false);
             }
         } catch (error) {

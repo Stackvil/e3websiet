@@ -197,8 +197,26 @@ const Events = ({ location = 'E3' }) => {
 
             const result = await response.json();
 
-            if (result.success || result.payment_url) {
-                window.location.href = result.payment_url;
+            if (result.success && result.access_key) {
+                // If Iframe mode is enabled and library is loaded
+                if (result.mode === 'iframe' && window.EasebuzzCheckout) {
+                    const easebuzzCheckout = new window.EasebuzzCheckout(result.key, result.env);
+                    const options = {
+                        access_key: result.access_key,
+                        onResponse: (response) => {
+                            if (response.status === 'success') {
+                                window.location.href = `/success?orderId=${result.txnid}&location=${location}`;
+                            } else {
+                                window.location.href = `/failed?orderId=${result.txnid}&location=${location}`;
+                            }
+                        }
+                    };
+                    easebuzzCheckout.initiatePayment(options);
+                    setIsPaymentProcessing(false);
+                } else {
+                    // Default to Hosted Checkout (Redirect)
+                    window.location.href = result.payment_url;
+                }
             } else {
                 alert('Payment Initiation Failed: ' + (result.message || 'Unknown Error'));
                 setIsPaymentProcessing(false);

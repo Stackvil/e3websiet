@@ -8,12 +8,20 @@ const path = require('path');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
+
+// Easebuzz Configuration (from kit instructions)
+global.EASEBUZZ_CONFIG = {
+    key: process.env.EASEBUZZ_KEY,
+    salt: process.env.EASEBUZZ_SALT,
+    env: process.env.EASEBUZZ_ENV || 'test',
+    enable_iframe: process.env.EASEBUZZ_IFRAME || 0
+};
 
 // Middleware
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174'],
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
     credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));

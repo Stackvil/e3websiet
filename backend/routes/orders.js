@@ -43,6 +43,14 @@ const checkoutHandler = (type) => async (req, res) => {
         const targetLocation = type.toUpperCase();
         const OrderModel = getOrderModel(type);
 
+        // Fetch User Details for Payment
+        const UserModel = new MockModel(type === 'e4' ? 'E4User' : 'E3User');
+        const userData = await UserModel.findOne({ _id: req.user.id });
+
+        if (!userData) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
         const totalAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
         const txnid = 'ETH-' + Math.floor(100000 + Math.random() * 900000);
 
@@ -68,21 +76,26 @@ const checkoutHandler = (type) => async (req, res) => {
         const paymentData = {
             txnid: txnid,
             amount: totalAmount,
-            firstname: req.user.name || 'User',
-            email: req.user.email || 'user@example.com',
-            phone: req.user.mobile || '9999999999',
+            firstname: userData.name || 'User',
+            email: userData.email || 'user@example.com',
+            phone: userData.mobile || '9999999999',
             productinfo: `Order for ${items.length} items`,
-            location: targetLocation // Pass location to Easebuzz via udf1 if needed
+            location: targetLocation,
+            userId: req.user.id
         };
 
         const result = await initiatePayment(paymentData);
 
         if (result.status === 1) {
+            const easebuzzConfig = require('../utils/easebuzz').getEasebuzzConfig();
             res.json({
                 success: true,
-                payment_url: result.data || `${require('../utils/easebuzz').getEasebuzzConfig().baseUrl}/pay/${result.data}`,
+                payment_url: `${easebuzzConfig.baseUrl}/pay/${result.data}`,
                 access_key: result.data,
-                txnid: txnid
+                txnid: txnid,
+                mode: easebuzzConfig.enable_iframe == 1 ? 'iframe' : 'hosted',
+                key: easebuzzConfig.key,
+                env: easebuzzConfig.env
             });
         } else {
             res.status(400).json({ success: false, message: result.data || 'Error initiating payment' });
