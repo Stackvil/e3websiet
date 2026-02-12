@@ -3,11 +3,40 @@ const router = express.Router();
 const MockModel = require('../utils/mockDB');
 const E3Order = new MockModel('E3Order');
 const E4Order = new MockModel('E4Order');
+const E3Payment = new MockModel('E3Payment');
+const E4Payment = new MockModel('E4Payment');
 const { validateHash } = require('../utils/easebuzz');
 
 // Helper to get Order Model based on location
 const getOrderModel = (location) => {
-    return location === 'E4' ? E4Order : E3Order;
+    return (location === 'E4' || location === 'e4') ? E4Order : E3Order;
+};
+
+// Helper to get Payment Model based on location
+const getPaymentModel = (location) => {
+    return (location === 'E4' || location === 'e4') ? E4Payment : E3Payment;
+};
+
+// Helper to record payment
+const recordPayment = async (location, data) => {
+    try {
+        const PaymentModel = getPaymentModel(location);
+        await PaymentModel.create({
+            _id: data.txnid,
+            orderId: data.txnid,
+            amount: data.amount,
+            status: data.status,
+            paymentId: data.easepayid,
+            method: data.mode || 'easebuzz',
+            user: data.udf2 || null, // Assuming udf2 might store user id if passed, else null
+            location: location,
+            rawResponse: data,
+            createdAt: new Date().toISOString()
+        });
+        console.log(`Recorded payment for ${location}: ${data.txnid}`);
+    } catch (err) {
+        console.error(`Failed to record payment for ${location}:`, err);
+    }
 };
 
 // Handle Success from Easebuzz (POST)
@@ -33,8 +62,13 @@ router.post('/success', async (req, res) => {
 
         if (isValid) {
             await OrderModel.findByIdAndUpdate(txnid, { status: 'success', paymentId: easepayid });
+            // Record Transaction
+            await recordPayment(location, req.body);
 
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const redirectLocation = location.toLowerCase() === 'e4' ? 'e4' : '';
+            // If E4, maybe redirect to /e4/success? Or keep generic /success with location param
+            // Current Frontend likely handles /success?location=E4
             res.redirect(`${frontendUrl}/success?orderId=${txnid}&location=${location}`);
         } else {
             console.error('Hash Validation Failed for txnid:', txnid);
@@ -54,6 +88,8 @@ router.post('/failure', async (req, res) => {
         const OrderModel = getOrderModel(location);
 
         await OrderModel.findByIdAndUpdate(txnid, { status: status || 'failed' });
+        // Record Transaction (even failed ones)
+        await recordPayment(location, req.body);
 
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         res.redirect(`${frontendUrl}/failed?orderId=${txnid}&location=${location}`);
@@ -77,6 +113,8 @@ router.post('/response', async (req, res) => {
 
             // Update Order Status
             await OrderModel.findByIdAndUpdate(txnid, { status: status, paymentId: easepayid });
+            // Record Transaction
+            await recordPayment(location, req.body);
 
             res.json({ status: 1, data: 'Terminated' });
         } else {

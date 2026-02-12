@@ -91,8 +91,8 @@ const checkoutSchema = z.object({
         items: z.array(z.object({
             id: z.string(),
             name: z.string(),
-            price: z.number().nonnegative(),
-            quantity: z.number().int().positive(),
+            price: z.coerce.number().nonnegative(),
+            quantity: z.coerce.number().int().positive(),
             details: z.object({
                 date: z.string().optional(),
                 startTime: z.string().optional(),

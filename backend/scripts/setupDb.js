@@ -28,6 +28,17 @@ async function setup() {
         await client.query(`DROP TABLE IF EXISTS "events" CASCADE`);
         await client.query(`DROP TABLE IF EXISTS "sponsors" CASCADE`);
         await client.query(`DROP TABLE IF EXISTS "analytics" CASCADE`);
+
+        // Drop New E3/E4 Tables
+        await client.query(`DROP TABLE IF EXISTS "e3users" CASCADE`);
+        await client.query(`DROP TABLE IF EXISTS "e4users" CASCADE`);
+        await client.query(`DROP TABLE IF EXISTS "e3orders" CASCADE`);
+        await client.query(`DROP TABLE IF EXISTS "e4orders" CASCADE`);
+        await client.query(`DROP TABLE IF EXISTS "e3analytics" CASCADE`);
+        await client.query(`DROP TABLE IF EXISTS "e4analytics" CASCADE`);
+        await client.query(`DROP TABLE IF EXISTS "e3payments" CASCADE`);
+        await client.query(`DROP TABLE IF EXISTS "e4payments" CASCADE`);
+
         console.log('Dropped existing tables');
 
         // Create Users Table
@@ -138,6 +149,98 @@ async function setup() {
             );
         `);
         console.log('Created analytics table');
+
+        // --- NEW E3/E4 TABLES CONSOLIDATION ---
+
+        // Helper to create User Table
+        const createUserTable = async (tableName) => {
+            await client.query(`
+                CREATE TABLE ${tableName} (
+                    _id TEXT PRIMARY KEY,
+                    name TEXT,
+                    email TEXT,
+                    password TEXT,
+                    role TEXT,
+                    mobile TEXT,
+                    "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            console.log(`Created ${tableName} table`);
+        };
+
+        await createUserTable('e3users');
+        await createUserTable('e4users');
+
+        // Helper to create Orders/Analytics/Payments Tables
+        const createOrderTable = async (tableName) => {
+            await client.query(`
+                CREATE TABLE ${tableName} (
+                    _id TEXT PRIMARY KEY,
+                    txnid TEXT,
+                    amount NUMERIC,
+                    firstname TEXT,
+                    email TEXT,
+                    phone TEXT,
+                    items JSONB,
+                    status TEXT,
+                    "paymentId" TEXT,
+                    location TEXT,
+                    "paymentMethod" TEXT,
+                    "paymentStatus" TEXT,
+                    "orderStatus" TEXT,
+                    "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+                    "user" TEXT
+                );
+            `);
+            console.log(`Created ${tableName} table`);
+        };
+
+        await createOrderTable('e3orders');
+        await createOrderTable('e4orders');
+
+        const createAnalyticsTable = async (tableName) => {
+            await client.query(`
+                CREATE TABLE ${tableName} (
+                    _id TEXT PRIMARY KEY,
+                    method TEXT,
+                    path TEXT,
+                    "statusCode" INTEGER,
+                    duration INTEGER,
+                    platform TEXT,
+                    "userAgent" TEXT,
+                    timestamp TIMESTAMPTZ,
+                    "createdAt" TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            console.log(`Created ${tableName} table`);
+        };
+
+        await createAnalyticsTable('e3analytics');
+        await createAnalyticsTable('e4analytics');
+
+        const createPaymentTable = async (tableName) => {
+            await client.query(`
+                CREATE TABLE ${tableName} (
+                    _id TEXT PRIMARY KEY,
+                    "orderId" TEXT,
+                    amount NUMERIC,
+                    status TEXT,
+                    "paymentId" TEXT, -- Gateway ID
+                    method TEXT,
+                    "user" TEXT, -- User ID
+                    location TEXT, -- E3 or E4
+                    "rawResponse" JSONB,
+                    "createdAt" TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            console.log(`Created ${tableName} table`);
+        };
+
+        await createPaymentTable('e3payments');
+        await createPaymentTable('e4payments');
+
+        // --- END CONSOLIDATION ---
 
         // Seed Users
         const users = await fs.readJson(path.join(DATA_DIR, 'User.json'));

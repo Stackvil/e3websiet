@@ -1,137 +1,150 @@
-const supabase = require('./supabaseClient');
+const db = require('./pgClient');
 
 class MockModel {
     constructor(name) {
-        // Map model names to table names with special handling
+        // Map model names to table names
         const tableMappings = {
             'user': 'users',
-            'order': 'orders', // Keeping for backward compatibility if needed, or migration
+            'order': 'orders',
             'e3order': 'e3orders',
             'e4order': 'e4orders',
             'e3ride': 'e3rides',
             'e3dine': 'e3dines',
             'e4ride': 'e4rides',
-            'e4dine': 'e4dines',
+            'e4dine': 'e4dines', // if exists
             'event': 'events',
             'sponsor': 'sponsors',
-            'analytics': 'analytics', // Already plural, don't add 's'
+            'analytics': 'analytics',
             'booking': 'bookings',
             'e3user': 'e3users',
             'e4user': 'e4users',
-            'e3order': 'e3orders',
-            'e4order': 'e4orders',
             'e3analytics': 'e3analytics',
-            'e4analytics': 'e4analytics'
+            'e4analytics': 'e4analytics',
+            'e3payment': 'e3payments',
+            'e4payment': 'e4payments'
         };
 
         const lowerName = name.toLowerCase();
         this.table = tableMappings[lowerName] || lowerName + 's';
     }
 
-    async find(query = {}) {
-        let queryBuilder = supabase.from(this.table).select('*');
+    // Helper to construct WHERE clause
+    _buildWhere(query, paramsOffset = 1) {
+        const clauses = [];
+        const values = [];
+        let index = paramsOffset;
 
-        // Handle query object
         for (const key in query) {
-            queryBuilder = queryBuilder.eq(key, query[key]);
+            if (Object.hasOwnProperty.call(query, key)) {
+                // Handle different query types if needed, currently assumes exact match
+                // For 'user' field in orders, it might be a foreign key string
+                clauses.push(`"${key}" = $${index}`);
+                values.push(query[key]);
+                index++;
+            }
         }
+        return {
+            text: clauses.length > 0 ? 'WHERE ' + clauses.join(' AND ') : '',
+            values
+        };
+    }
 
-        const { data, error } = await queryBuilder;
-        if (error) {
-            console.error(`Error finding in ${this.table}:`, error);
-            throw new Error(error.message);
+    async find(query = {}) {
+        const { text, values } = this._buildWhere(query);
+        const sql = `SELECT * FROM "${this.table}" ${text}`;
+
+        try {
+            const res = await db.query(sql, values);
+            return res.rows;
+        } catch (err) {
+            console.error(`Error finding in ${this.table}:`, err);
+            throw new Error(err.message);
         }
-        return data || [];
     }
 
     async findOne(query) {
-        let queryBuilder = supabase.from(this.table).select('*');
-        for (const key in query) {
-            queryBuilder = queryBuilder.eq(key, query[key]);
-        }
+        const { text, values } = this._buildWhere(query);
+        const sql = `SELECT * FROM "${this.table}" ${text} LIMIT 1`;
 
-        const { data, error } = await queryBuilder.single();
-
-        // Supabase returns error PGRST116 for no rows, which implies null
-        if (error) {
-            if (error.code === 'PGRST116') return null;
-            console.error(`Error findOne in ${this.table}:`, error);
-            throw new Error(error.message);
+        try {
+            const res = await db.query(sql, values);
+            return res.rows[0] || null;
+        } catch (err) {
+            console.error(`Error findOne in ${this.table}:`, err);
+            throw new Error(err.message);
         }
-        return data;
     }
 
     async create(doc) {
-        // Supabase expects specific fields. Ensure _id is handled or generate it if relying on it.
-        // Our setup script created tables with _id as text primary key.
-        // If doc doesn't have _id, generate one? Backend logic usually relies on DB generating ID
-        // but current MockDB generated it if missing.
+        const keys = Object.keys(doc);
 
-        const docToInsert = { ...doc };
-        if (!docToInsert._id) {
-            docToInsert._id = Date.now().toString(); // Fallback ID generation same as MockDB
+        // Ensure _id and createdAt
+        if (!doc._id) {
+            doc._id = Date.now().toString(); // Fallback ID
+            keys.push('_id');
         }
-        if (!docToInsert.createdAt) {
-            docToInsert.createdAt = new Date().toISOString();
+        if (!doc.createdAt) {
+            doc.createdAt = new Date().toISOString();
+            keys.push('createdAt');
         }
 
-        const { data, error } = await supabase
-            .from(this.table)
-            .insert(docToInsert)
-            .select()
-            .single();
+        // JSON stringify objects/arrays
+        const values = keys.map(key => {
+            const val = doc[key];
+            if (typeof val === 'object' && val !== null && !(val instanceof Date)) {
+                return JSON.stringify(val);
+            }
+            return val;
+        });
 
-        if (error) {
-            console.error(`Error creating in ${this.table}:`, error);
-            throw new Error(error.message);
+        const columns = keys.map(k => `"${k}"`).join(', ');
+        const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+
+        const sql = `INSERT INTO "${this.table}" (${columns}) VALUES (${placeholders}) RETURNING *`;
+
+        try {
+            const res = await db.query(sql, values);
+            return res.rows[0];
+        } catch (err) {
+            console.error(`Error creating in ${this.table}:`, err);
+            throw new Error(err.message);
         }
-        return data;
-    }
-
-    async deleteMany(query = {}) {
-        let queryBuilder = supabase.from(this.table).delete();
-        for (const key in query) {
-            queryBuilder = queryBuilder.eq(key, query[key]);
-        }
-        const { error } = await queryBuilder;
-        if (error) {
-            console.error(`Error deleting in ${this.table}:`, error);
-            throw new Error(error.message);
-        }
-    }
-
-    async insertMany(docs) {
-        const docsToInsert = docs.map(d => ({
-            ...d,
-            _id: d._id || Math.random().toString(36).substr(2, 9),
-            createdAt: d.createdAt || new Date().toISOString()
-        }));
-
-        const { data, error } = await supabase
-            .from(this.table)
-            .insert(docsToInsert)
-            .select();
-
-        if (error) {
-            console.error(`Error insertMany in ${this.table}:`, error);
-            throw new Error(error.message);
-        }
-        return data;
     }
 
     async findByIdAndUpdate(id, update) {
-        const { data, error } = await supabase
-            .from(this.table)
-            .update(update)
-            .eq('_id', id)
-            .select()
-            .single();
+        const keys = Object.keys(update);
+        if (keys.length === 0) return this.findOne({ _id: id });
 
-        if (error) {
-            console.error(`Error updating in ${this.table}:`, error);
-            throw new Error(error.message);
+        const setClause = keys.map((key, i) => `"${key}" = $${i + 2}`).join(', ');
+        const values = [id, ...keys.map(key => {
+            const val = update[key];
+            if (typeof val === 'object' && val !== null && !(val instanceof Date)) {
+                return JSON.stringify(val);
+            }
+            return val;
+        })];
+
+        const sql = `UPDATE "${this.table}" SET ${setClause} WHERE "_id" = $1 RETURNING *`;
+
+        try {
+            const res = await db.query(sql, values);
+            return res.rows[0];
+        } catch (err) {
+            console.error(`Error updating in ${this.table}:`, err);
+            throw new Error(err.message);
         }
-        return data;
+    }
+
+    // Optional: Delete
+    async deleteMany(query = {}) {
+        const { text, values } = this._buildWhere(query);
+        const sql = `DELETE FROM "${this.table}" ${text}`;
+        try {
+            await db.query(sql, values);
+        } catch (err) {
+            console.error(`Error deleting in ${this.table}:`, err);
+            throw new Error(err.message);
+        }
     }
 }
 
