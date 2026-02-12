@@ -3,12 +3,12 @@ const router = express.Router();
 const MockModel = require('../utils/mockDB');
 const E3Order = new MockModel('E3Order');
 const E4Order = new MockModel('E4Order');
-const Stripe = require('stripe');
-const { auth, admin } = require('../middleware/auth');
 const validate = require('../middleware/validate');
+const { auth, admin } = require('../middleware/auth');
 const { checkoutSchema } = require('../schemas/validationSchemas');
+const { initiatePayment } = require('../utils/easebuzz');
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
+// const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
 
 /**
  * @swagger
@@ -133,27 +133,57 @@ router.get('/', auth, async (req, res) => {
 router.post('/checkout', [auth, validate(checkoutSchema)], async (req, res) => {
     try {
         const { items, location } = req.body;
-        const targetLocation = location || 'E3'; // Default to E3 if not specified (though schema requires it now)
+        const targetLocation = location || 'E3';
 
         const OrderModel = targetLocation === 'E4' ? E4Order : E3Order;
 
+        const totalAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        const txnid = 'ETH-' + Math.floor(100000 + Math.random() * 900000);
+
+        // Create Pending Order
         const order = await OrderModel.create({
+            _id: txnid, // Use txnid as ID for easier lookup
             user: req.user.id,
             items: items.map(item => ({
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
                 product: item.id,
-                details: item.details // Save event details
+                details: item.details
             })),
-            totalAmount: items.reduce((acc, item) => acc + (item.price * item.quantity), 0),
-            paymentMethod: 'stripe',
+            totalAmount: totalAmount,
+            paymentMethod: 'easebuzz',
             paymentStatus: 'pending',
-            orderStatus: 'placed'
+            orderStatus: 'placed',
+            location: targetLocation
         });
 
-        res.json({ id: 'mock_session_id', url: `http://localhost:5174/success?orderId=${order._id}` });
+        // Initiate Payment
+        const paymentData = {
+            txnid: txnid,
+            amount: totalAmount,
+            firstname: req.user.name || 'User',
+            email: req.user.email || 'user@example.com',
+            phone: req.user.mobile || '9999999999',
+            productinfo: `Order for ${items.length} items`,
+            location: targetLocation // Pass location to Easebuzz via udf1
+        };
+
+        const result = await initiatePayment(paymentData);
+
+        if (result.status === 1) {
+            res.json({
+                success: true,
+                payment_url: result.data || `${require('../utils/easebuzz').getEasebuzzConfig().baseUrl}/pay/${result.data}`,
+                access_key: result.data,
+                txnid: txnid
+            });
+        } else {
+            res.status(400).json({ success: false, message: result.data || 'Error initiating payment' });
+        }
+
     } catch (err) {
+        console.error('Checkout Error:', err);
         res.status(500).json({ message: err.message });
     }
 });
