@@ -124,7 +124,9 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/sponsors', require('./routes/sponsors'));
+app.use('/api/sponsors', require('./routes/sponsors'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/profile', require('./routes/profile'));
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
