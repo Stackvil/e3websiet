@@ -45,7 +45,11 @@ const addRideSchema = z.object({
         type: z.string().optional(),
         status: z.enum(['on', 'off']).optional(),
         image: z.string().url().optional(),
-        desc: z.string().optional()
+        desc: z.string().optional(),
+        stall: z.string().optional(),
+        isCombo: z.boolean().optional(),
+        rideCount: z.number().optional(),
+        images: z.array(z.string()).optional()
     })
 });
 
@@ -58,7 +62,9 @@ const addDineSchema = z.object({
         stall: z.string().optional(),
         image: z.string().url().optional(),
         status: z.enum(['on', 'off']).optional(),
-        open: z.boolean().optional()
+        open: z.boolean().optional(),
+        menuImages: z.array(z.string()).optional(),
+        contactNumber: z.string().optional()
     })
 });
 
@@ -95,7 +101,9 @@ const checkoutSchema = z.object({
                 date: z.string().optional(),
                 startTime: z.string().optional(),
                 endTime: z.string().optional(),
-                guests: z.string().optional()
+                guests: z.string().optional(),
+                isCombo: z.boolean().optional(),
+                rideCount: z.number().optional()
             }).optional()
         }))
     })

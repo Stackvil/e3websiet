@@ -65,7 +65,7 @@ const Home = () => {
                     </motion.div>
 
                     <div className="w-full">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                             {activities.map((ride, index) => (
                                 <motion.div
                                     key={ride._id || ride.id}

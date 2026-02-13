@@ -65,11 +65,16 @@ const checkoutHandler = (type) => async (req, res) => {
                 product: item.id,
                 details: item.details
             })),
-            totalAmount: totalAmount,
+            amount: totalAmount,
             paymentMethod: 'easebuzz',
             paymentStatus: 'pending',
             orderStatus: 'placed',
-            location: targetLocation
+            orderStatus: 'placed',
+            location: targetLocation,
+            // Snapshot user details for reference
+            firstname: userData.name,
+            email: userData.email,
+            phone: userData.mobile
         });
 
         // Initiate Payment

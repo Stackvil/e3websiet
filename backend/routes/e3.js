@@ -7,6 +7,7 @@ const { addRideSchema, addDineSchema } = require('../schemas/validationSchemas')
 
 const E3Ride = new MockModel('E3Ride'); // table: e3rides
 const E3Dine = new MockModel('E3Dine'); // table: e3dines
+const E3ComboRide = new MockModel('E3ComboRide'); // table: e3comborides
 
 /**
  * @swagger
@@ -20,8 +21,11 @@ const E3Dine = new MockModel('E3Dine'); // table: e3dines
  */
 router.get('/rides', async (req, res) => {
     try {
-        const rides = await E3Ride.find();
-        res.json(rides);
+        const [rides, combos] = await Promise.all([
+            E3Ride.find(),
+            E3ComboRide.find()
+        ]);
+        res.json([...combos, ...rides]);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -91,7 +95,12 @@ router.get('/dine', async (req, res) => {
  */
 router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) => {
     try {
-        const newItem = await E3Ride.create(req.body);
+        let newItem;
+        if (req.body.isCombo) {
+            newItem = await E3ComboRide.create(req.body);
+        } else {
+            newItem = await E3Ride.create(req.body);
+        }
         res.status(201).json(newItem);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -180,7 +189,13 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
  */
 router.put('/rides/:id', [auth, admin], async (req, res) => {
     try {
-        const updatedItem = await E3Ride.findByIdAndUpdate(req.params.id, req.body);
+        let updatedItem = await E3Ride.findByIdAndUpdate(req.params.id, req.body);
+
+        if (!updatedItem) {
+            // If not found in rides, try combos
+            updatedItem = await E3ComboRide.findByIdAndUpdate(req.params.id, req.body);
+        }
+
         if (!updatedItem) {
             return res.status(404).json({ message: 'Ride not found' });
         }
@@ -214,15 +229,21 @@ router.put('/rides/:id', [auth, admin], async (req, res) => {
  */
 router.delete('/rides/:id', [auth, admin], async (req, res) => {
     try {
-        // Check if ride exists first
-        const existing = await E3Ride.findOne({ _id: req.params.id });
-        if (!existing) {
-            return res.status(404).json({ message: 'Ride not found' });
+        // Check if ride exists in e3rides first
+        let existing = await E3Ride.findOne({ _id: req.params.id });
+        if (existing) {
+            await E3Ride.deleteMany({ _id: req.params.id });
+            return res.json({ message: 'Ride deleted successfully' });
         }
 
-        // Delete the ride
-        await E3Ride.deleteMany({ _id: req.params.id });
-        res.json({ message: 'Ride deleted successfully' });
+        // Check if ride exists in e3comborides
+        existing = await E3ComboRide.findOne({ _id: req.params.id });
+        if (existing) {
+            await E3ComboRide.deleteMany({ _id: req.params.id });
+            return res.json({ message: 'Ride deleted successfully' });
+        }
+
+        return res.status(404).json({ message: 'Ride not found' });
     } catch (err) {
         res.status(400).json({ message: err.message });
     }

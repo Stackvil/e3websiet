@@ -13,60 +13,78 @@ const { checkAvailabilitySchema } = require('../schemas/validationSchemas');
  *     summary: Get all bookings (Admin)
  *     tags: [Bookings]
  */
-const Order = new MockModel('Order');
+const { pool } = require('../utils/pgClient');
+
+// ... (imports)
+
+router.get('/', auth, admin, async (req, res) => {
+    try {
+        // Fetch from the dedicated event_bookings table
+        const result = await pool.query('SELECT * FROM event_bookings ORDER BY booking_date DESC, start_time DESC');
+        const bookings = result.rows.map((booking, idx) => {
+            const formatTime = (t) => {
+                if (!t) return '';
+                // Handle TIME type "14:30:00"
+                const [h, m] = t.split(':').map(Number);
+                return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+            };
+
+            // Format date YYYY-MM-DD
+            const dateObj = new Date(booking.booking_date);
+            const dateStr = !isNaN(dateObj) ? dateObj.toISOString().split('T')[0] : booking.booking_date;
+
+            return {
+                id: booking.id, // DB Primary Key
+                bookingId: booking.order_id,
+                name: booking.customer_name || 'Guest',
+                email: booking.customer_email || 'N/A',
+                mobile: booking.customer_mobile || 'N/A',
+                facility: booking.event_name,
+                date: dateStr,
+                time: booking.start_time ? `${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}` : 'N/A',
+                status: booking.status,
+                price: booking.price,
+                quantity: booking.guests
+            };
+        });
+
+        // Deduplicate bookings based on Order ID and Facility Name
+        const uniqueBookings = [];
+        const seen = new Set();
+
+        bookings.forEach(booking => {
+            const key = `${booking.bookingId}-${booking.facility}-${booking.date}-${booking.time}`; // Unique key
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueBookings.push(booking);
+            }
+        });
+
+        res.json(uniqueBookings);
+    } catch (err) {
+        console.error("Failed to fetch event bookings:", err);
+        res.status(500).json({ message: err.message });
+    }
+});
 
 /**
  * @swagger
- * /api/bookings:
- *   get:
- *     summary: Get all event bookings (Admin)
- *     tags: [Bookings]
+ * /api/bookings/{id}:
+ *   delete:
+ *     summary: Delete a booking (Admin)
  */
-router.get('/', auth, admin, async (req, res) => {
+router.delete('/:id', auth, admin, async (req, res) => {
     try {
-        // Fetch all orders that act as bookings
-        const orders = await Order.find();
+        const { id } = req.params;
+        const result = await pool.query('DELETE FROM event_bookings WHERE id = $1 RETURNING *', [id]);
 
-        // Filter orders that have event items
-        const eventBookings = orders.flatMap(order => {
-            if (!order.items) return [];
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
 
-            return order.items
-                .filter(item => {
-                    const id = item.id || item.product || '';
-                    const isEvent = id.toString().startsWith('event-') || item.stall === 'Events';
-                    const isPaid =
-                        order.paymentStatus === 'paid' ||
-                        order.paymentStatus === 'success' ||
-                        order.status === 'success' ||
-                        order.status === 'confirmed';
-
-                    return isEvent && isPaid;
-                })
-                .map((item, idx) => {
-                    const formatTime = (t) => {
-                        if (!t) return '';
-                        const [h, m] = t.split(':').map(Number);
-                        return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-                    };
-                    return {
-                        id: item.id || `${order._id}-${idx}`, // Unique Item ID
-                        bookingId: order.txnid || order._id, // Order ID for display
-                        name: order.firstname || (order.user ? (order.user.name || 'User') : 'Guest'),
-                        facility: item.name,
-                        date: item.details?.date || 'N/A',
-                        time: item.details?.startTime ? `${formatTime(item.details.startTime)} - ${formatTime(item.details.endTime)}` : 'N/A',
-                        status: (order.status || order.paymentStatus || 'pending'),
-                        price: item.price,
-                        quantity: item.quantity
-                    };
-                });
-        });
-
-        console.log(`Found ${eventBookings.length} event bookings`);
-
-        res.json(eventBookings);
+        res.json({ message: 'Booking deleted successfully', booking: result.rows[0] });
     } catch (err) {
+        console.error("Failed to delete booking:", err);
         res.status(500).json({ message: err.message });
     }
 });
@@ -104,7 +122,7 @@ router.get('/', auth, admin, async (req, res) => {
 router.post('/check-availability', validate(checkAvailabilitySchema), async (req, res) => {
     try {
         const { date, startTime, endTime, roomName } = req.body;
-
+        const Order = new MockModel('Order');
         const orders = await Order.find();
 
         // Simple overlap check

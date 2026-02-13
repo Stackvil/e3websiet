@@ -21,7 +21,8 @@ class MockModel {
             'e3analytics': 'e3analytics',
             'e4analytics': 'e4analytics',
             'e3payment': 'e3payments',
-            'e4payment': 'e4payments'
+            'e4payment': 'e4payments',
+            'e3comboride': 'e3comborides'
         };
 
         const lowerName = name.toLowerCase();

@@ -31,7 +31,7 @@ const registerHandler = (type) => async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         user = await Model.create({ name, email, password: hashedPassword, role: role || 'customer' });
 
-        const token = jwt.sign({ id: user._id, role: user.role, type }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign({ id: user._id, role: user.role, type }, process.env.JWT_SECRET || 'dev_secret_key', { expiresIn: '1d' });
         res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -49,7 +49,7 @@ const loginHandler = (type) => async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-        const token = jwt.sign({ id: user._id, role: user.role, type }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign({ id: user._id, role: user.role, type }, process.env.JWT_SECRET || 'dev_secret_key', { expiresIn: '1d' });
         res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -110,7 +110,66 @@ router.post('/e4/login', validate(loginSchema), loginHandler('e4'));
 
 
 
+
+// Bypass Login Handler (Development/Guest Access)
+const bypassLoginHandler = (type) => async (req, res) => {
+    try {
+        const { mobile } = req.body;
+        if (!mobile || mobile.length < 10) {
+            return res.status(400).json({ message: 'Invalid mobile number' });
+        }
+
+        const Model = getModel(type);
+
+        // Match verify-otp logic for admin check
+        const adminNumbers = ['6303407430', '9346608305', '7780447363'];
+        let role = 'customer';
+        if (adminNumbers.some(num => mobile.includes(num))) {
+            role = 'admin';
+        }
+
+        let user = await Model.findOne({ mobile });
+
+        if (!user) {
+            user = await Model.create({
+                name: 'Guest',
+                mobile,
+                role,
+                email: '',
+                password: ''
+            });
+        } else if (role === 'admin' && user.role !== 'admin') {
+            user = await Model.findByIdAndUpdate(user._id, { role: 'admin' });
+        }
+
+        const token = jwt.sign(
+            { id: user._id, role: user.role, type },
+            process.env.JWT_SECRET || 'dev_secret_key',
+            { expiresIn: '1d' }
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                mobile: user.mobile,
+                role: user.role,
+                email: user.email
+            }
+        });
+
+    } catch (err) {
+        console.error('Bypass Login Error:', err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
+router.post('/e3/bypass-login', bypassLoginHandler('e3'));
+router.post('/e4/bypass-login', bypassLoginHandler('e4'));
+
 const supabase = require('../utils/supabaseHelper');
+
 
 // OTP Routes (Real Supabase Auth Integration)
 router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
@@ -173,7 +232,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 
         const token = jwt.sign(
             { id: user._id, role: user.role, type },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'dev_secret_key',
             { expiresIn: '1d' }
         );
 

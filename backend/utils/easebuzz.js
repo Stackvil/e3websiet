@@ -45,11 +45,11 @@ async function initiatePayment(orderData) {
         txnid: orderData.txnid,
         amount: parseFloat(orderData.amount).toFixed(2),
         productinfo: (orderData.productinfo || 'Order'),
-        name: orderData.firstname, // Kit uses 'name'
+        firstname: orderData.firstname, // Changed 'name' to 'firstname' to match Easebuzz API
         email: orderData.email,
         phone: orderData.phone,
-        surl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/success`,
-        furl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/failure`,
+        surl: `${process.env.BACKEND_URL || 'http://localhost:5001'}/api/payment/success`,
+        furl: `${process.env.BACKEND_URL || 'http://localhost:5001'}/api/payment/failure`,
         udf1: orderData.location || '',
         udf2: orderData.userId || '',
         udf3: '',
@@ -66,7 +66,9 @@ async function initiatePayment(orderData) {
     const url = `${config.baseUrl}/payment/initiateLink`;
 
     // Generate Hash
-    const hashString = `${config.key}|${data.txnid}|${data.amount}|${data.productinfo}|${data.name}|${data.email}|${data.udf1}|${data.udf2}|${data.udf3}|${data.udf4}|${data.udf5}|${data.udf6}|${data.udf7}|${data.udf8}|${data.udf9}|${data.udf10}|${config.salt}`;
+    // Note: Hash construction order: key|txnid|amount|productinfo|firstname|email|...
+    // We must use data.firstname here which corresponds to 'firstname' in the hash sequence.
+    const hashString = `${config.key}|${data.txnid}|${data.amount}|${data.productinfo}|${data.firstname}|${data.email}|${data.udf1}|${data.udf2}|${data.udf3}|${data.udf4}|${data.udf5}|${data.udf6}|${data.udf7}|${data.udf8}|${data.udf9}|${data.udf10}|${config.salt}`;
     data.hash = sha512.sha512(hashString);
     data.key = config.key;
 

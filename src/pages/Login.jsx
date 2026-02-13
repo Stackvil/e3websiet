@@ -58,8 +58,19 @@ const Login = ({ location = 'E3' }) => {
             const data = await res.json();
 
             if (res.ok && data.token) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                try {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                } catch (e) {
+                    console.error("Storage full, clearing old cache...");
+                    localStorage.removeItem('ethree-storage-v1'); // Clear the bloated store
+                    try {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    } catch (retryErr) {
+                        alert("Your browser storage is full. Please clear your cache manually.");
+                    }
+                }
                 setUser(data.user);
 
                 if (data.user.role === 'admin') {
