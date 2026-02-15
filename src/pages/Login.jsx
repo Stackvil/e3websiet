@@ -5,13 +5,11 @@ import useStore from '../store/useStore';
 import { LogOut, User, Edit2, Save, X, Phone } from 'lucide-react';
 
 import { API_URL } from '../config/api';
+import AuthComponent from '../components/auth/AuthComponent';
 
 const Login = ({ location = 'E3' }) => {
     const { user, setUser } = useStore();
-    const [mobile, setMobile] = useState('');
 
-    const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState('');
     const navigate = useNavigate();
 
     // Profile Editing State
@@ -40,57 +38,18 @@ const Login = ({ location = 'E3' }) => {
         setIsEditing(false);
     };
 
-    const handleBypassLogin = async (e) => {
-        e?.preventDefault();
-        setMessage(''); // Assuming message state exists or remove if not used in snippet context
-        setIsLoading(true);
 
-        const targetLocation = location.toLowerCase() === 'e4' ? 'e4' : 'e3';
 
-        try {
-            // Send mobile directly to backend bypass endpoint
-            const res = await fetch(`${API_URL}/auth/${targetLocation}/bypass-login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile })
-            });
-
-            const data = await res.json();
-
-            if (res.ok && data.token) {
-                try {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                } catch (e) {
-                    console.error("Storage full, clearing old cache...");
-                    localStorage.removeItem('ethree-storage-v1'); // Clear the bloated store
-                    try {
-                        localStorage.setItem('token', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                    } catch (retryErr) {
-                        alert("Your browser storage is full. Please clear your cache manually.");
-                    }
-                }
-                setUser(data.user);
-
-                if (data.user.role === 'admin') {
-                    navigate('/admin');
-                } else {
-                    if (location === 'E4') {
-                        // navigate('/e4/events'); // Deprecated, using generic route
-                        navigate('/events');
-                    } else {
-                        navigate('/');
-                    }
-                }
+    const handleLoginSuccess = (userData) => {
+        setUser(userData);
+        if (userData.role === 'admin') {
+            navigate('/admin');
+        } else {
+            if (location === 'E4') {
+                navigate('/events');
             } else {
-                alert(data.message || 'Login failed');
+                navigate('/');
             }
-        } catch (err) {
-            console.error(err);
-            alert('Login Failed: ' + err.message);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -171,6 +130,27 @@ const Login = ({ location = 'E3' }) => {
                                 <Edit2 size={20} /> Edit Profile
                             </button>
 
+                            {/* Rewards Section Integration */}
+                            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 mb-4 border border-indigo-100 relative overflow-hidden group hover:shadow-md transition-shadow">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-bl-full opacity-20 transform translate-x-8 -translate-y-8" />
+
+                                <div className="relative z-10">
+                                    <p className="text-indigo-600 font-bold text-xs uppercase tracking-wider mb-1">Your Rewards</p>
+                                    <div className="flex items-baseline gap-2 mb-2">
+                                        <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                                            {user.reward_points || 0}
+                                        </span>
+                                        <span className="text-gray-500 font-medium text-sm">Points</span>
+                                    </div>
+                                    <button
+                                        onClick={() => navigate('/profile')}
+                                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline"
+                                    >
+                                        View Full Profile & Offers &rarr;
+                                    </button>
+                                </div>
+                            </div>
+
                             <button
                                 onClick={handleLogout}
                                 className="w-full border-2 border-transparent text-gray-400 py-2 rounded-xl font-bold text-sm hover:text-red-500 transition-all flex items-center justify-center gap-2"
@@ -189,36 +169,11 @@ const Login = ({ location = 'E3' }) => {
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-gray-100"
+                className="w-full max-w-md"
             >
-                <div className="text-center mb-10">
-                    <h1 className="text-3xl font-heading font-bold text-charcoal-grey">
-                        {location === 'E4' ? 'E4 Login' : 'Welcome Back'}
-                    </h1>
-                    <p className="text-gray-500 mt-2">Sign in using your mobile number</p>
-                </div>
 
-                <form onSubmit={handleBypassLogin} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-bold text-charcoal-grey mb-2">Mobile Number</label>
-                        <input
-                            type="tel"
-                            value={mobile}
-                            onChange={(e) => setMobile(e.target.value)}
-                            className="w-full px-5 py-3 rounded-xl border border-gray-200 focus:border-sunset-orange focus:ring-1 focus:ring-sunset-orange transition-all outline-none"
-                            placeholder="Enter your number"
-                            required
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full bg-sunset-orange text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-sunset-orange/20 transition-all active:scale-95 disabled:opacity-50"
-                    >
-                        {isLoading ? 'Logging in...' : 'Direct Login'}
-                    </button>
-                </form>
 
+                <AuthComponent onSuccess={handleLoginSuccess} />
             </motion.div>
         </div>
     );

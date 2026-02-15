@@ -69,6 +69,55 @@ router.get('/', auth, admin, async (req, res) => {
 
 /**
  * @swagger
+ * /api/bookings/my-bookings:
+ *   get:
+ *     summary: Get my bookings (User specific)
+ *     tags: [Bookings]
+ */
+router.get('/my-bookings', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const mobile = req.user.mobile;
+
+        // Fetch bookings for specific user (matching user_id or mobile as fallback)
+        const result = await pool.query(
+            `SELECT * FROM event_bookings 
+             WHERE user_id = $1 OR customer_mobile = $2 
+             ORDER BY booking_date DESC, start_time DESC`,
+            [userId, mobile]
+        );
+
+        const bookings = result.rows.map((booking) => {
+            const formatTime = (t) => {
+                if (!t) return '';
+                const [h, m] = t.split(':').map(Number);
+                return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+            };
+
+            const dateObj = new Date(booking.booking_date);
+            const dateStr = !isNaN(dateObj) ? dateObj.toISOString().split('T')[0] : booking.booking_date;
+
+            return {
+                id: booking.id,
+                bookingId: booking.order_id,
+                facility: booking.event_name,
+                date: dateStr,
+                time: booking.start_time ? `${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}` : 'N/A',
+                status: booking.status,
+                price: booking.price,
+                guests: booking.guests
+            };
+        });
+
+        res.json(bookings);
+    } catch (err) {
+        console.error("Failed to fetch my bookings:", err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+/**
+ * @swagger
  * /api/bookings/{id}:
  *   delete:
  *     summary: Delete a booking (Admin)

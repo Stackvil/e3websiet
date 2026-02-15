@@ -1,7 +1,10 @@
 const db = require('./pgClient');
+const fs = require('fs-extra');
+const path = require('path');
 
 class MockModel {
     constructor(name) {
+        this.name = name;
         // Map model names to table names
         const tableMappings = {
             'user': 'users',
@@ -22,23 +25,59 @@ class MockModel {
             'e4analytics': 'e4analytics',
             'e3payment': 'e3payments',
             'e4payment': 'e4payments',
-            'e3comboride': 'e3comborides'
+            'e3comboride': 'e3comborides',
+            'product': 'products'
+        };
+
+        // File mappings for mock mode (Table Name -> File Name)
+        this.fileMappings = {
+            'users': 'User.json',
+            'orders': 'Order.json',
+            'events': 'Events.json',
+            'bookings': 'Booking.json',
+            'products': 'Products.json',
+            'e3dines': 'E3Dine.json',
+            'e3rides': 'E3Rides.json',
+            'e4rides': 'E4Rides.json'
         };
 
         const lowerName = name.toLowerCase();
         this.table = tableMappings[lowerName] || lowerName + 's';
+        this.dataPath = path.join(__dirname, '../data', this.fileMappings[this.table] || `${this.table}.json`);
     }
 
-    // Helper to construct WHERE clause
+    // Helper to read data from file
+    async _readData() {
+        try {
+            if (await fs.pathExists(this.dataPath)) {
+                return await fs.readJson(this.dataPath);
+            }
+            return [];
+        } catch (err) {
+            console.warn(`Failed to read mock data for ${this.table}:`, err.message);
+            return [];
+        }
+    }
+
+    // Helper to write data to file
+    async _writeData(data) {
+        try {
+            await fs.ensureDir(path.dirname(this.dataPath));
+            await fs.writeJson(this.dataPath, data, { spaces: 2 });
+        } catch (err) {
+            console.error(`Failed to write mock data for ${this.table}:`, err);
+        }
+    }
+
+    // Helper to construct WHERE clause (SQL) or Filter (JS)
     _buildWhere(query, paramsOffset = 1) {
+        // SQL Logic
         const clauses = [];
         const values = [];
         let index = paramsOffset;
 
         for (const key in query) {
             if (Object.hasOwnProperty.call(query, key)) {
-                // Handle different query types if needed, currently assumes exact match
-                // For 'user' field in orders, it might be a foreign key string
                 clauses.push(`"${key}" = $${index}`);
                 values.push(query[key]);
                 index++;
@@ -50,7 +89,19 @@ class MockModel {
         };
     }
 
+    _matchQuery(item, query) {
+        for (const key in query) {
+            if (item[key] != query[key]) return false; // Loose equality for ID strings vs numbers
+        }
+        return true;
+    }
+
     async find(query = {}) {
+        if (db.isMockMode) {
+            const data = await this._readData();
+            return data.filter(item => this._matchQuery(item, query));
+        }
+
         const { text, values } = this._buildWhere(query);
         const sql = `SELECT * FROM "${this.table}" ${text}`;
 
@@ -64,6 +115,11 @@ class MockModel {
     }
 
     async findOne(query) {
+        if (db.isMockMode) {
+            const data = await this._readData();
+            return data.find(item => this._matchQuery(item, query)) || null;
+        }
+
         const { text, values } = this._buildWhere(query);
         const sql = `SELECT * FROM "${this.table}" ${text} LIMIT 1`;
 
@@ -87,6 +143,13 @@ class MockModel {
         if (!doc.createdAt) {
             doc.createdAt = new Date().toISOString();
             keys.push('createdAt');
+        }
+
+        if (db.isMockMode) {
+            const data = await this._readData();
+            data.push(doc);
+            await this._writeData(data);
+            return doc;
         }
 
         // JSON stringify objects/arrays
@@ -113,6 +176,18 @@ class MockModel {
     }
 
     async findByIdAndUpdate(id, update) {
+        if (db.isMockMode) {
+            const data = await this._readData();
+            const index = data.findIndex(item => item._id == id);
+            if (index !== -1) {
+                // Merge update
+                data[index] = { ...data[index], ...update };
+                await this._writeData(data);
+                return data[index];
+            }
+            return null;
+        }
+
         const keys = Object.keys(update);
         if (keys.length === 0) return this.findOne({ _id: id });
 
@@ -138,6 +213,16 @@ class MockModel {
 
     // Optional: Delete
     async deleteMany(query = {}) {
+        if (db.isMockMode) {
+            let data = await this._readData();
+            const originalLength = data.length;
+            data = data.filter(item => !this._matchQuery(item, query));
+            if (data.length !== originalLength) {
+                await this._writeData(data);
+            }
+            return;
+        }
+
         const { text, values } = this._buildWhere(query);
         const sql = `DELETE FROM "${this.table}" ${text}`;
         try {

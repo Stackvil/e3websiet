@@ -20,7 +20,10 @@ const getProfile = (type) => async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         // Exclude password
+        // Exclude password
         const { password, ...userProfile } = user;
+        // Ensure reward_points is present (default to 0 if undefined)
+        userProfile.reward_points = user.reward_points || 0;
         res.json(userProfile);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -41,6 +44,7 @@ const updateProfile = (type) => async (req, res) => {
         if (name) updateData.name = name;
         if (email) updateData.email = email;
         if (mobile) updateData.mobile = mobile;
+        // Do not allow updating reward_points from client side
 
         const updatedUser = await Model.findByIdAndUpdate(req.user.id, updateData);
 

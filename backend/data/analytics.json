@@ -1,0 +1,123 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/e3/rides",
+    "statusCode": 304,
+    "duration": 27,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T08:43:38.574Z",
+    "_id": "1770885818574",
+    "createdAt": "2026-02-12T08:43:38.574Z"
+  },
+  {
+    "method": "GET",
+    "path": "/api/sponsors",
+    "statusCode": 304,
+    "duration": 73,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T09:23:46.590Z",
+    "_id": "1770888226590",
+    "createdAt": "2026-02-12T09:23:46.590Z"
+  },
+  {
+    "method": "GET",
+    "path": "/api/e3/rides",
+    "statusCode": 304,
+    "duration": 45,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T09:23:46.615Z",
+    "_id": "1770888226615",
+    "createdAt": "2026-02-12T09:23:46.615Z"
+  },
+  {
+    "method": "GET",
+    "path": "/api/e3/rides",
+    "statusCode": 304,
+    "duration": 2,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T09:23:46.648Z",
+    "_id": "1770888226648",
+    "createdAt": "2026-02-12T09:23:46.648Z"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orders/e3/checkout",
+    "statusCode": 400,
+    "duration": 1268,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T09:24:10.422Z",
+    "_id": "1770888250422",
+    "createdAt": "2026-02-12T09:24:10.422Z"
+  },
+  {
+    "method": "GET",
+    "path": "/api/e3/rides",
+    "statusCode": 304,
+    "duration": 302,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T09:49:06.437Z",
+    "_id": "1770889746437",
+    "createdAt": "2026-02-12T09:49:06.437Z"
+  },
+  {
+    "method": "GET",
+    "path": "/api/e3/rides",
+    "statusCode": 304,
+    "duration": 13,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T09:49:06.474Z",
+    "_id": "1770889746474",
+    "createdAt": "2026-02-12T09:49:06.474Z"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orders/e3/checkout",
+    "statusCode": 400,
+    "duration": 1247,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T09:49:12.837Z",
+    "_id": "1770889752837",
+    "createdAt": "2026-02-12T09:49:12.837Z"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orders/e3/checkout",
+    "statusCode": 400,
+    "duration": 389,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T10:02:32.609Z",
+    "_id": "1770890552609",
+    "createdAt": "2026-02-12T10:02:32.609Z"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orders/e3/checkout",
+    "statusCode": 400,
+    "duration": 481,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T10:08:03.074Z",
+    "_id": "1770890883074",
+    "createdAt": "2026-02-12T10:08:03.074Z"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orders/e3/checkout",
+    "statusCode": 400,
+    "duration": 286,
+    "platform": "unknown",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+    "timestamp": "2026-02-12T10:08:46.416Z",
+    "_id": "1770890926416",
+    "createdAt": "2026-02-12T10:08:46.416Z"
+  }
+]

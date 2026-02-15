@@ -12,8 +12,23 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
     body: z.object({
-        email: z.string().email(),
-        password: z.string().min(1)
+        mobile: z.string().regex(/^\d{10}$/, 'Invalid mobile number'),
+        password: z.string().min(1, 'Password is required')
+    })
+});
+
+const signupInitSchema = z.object({
+    body: z.object({
+        mobile: z.string().regex(/^\d{10}$/, 'Invalid mobile number')
+    })
+});
+
+const signupCompleteSchema = z.object({
+    body: z.object({
+        mobile: z.string().regex(/^\d{10}$/, 'Invalid mobile number'),
+        otp: z.string().length(6, 'OTP must be 6 digits'),
+        password: z.string().min(6, 'Password must be at least 6 characters'),
+        name: z.string().min(2).optional()
     })
 });
 
@@ -153,6 +168,8 @@ const updateProfileSchema = z.object({
 module.exports = {
     registerSchema,
     loginSchema,
+    signupInitSchema,
+    signupCompleteSchema,
     sendOtpSchema,
     verifyOtpSchema,
 

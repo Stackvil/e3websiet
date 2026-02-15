@@ -19,7 +19,7 @@ const getPaymentModel = (location) => {
 
 const { pool } = require('../utils/pgClient');
 
-// Helper to record payment
+// Helper to record payment and award points
 const recordPayment = async (location, data) => {
     try {
         const PaymentModel = getPaymentModel(location);
@@ -30,16 +30,56 @@ const recordPayment = async (location, data) => {
             status: data.status,
             paymentId: data.easepayid,
             method: data.mode || 'easebuzz',
-            user: data.udf2 || null, // Assuming udf2 might store user id if passed, else null
+            user: data.udf2 || null,
             location: location,
             rawResponse: data,
             createdAt: new Date().toISOString()
         });
         console.log(`Recorded payment for ${location}: ${data.txnid}`);
+
+        // Award Reward Points Logic
+        // If amount > 300, give 10 points
+        const amount = parseFloat(data.amount);
+        if (data.status === 'success' && amount > 300 && data.udf2) {
+            const userId = data.udf2;
+            const UserModel = new MockModel((location === 'E4' || location === 'e4') ? 'E4User' : 'E3User');
+
+            // Increment logic (using raw query for atomic update if possible, or MockModel update)
+            // For now using MockModel/Mongoose style update, assuming standard DB adapter
+            // Note: In real PG properly use: UPDATE e3users SET reward_points = COALESCE(reward_points, 0) + 10 WHERE _id = ...
+
+            try {
+                // Direct SQL update for reliability
+                const tableName = (location === 'E4' || location === 'e4') ? 'e4users' : 'e3users';
+                const updateQuery = `UPDATE ${tableName} SET reward_points = COALESCE(reward_points, 0) + 10 WHERE _id = $1`;
+                await pool.query(updateQuery, [userId]);
+                console.log(`Awarded 10 points to user ${userId}`);
+            } catch (pointErr) {
+                console.error("Failed to award points:", pointErr);
+            }
+        }
+
     } catch (err) {
         console.error(`Failed to record payment for ${location}:`, err);
     }
 };
+// Mock Success Route for Dev/Test
+router.get('/mock-success', async (req, res) => {
+    try {
+        const { txnid } = req.query;
+        // Default to E3 for mock
+        const location = 'E3';
+        const OrderModel = getOrderModel(location);
+
+        await OrderModel.findByIdAndUpdate(txnid, { status: 'success', paymentId: 'MOCK_' + Math.random().toString(36).substr(2, 9) });
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        res.redirect(`${frontendUrl}/success?orderId=${txnid}&location=${location}`);
+    } catch (error) {
+        console.error('Mock Payment Error:', error);
+        res.status(500).send('Mock Internal Error');
+    }
+});
 
 // Helper to record event booking
 const recordEventBooking = async (order) => {

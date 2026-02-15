@@ -10,6 +10,8 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import YourTickets from './pages/YourTickets';
 import Success from './pages/Success';
+import Failed from './pages/Failed';
+import Profile from './pages/Profile';
 
 function App() {
     return (
@@ -25,6 +27,8 @@ function App() {
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/tickets" element={<YourTickets />} />
                     <Route path="/success" element={<Success />} />
+                    <Route path="/failed" element={<Failed />} />
+                    <Route path="/profile" element={<Profile />} />
 
                 </Routes>
             </Layout>

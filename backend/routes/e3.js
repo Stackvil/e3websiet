@@ -1,13 +1,20 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
-const MockModel = require('../utils/mockDB');
+// const MockModel = require('../utils/mockDB'); // Deprecated for Rides/Dine
 const { auth, admin } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { addRideSchema, addDineSchema } = require('../schemas/validationSchemas');
 
-const E3Ride = new MockModel('E3Ride'); // table: e3rides
-const E3Dine = new MockModel('E3Dine'); // table: e3dines
-const E3ComboRide = new MockModel('E3ComboRide'); // table: e3comborides
+const supabase = require('../utils/supabaseHelper');
+
+// Helper to map Supabase ID to _id for frontend compatibility
+const mapRecord = (record) => {
+    if (!record) return null;
+    // Database uses _id, so map it to id as well for consistency
+    const id = record._id || record.id;
+    return { ...record, _id: id, id: id };
+};
 
 /**
  * @swagger
@@ -21,12 +28,17 @@ const E3ComboRide = new MockModel('E3ComboRide'); // table: e3comborides
  */
 router.get('/rides', async (req, res) => {
     try {
-        const [rides, combos] = await Promise.all([
-            E3Ride.find(),
-            E3ComboRide.find()
-        ]);
-        res.json([...combos, ...rides]);
+        const { data, error } = await supabase
+            .from('e3rides')
+            .select('*')
+            .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+
+        const rides = data.map(mapRecord);
+        res.json(rides);
     } catch (err) {
+        console.error('Fetch Rides Error:', err);
         res.status(500).json({ message: err.message });
     }
 });
@@ -43,9 +55,17 @@ router.get('/rides', async (req, res) => {
  */
 router.get('/dine', async (req, res) => {
     try {
-        const dineItems = await E3Dine.find();
+        const { data, error } = await supabase
+            .from('e3dines')
+            .select('*')
+            .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+
+        const dineItems = data.map(mapRecord);
         res.json(dineItems);
     } catch (err) {
+        console.error('Fetch Dine Error:', err);
         res.status(500).json({ message: err.message });
     }
 });
@@ -95,14 +115,30 @@ router.get('/dine', async (req, res) => {
  */
 router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) => {
     try {
-        let newItem;
-        if (req.body.isCombo) {
-            newItem = await E3ComboRide.create(req.body);
-        } else {
-            newItem = await E3Ride.create(req.body);
-        }
-        res.status(201).json(newItem);
+        const payload = {
+            name: req.body.name,
+            price: req.body.price,
+            ageGroup: req.body.ageGroup,
+            category: req.body.category,
+            type: req.body.type,
+            status: req.body.status,
+            image: req.body.image,
+            desc: req.body.desc,
+            _id: crypto.randomUUID(), // For Supabase constraints if needed, or mapped to id
+            createdAt: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('e3rides')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.status(201).json(mapRecord(data));
     } catch (err) {
+        console.error('Create Ride Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -152,9 +188,30 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
  */
 router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) => {
     try {
-        const newItem = await E3Dine.create(req.body);
-        res.status(201).json(newItem);
+        const payload = {
+            name: req.body.name,
+            price: req.body.price,
+            category: req.body.category,
+            cuisine: req.body.cuisine,
+            stall: req.body.stall,
+            image: req.body.image,
+            status: req.body.status,
+            open: req.body.open,
+            _id: crypto.randomUUID(),
+            createdAt: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('e3dines')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.status(201).json(mapRecord(data));
     } catch (err) {
+        console.error('Create Dine Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -189,18 +246,19 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
  */
 router.put('/rides/:id', [auth, admin], async (req, res) => {
     try {
-        let updatedItem = await E3Ride.findByIdAndUpdate(req.params.id, req.body);
+        const { data, error } = await supabase
+            .from('e3rides')
+            .update(req.body)
+            .eq('id', req.params.id)
+            .select()
+            .single();
 
-        if (!updatedItem) {
-            // If not found in rides, try combos
-            updatedItem = await E3ComboRide.findByIdAndUpdate(req.params.id, req.body);
-        }
+        if (error) throw error;
+        if (!data) return res.status(404).json({ message: 'Ride not found' });
 
-        if (!updatedItem) {
-            return res.status(404).json({ message: 'Ride not found' });
-        }
-        res.json(updatedItem);
+        res.json(mapRecord(data));
     } catch (err) {
+        console.error('Update Ride Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -229,22 +287,16 @@ router.put('/rides/:id', [auth, admin], async (req, res) => {
  */
 router.delete('/rides/:id', [auth, admin], async (req, res) => {
     try {
-        // Check if ride exists in e3rides first
-        let existing = await E3Ride.findOne({ _id: req.params.id });
-        if (existing) {
-            await E3Ride.deleteMany({ _id: req.params.id });
-            return res.json({ message: 'Ride deleted successfully' });
-        }
+        const { error } = await supabase
+            .from('e3rides')
+            .delete()
+            .eq('id', req.params.id);
 
-        // Check if ride exists in e3comborides
-        existing = await E3ComboRide.findOne({ _id: req.params.id });
-        if (existing) {
-            await E3ComboRide.deleteMany({ _id: req.params.id });
-            return res.json({ message: 'Ride deleted successfully' });
-        }
+        if (error) throw error;
 
-        return res.status(404).json({ message: 'Ride not found' });
+        res.json({ message: 'Ride deleted successfully' });
     } catch (err) {
+        console.error('Delete Ride Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -279,12 +331,19 @@ router.delete('/rides/:id', [auth, admin], async (req, res) => {
  */
 router.put('/dine/:id', [auth, admin], async (req, res) => {
     try {
-        const updatedItem = await E3Dine.findByIdAndUpdate(req.params.id, req.body);
-        if (!updatedItem) {
-            return res.status(404).json({ message: 'Dine item not found' });
-        }
-        res.json(updatedItem);
+        const { data, error } = await supabase
+            .from('e3dines')
+            .update(req.body)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        if (!data) return res.status(404).json({ message: 'Dine item not found' });
+
+        res.json(mapRecord(data));
     } catch (err) {
+        console.error('Update Dine Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -313,16 +372,16 @@ router.put('/dine/:id', [auth, admin], async (req, res) => {
  */
 router.delete('/dine/:id', [auth, admin], async (req, res) => {
     try {
-        // Check if dine item exists first
-        const existing = await E3Dine.findOne({ _id: req.params.id });
-        if (!existing) {
-            return res.status(404).json({ message: 'Dine item not found' });
-        }
+        const { error } = await supabase
+            .from('e3dines')
+            .delete()
+            .eq('id', req.params.id);
 
-        // Delete the dine item
-        await E3Dine.deleteMany({ _id: req.params.id });
+        if (error) throw error;
+
         res.json({ message: 'Dine item deleted successfully' });
     } catch (err) {
+        console.error('Delete Dine Error:', err);
         res.status(400).json({ message: err.message });
     }
 });

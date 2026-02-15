@@ -4,23 +4,23 @@ import useStore from '../store/useStore';
 
 const RideCard = ({ ride }) => {
     const { addToCart, toggleCart } = useStore();
-
+    const [quantity, setQuantity] = useState(1);
 
     const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
     // Auto-cycle images for combo packs
     React.useEffect(() => {
         let interval;
-        if (ride.isCombo && ride.images && ride.images.length > 0) {
+        if (ride.isCombo && ride.comboImages && ride.comboImages.length > 0) {
             interval = setInterval(() => {
-                setCurrentImgIndex((prev) => (prev + 1) % ride.images.length);
+                setCurrentImgIndex((prev) => (prev + 1) % ride.comboImages.length);
             }, 2000); // Change image every 2 seconds
         }
         return () => clearInterval(interval);
-    }, [ride.isCombo, ride.images]);
+    }, [ride.isCombo, ride.comboImages]);
 
-    const displayImage = (ride.isCombo && ride.images && ride.images.length > 0)
-        ? ride.images[currentImgIndex]
+    const displayImage = (ride.isCombo && ride.comboImages && ride.comboImages.length > 0)
+        ? ride.comboImages[currentImgIndex]
         : ride.image;
 
     const handleAddToCart = (e) => {
@@ -30,12 +30,9 @@ const RideCard = ({ ride }) => {
             name: ride.name || ride.title,
             price: Number(ride.price) || 0,
             image: ride.image,
-            stall: ride.stall || ride.category,
-            details: {
-                isCombo: ride.isCombo,
-                rideCount: ride.rideCount
-            }
-        }, 1);
+            stall: ride.stall || ride.category
+        }, quantity);
+        setQuantity(1);
     };
 
     const handleBuyNow = (e) => {
@@ -45,8 +42,8 @@ const RideCard = ({ ride }) => {
     };
 
     return (
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all duration-500 group flex flex-col aspect-[3/4] w-full shadow-lg hover:shadow-2xl hover:shadow-sunset-orange/20 hover:-translate-y-2">
-            <div className="h-[70%] overflow-hidden relative">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all duration-500 group flex flex-col aspect-[3/5] md:aspect-[3/4] w-full shadow-lg hover:shadow-2xl hover:shadow-sunset-orange/20 hover:-translate-y-2">
+            <div className="h-[60%] overflow-hidden relative">
                 <img
                     src={displayImage}
                     alt={ride.name || ride.title}
@@ -73,29 +70,32 @@ const RideCard = ({ ride }) => {
                 )}
             </div>
 
-            <div className="p-1 flex flex-col h-[30%] justify-center gap-1 bg-white">
+            <div className="p-1 flex flex-col h-[40%] justify-between bg-white">
                 <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-charcoal-grey font-bold leading-tight text-center line-clamp-2 text-xs">{ride.name || ride.title}</h3>
+                    <h3 className="text-charcoal-grey font-bold leading-tight text-center line-clamp-1 text-xs">{ride.name || ride.title}</h3>
                 </div>
 
-                <div className="w-full flex-shrink-0">
-                    <div className="grid grid-cols-2 gap-1">
+                <div className="space-y-1.5 w-full flex-shrink-0">
+                    {/* Quantity */}
+
+
+                    <div className="grid grid-cols-2 gap-1.5">
                         <button
                             onClick={handleAddToCart}
                             disabled={ride.status === 'closed'}
-                            className="bg-gray-100 hover:bg-gray-200 text-charcoal-grey py-1 rounded-md text-[10px] font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-md flex items-center justify-center gap-0.5 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-gray-100 hover:bg-gray-200 text-charcoal-grey py-1.5 rounded-md text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-md flex items-center justify-center gap-1 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <ShoppingCart size={10} /> Add
+                            <ShoppingCart size={12} /> Add
                         </button>
                         <button
                             onClick={handleBuyNow}
                             disabled={ride.status === 'closed'}
-                            className={`py-1 rounded-md text-[10px] font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-0.5 ${ride.status === 'closed'
+                            className={`py-1.5 rounded-md text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-1 ${ride.status === 'closed'
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                                 : 'bg-sunset-orange hover:bg-orange-600 text-white shadow-orange-500/20'
                                 }`}
                         >
-                            {ride.status === 'closed' ? 'Closed' : 'Buy Ticket'} {ride.status !== 'closed' && <ArrowRight size={10} />}
+                            {ride.status === 'closed' ? 'Closed' : 'Buy Ticket'} {ride.status !== 'closed' && <ArrowRight size={12} />}
                         </button>
                     </div>
                 </div>

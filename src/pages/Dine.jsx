@@ -173,7 +173,7 @@ const Dine = () => {
                     <AnimatePresence mode="popLayout">
                         {filteredItems.map((item) => (
                             <motion.div
-                                key={item._id || item.id}
+                                key={item.id || item._id}
                                 layout
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}

@@ -230,7 +230,9 @@ const YourTickets = () => {
                                         </div>
                                         <div className="flex justify-between items-center text-[10px] text-gray-400 mt-1">
                                             <span>Ordered</span>
-                                            <span>{new Date(ticket.orderDate).toLocaleDateString()}</span>
+                                            <span>
+                                                {new Date(ticket.orderDate).toLocaleDateString()} at {new Date(ticket.orderDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -239,7 +241,7 @@ const YourTickets = () => {
                     })}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

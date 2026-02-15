@@ -177,6 +177,7 @@ const AdminDashboard = () => {
         }
 
         try {
+            console.log('Token used for delete:', token);
             const res = await fetch(`${API_URL}${endpoint}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }

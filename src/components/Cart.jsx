@@ -3,15 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
 import { API_URL } from '../config/api';
+import AuthComponent from './auth/AuthComponent';
 
 const Cart = () => {
     const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, clearCart, user, setUser } = useStore();
     const [isPaymentOpen, setIsPaymentOpen] = useState(false); // Kept for logic compatibility but unused for modal
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [mobile, setMobile] = useState('');
-    const [otp, setOtp] = useState('');
-    const [isOtpSent, setIsOtpSent] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+
 
     const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -26,13 +24,23 @@ const Cart = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'x-auth-token': token
                 },
                 body: JSON.stringify({
                     items: cart,
                     location: 'E3' // Hardcoded for E3 site
                 }),
             });
+
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+                setShowAuthModal(true);
+                alert('Session expired or invalid token. Please log in again.');
+                setIsProcessing(false);
+                return;
+            }
 
             const result = await response.json();
 
@@ -59,50 +67,10 @@ const Cart = () => {
         }
     };
 
-    const handleAuthSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-
-        try {
-            if (!isOtpSent) {
-                // Send OTP
-                const response = await fetch(`${API_URL}/auth/send-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mobile })
-                });
-                const data = await response.json();
-                if (data.message) {
-                    alert(data.message); // Show dummy OTP
-                    setIsOtpSent(true);
-                }
-            } else {
-                // Verify OTP
-                const response = await fetch(`${API_URL}/auth/verify-otp`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mobile, otp })
-                });
-                const data = await response.json();
-
-                if (data.token) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    setUser(data.user);
-                    setShowAuthModal(false);
-
-                    // Proceed to payment immediately with the new user data
-                    initiatePayment(data.user);
-                } else {
-                    alert(data.message || 'Verification Failed');
-                }
-            }
-        } catch (error) {
-            console.error(error);
-            alert('Error: ' + error.message);
-        } finally {
-            setIsLoading(false);
-        }
+    const handleAuthSuccess = (userData) => {
+        setUser(userData);
+        setShowAuthModal(false);
+        initiatePayment(userData);
     };
 
     return (
@@ -225,56 +193,10 @@ const Cart = () => {
                                                 exit={{ opacity: 0 }}
                                                 className="absolute inset-0 bg-white/90 backdrop-blur-md z-50 flex items-center justify-center p-8"
                                             >
-                                                <div className="w-full max-w-sm bg-white p-6 rounded-3xl shadow-2xl border border-gray-100">
-                                                    <div className="flex justify-between items-center mb-6">
-                                                        <h3 className="text-xl font-bold font-heading">
-                                                            {isOtpSent ? 'Verify OTP' : 'Login / Signup'}
-                                                        </h3>
-                                                        <button onClick={() => setShowAuthModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                                                            <X size={20} />
-                                                        </button>
-                                                    </div>
-
-                                                    <form onSubmit={handleAuthSubmit} className="space-y-4">
-                                                        {!isOtpSent ? (
-                                                            <div>
-                                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mobile Number</label>
-                                                                <input
-                                                                    type="tel"
-                                                                    value={mobile}
-                                                                    onChange={(e) => setMobile(e.target.value)}
-                                                                    placeholder="9876543210"
-                                                                    pattern="[0-9]{10}"
-                                                                    className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-transparent focus:border-sunset-orange"
-                                                                    autoFocus
-                                                                    required
-                                                                />
-                                                                <p className="text-xs text-gray-400 mt-2">Dummy OTP: 123456</p>
-                                                            </div>
-                                                        ) : (
-                                                            <div>
-                                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Enter OTP</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={otp}
-                                                                    onChange={(e) => setOtp(e.target.value)}
-                                                                    placeholder="123456"
-                                                                    className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-transparent focus:border-sunset-orange"
-                                                                    autoFocus
-                                                                    required
-                                                                />
-                                                            </div>
-                                                        )}
-
-                                                        <button
-                                                            type="submit"
-                                                            disabled={isLoading || isProcessing}
-                                                            className="w-full btn-orange py-4 rounded-xl font-bold shadow-lg shadow-sunset-orange/20 mt-4 disabled:opacity-50"
-                                                        >
-                                                            {isLoading ? 'Processing...' : (isOtpSent ? 'Verify & Pay' : 'Send OTP')}
-                                                        </button>
-                                                    </form>
-                                                </div>
+                                                <AuthComponent
+                                                    onClose={() => setShowAuthModal(false)}
+                                                    onSuccess={handleAuthSuccess}
+                                                />
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
