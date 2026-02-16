@@ -19,7 +19,6 @@ global.EASEBUZZ_CONFIG = {
 };
 
 // Middleware
-// Middleware
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174', 'https://e3websiet.vercel.app'],
     credentials: true
@@ -27,35 +26,8 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Request Logger & Analytics Middleware
-const logger = require('./utils/logger');
-const MockModel = require('./utils/mockDB');
-const Analytics = new MockModel('Analytics');
-
-app.use((req, res, next) => {
-    const start = Date.now();
-    res.on('finish', () => {
-        const duration = Date.now() - start;
-        const platform = req.headers['x-platform'] || 'unknown';
-        const userAgent = req.headers['user-agent'] || '-';
-
-        // logger.log(`${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms - Platform: ${platform}`); // Disabled per user request
-
-        // Persist to Analytics DB (Fire and forget)
-        Analytics.create({
-            method: req.method,
-            path: req.originalUrl,
-            statusCode: res.statusCode,
-            duration,
-            platform,
-            userAgent,
-            timestamp: new Date().toISOString()
-        }).catch(err => console.error('Failed to save analytics:', err));
-    });
-    next();
-});
-
-
+// Request Logger (Lightweight)
+// const logger = require('./utils/logger'); // Optional
 
 // Swagger Setup
 const swaggerOptions = {
@@ -84,6 +56,85 @@ const swaggerOptions = {
                     bearerFormat: 'JWT',
                 },
             },
+            schemas: {
+                User: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'User ID' },
+                        name: { type: 'string', description: 'User Name' },
+                        mobile: { type: 'string', description: 'Mobile Number' },
+                        role: { type: 'string', enum: ['user', 'admin', 'customer'], description: 'User Role' },
+                        createdAt: { type: 'string', format: 'date-time' }
+                    }
+                },
+                Ride: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string' },
+                        name: { type: 'string' },
+                        price: { type: 'number' },
+                        image: { type: 'string' },
+                        desc: { type: 'string' },
+                        status: { type: 'string', enum: ['on', 'off'] },
+                        category: { type: 'string' },
+                        ageGroup: { type: 'string' }
+                    }
+                },
+                DineItem: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string' },
+                        name: { type: 'string' },
+                        price: { type: 'number' },
+                        image: { type: 'string' },
+                        category: { type: 'string' },
+                        cuisine: { type: 'string' },
+                        stall: { type: 'string' },
+                        open: { type: 'boolean' }
+                    }
+                },
+                Event: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string' },
+                        name: { type: 'string' },
+                        price: { type: 'number' },
+                        image: { type: 'string' },
+                        start_time: { type: 'string', format: 'date-time' },
+                        end_time: { type: 'string', format: 'date-time' },
+                        location: { type: 'string', enum: ['E3', 'E4'] },
+                        status: { type: 'string' }
+                    }
+                },
+                Order: {
+                    type: 'object',
+                    properties: {
+                        _id: { type: 'string', description: 'Transaction ID' },
+                        userId: { type: 'string' },
+                        amount: { type: 'number' },
+                        status: { type: 'string' },
+                        items: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    id: { type: 'string' },
+                                    name: { type: 'string' },
+                                    price: { type: 'number' },
+                                    quantity: { type: 'integer' }
+                                }
+                            }
+                        },
+                        createdAt: { type: 'string', format: 'date-time' }
+                    }
+                },
+                Error: {
+                    type: 'object',
+                    properties: {
+                        message: { type: 'string' }
+                    }
+                }
+            }
         },
         security: [
             {
@@ -91,13 +142,13 @@ const swaggerOptions = {
             },
         ],
     },
-    apis: [path.join(__dirname, 'routes/*.js')], // Removed ./ to ensure clean path
+    apis: [path.join(__dirname, 'routes/*.js')],
 };
 
 let swaggerDocs;
 try {
     swaggerDocs = swaggerJsdoc(swaggerOptions);
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
         customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui.min.css',
         customJs: [
             'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-bundle.min.js',
@@ -112,7 +163,7 @@ try {
 
 // Root Route
 app.get('/', (req, res) => {
-    res.send('Ethree API is running with Supabase PostgreSQL. Check /api-docs for documentation.');
+    res.send('Welcome to Ethree and Efour');
 });
 
 // Import Routes
@@ -131,14 +182,77 @@ app.use('/api/events', eventRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/sponsors', require('./routes/sponsors'));
-app.use('/api/sponsors', require('./routes/sponsors'));
-app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/profile', require('./routes/profile'));
+
+
+// 404 Handler (Catch-All)
+app.use((req, res, next) => {
+    // Check if API request -> JSON response
+    if (req.originalUrl.startsWith('/api')) {
+        return res.status(404).json({
+            success: false,
+            message: 'Endpoint NOT Found',
+            path: req.originalUrl
+        });
+    }
+
+    // Otherwise serve HTML template
+    res.status(404).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>404 - Page Not Found</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background-color: #f8f9fa;
+                    color: #333;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    text-align: center;
+                }
+                .container {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    max-width: 500px;
+                }
+                h1 { font-size: 80px; margin: 0; color: #ff6b6b; }
+                h2 { margin: 10px 0 20px; }
+                p { color: #666; margin-bottom: 30px; }
+                a {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #007bff;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    transition: background 0.3s;
+                }
+                a:hover { background-color: #0056b3; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>404</h1>
+                <h2>Page Not Found</h2>
+                <p>The page you are looking for does not exist or has been moved.</p>
+                <a href="/">Go Home</a>
+            </div>
+        </body>
+        </html>
+    `);
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+    console.log(`Swagger docs available at http://localhost:${PORT}/docs`);
 });
 
 module.exports = app;

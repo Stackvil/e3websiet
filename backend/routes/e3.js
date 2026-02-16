@@ -18,6 +18,13 @@ const mapRecord = (record) => {
 
 /**
  * @swagger
+ * tags:
+ *   name: E3
+ *   description: E3 Rides and Dining APIs
+ */
+
+/**
+ * @swagger
  * /api/e3/rides:
  *   get:
  *     summary: Get all E3 rides
@@ -25,6 +32,12 @@ const mapRecord = (record) => {
  *     responses:
  *       200:
  *         description: List of E3 rides
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
  */
 router.get('/rides', async (req, res) => {
     try {
@@ -52,6 +65,12 @@ router.get('/rides', async (req, res) => {
  *     responses:
  *       200:
  *         description: List of E3 dine items
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/DineItem'
  */
 router.get('/dine', async (req, res) => {
     try {
@@ -83,31 +102,14 @@ router.get('/dine', async (req, res) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - price
- *             properties:
- *               name:
- *                 type: string
- *               price:
- *                 type: number
- *               ageGroup:
- *                 type: string
- *               category:
- *                 type: string
- *               type:
- *                 type: string
- *               status:
- *                 type: string
- *                 enum: [on, off]
- *               image:
- *                 type: string
- *               desc:
- *                 type: string
+ *             $ref: '#/components/schemas/Ride'
  *     responses:
  *       201:
  *         description: Ride created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Ride'
  *       400:
  *         description: Validation error
  *       403:
@@ -156,31 +158,14 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - price
- *             properties:
- *               name:
- *                 type: string
- *               price:
- *                 type: number
- *               category:
- *                 type: string
- *               cuisine:
- *                 type: string
- *               stall:
- *                 type: string
- *               image:
- *                 type: string
- *               status:
- *                 type: string
- *                 enum: [on, off]
- *               open:
- *                 type: boolean
+ *             $ref: '#/components/schemas/DineItem'
  *     responses:
  *       201:
  *         description: Dine item created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DineItem'
  *       400:
  *         description: Validation error
  *       403:
@@ -235,7 +220,7 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             $ref: '#/components/schemas/Ride'
  *     responses:
  *       200:
  *         description: Ride updated
@@ -320,7 +305,7 @@ router.delete('/rides/:id', [auth, admin], async (req, res) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             $ref: '#/components/schemas/DineItem'
  *     responses:
  *       200:
  *         description: Dine item updated

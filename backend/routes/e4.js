@@ -1,12 +1,25 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
-const MockModel = require('../utils/mockDB');
 const { auth, admin } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { addRideSchema, addDineSchema } = require('../schemas/validationSchemas');
 
-const E4Ride = new MockModel('E4Ride'); // table: e4rides
-const E4Dine = new MockModel('E4Dine'); // table: e4dines
+const supabase = require('../utils/supabaseHelper');
+
+// Helper to map Supabase ID
+const mapRecord = (record) => {
+    if (!record) return null;
+    const id = record._id || record.id;
+    return { ...record, _id: id, id: id };
+};
+
+/**
+ * @swagger
+ * tags:
+ *   name: E4
+ *   description: E4 Rides and Dining APIs
+ */
 
 /**
  * @swagger
@@ -17,12 +30,26 @@ const E4Dine = new MockModel('E4Dine'); // table: e4dines
  *     responses:
  *       200:
  *         description: List of E4 rides
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
  */
 router.get('/rides', async (req, res) => {
     try {
-        const rides = await E4Ride.find();
+        const { data, error } = await supabase
+            .from('e4rides')
+            .select('*')
+            .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+
+        const rides = data.map(mapRecord);
         res.json(rides);
     } catch (err) {
+        console.error('Fetch E4 Rides Error:', err);
         res.status(500).json({ message: err.message });
     }
 });
@@ -36,12 +63,26 @@ router.get('/rides', async (req, res) => {
  *     responses:
  *       200:
  *         description: List of E4 dine items
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/DineItem'
  */
 router.get('/dine', async (req, res) => {
     try {
-        const dineItems = await E4Dine.find();
+        const { data, error } = await supabase
+            .from('e4dines')
+            .select('*')
+            .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+
+        const dineItems = data.map(mapRecord);
         res.json(dineItems);
     } catch (err) {
+        console.error('Fetch E4 Dine Error:', err);
         res.status(500).json({ message: err.message });
     }
 });
@@ -59,33 +100,14 @@ router.get('/dine', async (req, res) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - price
- *             properties:
- *               name:
- *                 type: string
- *               price:
- *                 type: number
- *               ageGroup:
- *                 type: string
- *               category:
- *                 type: string
- *               stall:
- *                 type: string
- *               type:
- *                 type: string
- *               status:
- *                 type: string
- *                 enum: [on, off]
- *               image:
- *                 type: string
- *               desc:
- *                 type: string
+ *             $ref: '#/components/schemas/Ride'
  *     responses:
  *       201:
  *         description: Ride created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Ride'
  *       400:
  *         description: Validation error
  *       403:
@@ -93,9 +115,23 @@ router.get('/dine', async (req, res) => {
  */
 router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) => {
     try {
-        const newItem = await E4Ride.create(req.body);
-        res.status(201).json(newItem);
+        const payload = {
+            ...req.body,
+            _id: crypto.randomUUID(),
+            createdAt: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('e4rides')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.status(201).json(mapRecord(data));
     } catch (err) {
+        console.error('Create E4 Ride Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -113,31 +149,14 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - price
- *             properties:
- *               name:
- *                 type: string
- *               price:
- *                 type: number
- *               category:
- *                 type: string
- *               cuisine:
- *                 type: string
- *               stall:
- *                 type: string
- *               image:
- *                 type: string
- *               status:
- *                 type: string
- *                 enum: [on, off]
- *               open:
- *                 type: boolean
+ *             $ref: '#/components/schemas/DineItem'
  *     responses:
  *       201:
  *         description: Dine item created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DineItem'
  *       400:
  *         description: Validation error
  *       403:
@@ -145,9 +164,23 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
  */
 router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) => {
     try {
-        const newItem = await E4Dine.create(req.body);
-        res.status(201).json(newItem);
+        const payload = {
+            ...req.body,
+            _id: crypto.randomUUID(),
+            createdAt: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('e4dines')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.status(201).json(mapRecord(data));
     } catch (err) {
+        console.error('Create E4 Dine Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -171,23 +204,30 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             $ref: '#/components/schemas/Ride'
  *     responses:
  *       200:
  *         description: Ride updated
  *       404:
- *         description: Ride not found
+ *         description: Not found
  *       403:
  *         description: Admin access required
  */
 router.put('/rides/:id', [auth, admin], async (req, res) => {
     try {
-        const updatedItem = await E4Ride.findByIdAndUpdate(req.params.id, req.body);
-        if (!updatedItem) {
-            return res.status(404).json({ message: 'Ride not found' });
-        }
-        res.json(updatedItem);
+        const { data, error } = await supabase
+            .from('e4rides')
+            .update(req.body)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        if (!data) return res.status(404).json({ message: 'Ride not found' });
+
+        res.json(mapRecord(data));
     } catch (err) {
+        console.error('Update E4 Ride Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -210,22 +250,22 @@ router.put('/rides/:id', [auth, admin], async (req, res) => {
  *       200:
  *         description: Ride deleted
  *       404:
- *         description: Ride not found
+ *         description: Not found
  *       403:
  *         description: Admin access required
  */
 router.delete('/rides/:id', [auth, admin], async (req, res) => {
     try {
-        // Check if ride exists first
-        const existing = await E4Ride.findOne({ _id: req.params.id });
-        if (!existing) {
-            return res.status(404).json({ message: 'Ride not found' });
-        }
+        const { error } = await supabase
+            .from('e4rides')
+            .delete()
+            .eq('id', req.params.id);
 
-        // Delete the ride
-        await E4Ride.deleteMany({ _id: req.params.id });
+        if (error) throw error;
+
         res.json({ message: 'Ride deleted successfully' });
     } catch (err) {
+        console.error('Delete E4 Ride Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -249,23 +289,30 @@ router.delete('/rides/:id', [auth, admin], async (req, res) => {
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             $ref: '#/components/schemas/DineItem'
  *     responses:
  *       200:
  *         description: Dine item updated
  *       404:
- *         description: Dine item not found
+ *         description: Not found
  *       403:
  *         description: Admin access required
  */
 router.put('/dine/:id', [auth, admin], async (req, res) => {
     try {
-        const updatedItem = await E4Dine.findByIdAndUpdate(req.params.id, req.body);
-        if (!updatedItem) {
-            return res.status(404).json({ message: 'Dine item not found' });
-        }
-        res.json(updatedItem);
+        const { data, error } = await supabase
+            .from('e4dines')
+            .update(req.body)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        if (!data) return res.status(404).json({ message: 'Dine item not found' });
+
+        res.json(mapRecord(data));
     } catch (err) {
+        console.error('Update E4 Dine Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
@@ -288,22 +335,22 @@ router.put('/dine/:id', [auth, admin], async (req, res) => {
  *       200:
  *         description: Dine item deleted
  *       404:
- *         description: Dine item not found
+ *         description: Not found
  *       403:
  *         description: Admin access required
  */
 router.delete('/dine/:id', [auth, admin], async (req, res) => {
     try {
-        // Check if dine item exists first
-        const existing = await E4Dine.findOne({ _id: req.params.id });
-        if (!existing) {
-            return res.status(404).json({ message: 'Dine item not found' });
-        }
+        const { error } = await supabase
+            .from('e4dines')
+            .delete()
+            .eq('id', req.params.id);
 
-        // Delete the dine item
-        await E4Dine.deleteMany({ _id: req.params.id });
+        if (error) throw error;
+
         res.json({ message: 'Dine item deleted successfully' });
     } catch (err) {
+        console.error('Delete E4 Dine Error:', err);
         res.status(400).json({ message: err.message });
     }
 });
