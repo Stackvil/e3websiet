@@ -96,10 +96,16 @@ router.get('/', async (req, res) => {
  *       403:
  *         description: Admin access required
  */
+const { uploadImage } = require('../utils/uploadUtils');
+
+// ... imports
+
 router.post('/', [auth, admin], async (req, res) => {
     try {
         const { location } = req.body;
         const table = getTable(location);
+
+        const imageUrl = await uploadImage(req.body.image, 'events');
 
         const payload = {
             name: req.body.name,
@@ -109,7 +115,7 @@ router.post('/', [auth, admin], async (req, res) => {
             price: req.body.price,
             type: req.body.type,
             status: req.body.status,
-            image: req.body.image,
+            image: imageUrl, // Use uploaded URL
             _id: crypto.randomUUID(),
             createdAt: new Date().toISOString()
         };

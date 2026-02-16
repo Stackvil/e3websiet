@@ -113,10 +113,20 @@ router.get('/dine', async (req, res) => {
  *       403:
  *         description: Admin access required
  */
+const { uploadImage } = require('../utils/uploadUtils');
+
+// POST /rides
 router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) => {
     try {
+        const imageUrl = await uploadImage(req.body.image, 'rides');
+        const imagesUrls = req.body.images
+            ? await Promise.all(req.body.images.map(img => uploadImage(img, 'rides')))
+            : undefined;
+
         const payload = {
             ...req.body,
+            image: imageUrl,
+            images: imagesUrls,
             _id: crypto.randomUUID(),
             createdAt: new Date().toISOString()
         };
@@ -136,36 +146,18 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
     }
 });
 
-/**
- * @swagger
- * /api/e4/dine:
- *   post:
- *     summary: Add a new dine item (Admin only)
- *     tags: [E4]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/DineItem'
- *     responses:
- *       201:
- *         description: Dine item created
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/DineItem'
- *       400:
- *         description: Validation error
- *       403:
- *         description: Admin access required
- */
+// POST /dine
 router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) => {
     try {
+        const imageUrl = await uploadImage(req.body.image, 'dine');
+        const menuImagesUrls = req.body.menuImages
+            ? await Promise.all(req.body.menuImages.map(img => uploadImage(img, 'dine')))
+            : undefined;
+
         const payload = {
             ...req.body,
+            image: imageUrl,
+            menuImages: menuImagesUrls,
             _id: crypto.randomUUID(),
             createdAt: new Date().toISOString()
         };
@@ -215,9 +207,18 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
  */
 router.put('/rides/:id', [auth, admin], async (req, res) => {
     try {
+        let updateData = { ...req.body };
+
+        if (updateData.image) {
+            updateData.image = await uploadImage(updateData.image, 'rides');
+        }
+        if (updateData.images) {
+            updateData.images = await Promise.all(updateData.images.map(img => uploadImage(img, 'rides')));
+        }
+
         const { data, error } = await supabase
             .from('e4rides')
-            .update(req.body)
+            .update(updateData)
             .eq('id', req.params.id)
             .select()
             .single();
@@ -232,77 +233,23 @@ router.put('/rides/:id', [auth, admin], async (req, res) => {
     }
 });
 
-/**
- * @swagger
- * /api/e4/rides/{id}:
- *   delete:
- *     summary: Delete a ride (Admin only)
- *     tags: [E4]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Ride deleted
- *       404:
- *         description: Not found
- *       403:
- *         description: Admin access required
- */
-router.delete('/rides/:id', [auth, admin], async (req, res) => {
-    try {
-        const { error } = await supabase
-            .from('e4rides')
-            .delete()
-            .eq('id', req.params.id);
+// ... delete ride
 
-        if (error) throw error;
-
-        res.json({ message: 'Ride deleted successfully' });
-    } catch (err) {
-        console.error('Delete E4 Ride Error:', err);
-        res.status(400).json({ message: err.message });
-    }
-});
-
-/**
- * @swagger
- * /api/e4/dine/{id}:
- *   put:
- *     summary: Update a dine item (Admin only)
- *     tags: [E4]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/DineItem'
- *     responses:
- *       200:
- *         description: Dine item updated
- *       404:
- *         description: Not found
- *       403:
- *         description: Admin access required
- */
+// PUT /dine/:id
 router.put('/dine/:id', [auth, admin], async (req, res) => {
     try {
+        let updateData = { ...req.body };
+
+        if (updateData.image) {
+            updateData.image = await uploadImage(updateData.image, 'dine');
+        }
+        if (updateData.menuImages) {
+            updateData.menuImages = await Promise.all(updateData.menuImages.map(img => uploadImage(img, 'dine')));
+        }
+
         const { data, error } = await supabase
             .from('e4dines')
-            .update(req.body)
+            .update(updateData)
             .eq('id', req.params.id)
             .select()
             .single();

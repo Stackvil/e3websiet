@@ -151,7 +151,7 @@ const Play = () => {
                                 className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-50 flex flex-col hover:shadow-2xl hover:shadow-riverside-teal/10 hover:-translate-y-2 hover:border-riverside-teal/30 transition-all duration-500 group"
                             >
                                 <div className="h-24 overflow-hidden relative">
-                                    {activity.isCombo && activity.images && activity.images.length > 0 ? (
+                                    {activity.images && activity.images.length > 0 ? (
                                         <ComboSlideshow images={activity.images} name={activity.name} />
                                     ) : (
                                         <img src={activity.image} alt={activity.name || activity.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />

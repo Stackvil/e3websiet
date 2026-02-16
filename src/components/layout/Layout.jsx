@@ -6,10 +6,23 @@ import Cart from '../Cart';
 import Logo from '../Logo';
 import useStore from '../../store/useStore';
 
+const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
+};
+
+const getAvatarColor = (name) => {
+    const colors = ['#F87171', '#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F472B6', '#818CF8', '#2DD4BF', '#FB923C'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+};
+
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
     const location = useLocation();
     const { user } = useStore();
+    const displayName = user ? (user.role === 'admin' ? 'Admin' : (user.name || 'User')) : null;
 
     const navLinks = [
         { name: 'Home', path: '/' },
@@ -39,8 +52,16 @@ const Header = () => {
                             <span className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-sunset-orange transition-all duration-300 group-hover:w-full ${location.pathname === link.path ? 'w-full' : ''}`}></span>
                         </Link>
                     ))}
-                    <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} className="font-semibold text-charcoal-grey hover:text-sunset-orange transition-all duration-300 hover:scale-105">
-                        {user ? (user.role === 'admin' ? 'Admin' : (user.name || 'User')) : 'Login'}
+                    <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} className={`font-semibold transition-all duration-300 hover:scale-105 ${user ? '' : 'text-charcoal-grey hover:text-sunset-orange'}`}>
+                        {user ? (
+                            <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md text-sm"
+                                style={{ backgroundColor: getAvatarColor(displayName) }}
+                                title={displayName}
+                            >
+                                {getInitials(displayName)}
+                            </div>
+                        ) : 'Login'}
                     </Link>
                     {location.pathname !== '/' && (
                         <Link to="/" className="btn-orange flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform duration-300 shadow-lg hover:shadow-orange-500/30">

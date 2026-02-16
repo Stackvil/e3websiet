@@ -54,6 +54,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
             const res = await fetch(`${API_URL}/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', // Important for cookies
                 body: JSON.stringify({
                     mobile,
                     otp,

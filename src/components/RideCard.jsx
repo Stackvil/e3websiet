@@ -8,19 +8,24 @@ const RideCard = ({ ride }) => {
 
     const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
-    // Auto-cycle images for combo packs
+    // Determine which images to use (uploaded gallery > combo images)
+    const galleryImages = (ride.images && ride.images.length > 0)
+        ? ride.images
+        : (ride.isCombo && ride.comboImages ? ride.comboImages : []);
+
+    // Auto-cycle images if multiple exist
     React.useEffect(() => {
         let interval;
-        if (ride.isCombo && ride.comboImages && ride.comboImages.length > 0) {
+        if (galleryImages.length > 1) {
             interval = setInterval(() => {
-                setCurrentImgIndex((prev) => (prev + 1) % ride.comboImages.length);
+                setCurrentImgIndex((prev) => (prev + 1) % galleryImages.length);
             }, 2000); // Change image every 2 seconds
         }
         return () => clearInterval(interval);
-    }, [ride.isCombo, ride.comboImages]);
+    }, [galleryImages]);
 
-    const displayImage = (ride.isCombo && ride.comboImages && ride.comboImages.length > 0)
-        ? ride.comboImages[currentImgIndex]
+    const displayImage = galleryImages.length > 0
+        ? galleryImages[currentImgIndex]
         : ride.image;
 
     const handleAddToCart = (e) => {

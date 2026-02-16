@@ -3,6 +3,7 @@ import useStore from '../store/useStore';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, Award, Gift, LogOut, Edit2, Save, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config/api';
 
 const Profile = () => {
     const { user, setUser, logout } = useStore();
@@ -14,11 +15,34 @@ const Profile = () => {
     const [editEmail, setEditEmail] = useState('');
     const [editMobile, setEditMobile] = useState('');
 
+    // Fetch latest profile on mount
     useEffect(() => {
         if (!user) {
             navigate('/login');
+            return;
         }
-    }, [user, navigate]);
+
+        const fetchProfile = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setUser(data);
+                    localStorage.setItem('user', JSON.stringify(data));
+                }
+            } catch (err) {
+                console.error("Failed to fetch profile", err);
+            }
+        };
+
+        fetchProfile();
+    }, [user, navigate, setUser]);
 
     const handleStartEdit = () => {
         setEditName(user.name || '');
@@ -27,13 +51,36 @@ const Profile = () => {
         setIsEditing(true);
     };
 
-    const handleSaveProfile = (e) => {
+    const handleSaveProfile = async (e) => {
         e.preventDefault();
-        // In a real app, this should be an API call
-        const updatedUser = { ...user, name: editName, email: editEmail, mobile: editMobile.toString() };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser)); // Persist locally
-        setIsEditing(false);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: editName,
+                    email: editEmail
+                    // Mobile is typically not editable directly or needs OTP, checking schema...
+                    // Schema allows name, email, mobile. Let's send what user edited.
+                })
+            });
+
+            if (res.ok) {
+                const updatedUser = await res.json();
+                setUser(updatedUser);
+                localStorage.setItem('user', JSON.stringify(updatedUser)); // Persist locally
+                setIsEditing(false);
+            } else {
+                console.error("Failed to update profile");
+                // Optionally handle error UI
+            }
+        } catch (err) {
+            console.error("Error updating profile", err);
+        }
     };
 
     if (!user) return null;
@@ -107,10 +154,9 @@ const Profile = () => {
                                     <input
                                         type="tel"
                                         value={editMobile}
-                                        onChange={(e) => setEditMobile(e.target.value)}
-                                        className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-gray-100 focus:border-riverside-teal"
+                                        disabled
+                                        className="w-full p-3 bg-gray-200 rounded-xl font-medium outline-none border-2 border-gray-100 text-gray-500 cursor-not-allowed"
                                         placeholder="Mobile Number"
-                                        required
                                     />
                                 </div>
 
@@ -206,8 +252,16 @@ const Profile = () => {
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => {
+                                onClick={async () => {
                                     // Logout logic
+                                    try {
+                                        await fetch(`${API_URL}/auth/logout`, {
+                                            method: 'POST',
+                                            credentials: 'include'
+                                        });
+                                    } catch (e) {
+                                        console.error("Logout failed", e);
+                                    }
                                     setUser(null);
                                     localStorage.removeItem('token');
                                     localStorage.removeItem('user');

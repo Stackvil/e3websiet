@@ -53,7 +53,8 @@ async function uploadImagesRec(dir, baseDir = '') {
             if (['.jpg', '.jpeg', '.png', '.webp', '.svg', '.avif'].includes(path.extname(file).toLowerCase())) {
                 const fileBuffer = await fs.readFile(filePath);
                 const contentType = getMimeType(filePath);
-                const storagePath = path.join(baseDir, file).replace(/\\/g, '/'); // Ensure forward slashes
+                // Ensure forward slashes and do not encode here, Supabase upload handles path as key
+                const storagePath = path.join(baseDir, file).replace(/\\/g, '/');
 
                 // Upload
                 const { error } = await supabase.storage
@@ -121,13 +122,14 @@ async function setup() {
 
         // --- 3. DEFINE SCHEMA ---
 
-        // User Table: name, mobilenumber (Removed email, password, location)
+        // User Table: name, mobilenumber, email
         const createUserTable = async (tableName) => {
             await client.query(`
                 CREATE TABLE ${tableName} (
                     _id TEXT PRIMARY KEY,
                     name TEXT,
                     mobilenumber TEXT UNIQUE,
+                    email TEXT,
                     role TEXT DEFAULT 'user',
                     "createdAt" TIMESTAMPTZ DEFAULT NOW(),
                     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -156,6 +158,7 @@ async function setup() {
                     name TEXT,
                     price NUMERIC,
                     image TEXT,
+                    images JSONB,
                     "desc" TEXT,
                     category TEXT,
                     "ageGroup" TEXT,
@@ -285,11 +288,14 @@ async function setup() {
             if (!localPath) return '';
             if (localPath.startsWith('http')) return localPath; // Already remote
 
-            // Remove leading slash and URL encode parts
+            // Remove leading slash
             const cleanPath = localPath.replace(/^\//, '');
-            // Supabase public URL format
-            const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(cleanPath);
-            return data.publicUrl;
+
+            // Encode the path properly:
+            // "bumping cars single/IMG_8417.jpg" -> "bumping%20cars%20single/IMG_8417.jpg"
+            const encodedPath = cleanPath.split('/').map(part => encodeURIComponent(part)).join('/');
+
+            return `${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${encodedPath}`;
         };
 
         // Seed Users
@@ -298,12 +304,13 @@ async function setup() {
             for (const user of users) {
                 try {
                     await client.query(
-                        `INSERT INTO e3users (_id, name, mobilenumber, role, "createdAt")
-                         VALUES ($1, $2, $3, $4, $5)`,
+                        `INSERT INTO e3users (_id, name, mobilenumber, email, role, "createdAt")
+                         VALUES ($1, $2, $3, $4, $5, $6)`,
                         [
                             user._id,
                             user.name,
                             user.mobile || user.mobilenumber || '',
+                            user.email || '',
                             user.role,
                             user.createdAt ? new Date(user.createdAt) : new Date()
                         ]
@@ -329,15 +336,19 @@ async function setup() {
                     // TRANSFORM IMAGES
                     const imageUrl = getPublicUrl(item.image);
                     const menuImages = (item.menuImages || []).map(img => getPublicUrl(img));
+                    const comboImages = (item.comboImages || []).map(img => getPublicUrl(img));
+
+                    // Use comboImages as default for 'images' gallery if present
+                    const images = (item.images || comboImages || []).map(img => img.startsWith('http') ? img : getPublicUrl(img));
 
                     if (item.category === 'play' || (item.category === 'play' && item.isCombo)) {
                         try {
                             // Seed e3rides
                             await client.query(
-                                `INSERT INTO e3rides (_id, name, price, image, "desc", category, "ageGroup", type, status, "createdAt") 
-                                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                                `INSERT INTO e3rides (_id, name, price, image, images, "desc", category, "ageGroup", type, status, "createdAt") 
+                                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
                                 [
-                                    item._id, item.name, item.price, imageUrl, item.desc,
+                                    item._id, item.name, item.price, imageUrl, JSON.stringify(images), item.desc,
                                     item.category, item.ageGroup, item.type, item.status || 'on',
                                     item.createdAt ? new Date(item.createdAt) : new Date()
                                 ]
@@ -347,10 +358,10 @@ async function setup() {
                             // Seed e4rides (Duplicate Data)
                             try {
                                 await client.query(
-                                    `INSERT INTO e4rides (_id, name, price, image, "desc", category, "ageGroup", type, status, "createdAt") 
-                                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                                    `INSERT INTO e4rides (_id, name, price, image, images, "desc", category, "ageGroup", type, status, "createdAt") 
+                                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
                                     [
-                                        item._id, item.name, item.price, imageUrl, item.desc,
+                                        item._id, item.name, item.price, imageUrl, JSON.stringify(images), item.desc,
                                         item.category, item.ageGroup, item.type, item.status || 'on',
                                         item.createdAt ? new Date(item.createdAt) : new Date()
                                     ]

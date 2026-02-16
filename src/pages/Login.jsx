@@ -17,7 +17,15 @@ const Login = ({ location = 'E3' }) => {
     const [editName, setEditName] = useState('');
     const [editEmail, setEditEmail] = useState('');
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await fetch(`${API_URL}/auth/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+        } catch (e) {
+            console.error("Logout failed", e);
+        }
         setUser(null);
         localStorage.removeItem('token');
         localStorage.removeItem('user');

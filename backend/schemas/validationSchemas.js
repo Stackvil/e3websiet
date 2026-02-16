@@ -59,7 +59,7 @@ const addRideSchema = z.object({
         category: z.literal('play').optional(),
         type: z.string().optional(),
         status: z.enum(['on', 'off']).optional(),
-        image: z.string().url().optional(),
+        image: z.string().optional(), // Allow Base64 or URL
         desc: z.string().optional(),
         stall: z.string().optional(),
         isCombo: z.boolean().optional(),
@@ -75,7 +75,7 @@ const addDineSchema = z.object({
         category: z.literal('dine').optional(),
         cuisine: z.string().optional(),
         stall: z.string().optional(),
-        image: z.string().url().optional(),
+        image: z.string().optional(), // Allow Base64 or URL
         status: z.enum(['on', 'off']).optional(),
         open: z.boolean().optional(),
         menuImages: z.array(z.string()).optional(),
@@ -99,7 +99,7 @@ const addEventSchema = z.object({
         price: z.number().nonnegative(),
         type: z.string().optional(),
         status: z.string().optional(),
-        image: z.string().url().optional()
+        image: z.string().optional() // Allow Base64 or URL
     })
 });
 
@@ -150,7 +150,7 @@ const initiatePaymentSchema = z.object({
 const addSponsorSchema = z.object({
     body: z.object({
         name: z.string().min(1),
-        image: z.string().url(),
+        image: z.string(), // Allow Base64 or URL
         website: z.string().url().optional(),
         tier: z.string().optional()
     })
