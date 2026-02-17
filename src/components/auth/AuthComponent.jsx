@@ -72,7 +72,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                 localStorage.setItem('user', JSON.stringify(data.user));
 
                 // Callback
-                if (onSuccess) onSuccess(data.user);
+                if (onSuccess) onSuccess(data.user, data.isNewUser);
             }
         } catch (err) {
             setError(err.message);

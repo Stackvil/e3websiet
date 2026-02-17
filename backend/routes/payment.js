@@ -67,7 +67,7 @@ router.post('/success', async (req, res) => {
             // Record Transaction in Payments Table
             await recordPayment(location, req.body);
 
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+            const frontendUrl = process.env.FRONTEND_URL;
             res.redirect(`${frontendUrl}/success?orderId=${txnid}&location=${location}`);
         } else {
             console.error('Hash Validation Failed for txnid:', txnid);
@@ -95,7 +95,7 @@ router.post('/failure', async (req, res) => {
         // Record Transaction
         await recordPayment(location, req.body);
 
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = process.env.FRONTEND_URL;
         res.redirect(`${frontendUrl}/failed?orderId=${txnid}&location=${location}`);
     } catch (error) {
         console.error('Payment Failure Handler Error:', error);

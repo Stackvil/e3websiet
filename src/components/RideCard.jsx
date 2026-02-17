@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { ShoppingCart, ArrowRight } from 'lucide-react';
 import useStore from '../store/useStore';
+import { getOptimizedImageUrl } from '../utils/imageUtils';
 
 const RideCard = ({ ride }) => {
+    // console.log("Rendering RideCard", ride?.name);
+    if (!ride) return null;
     const { addToCart, toggleCart } = useStore();
     const [quantity, setQuantity] = useState(1);
 
@@ -50,8 +53,9 @@ const RideCard = ({ ride }) => {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all duration-500 group flex flex-col aspect-[3/5] md:aspect-[3/4] w-full shadow-lg hover:shadow-2xl hover:shadow-sunset-orange/20 hover:-translate-y-2">
             <div className="h-[60%] overflow-hidden relative">
                 <img
-                    src={displayImage}
+                    src={getOptimizedImageUrl(displayImage, 400)}
                     alt={ride.name || ride.title}
+                    loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     onError={(e) => {
                         e.target.style.display = 'none';

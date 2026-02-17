@@ -197,6 +197,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
         await supabase.from('otps').delete().eq('mobile', cleanMobile);
 
         // 2. Find or Create User
+        let isNewUser = false;
         // Check if user exists
         let { data: user, error: userError } = await supabase
             .from(userTable)
@@ -205,6 +206,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
             .single();
 
         if (!user) {
+            isNewUser = true;
             // Register New User
             const newUserObj = {
                 _id: crypto.randomUUID(),
@@ -251,7 +253,8 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 
         res.json({
             token: accessToken,
-            user: mapAuthData(user)
+            user: mapAuthData(user),
+            isNewUser: isNewUser
         });
 
     } catch (err) {

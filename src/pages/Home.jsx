@@ -23,8 +23,9 @@ const Home = () => {
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();
             } catch (err) {
-                console.warn("Failed to fetch E3 rides from API, using local data", err);
-                data = localProducts.filter(item => item.category === 'play');
+                console.warn("Failed to fetch E3 rides from API", err);
+                // data = localProducts.filter(item => item.category === 'play'); // Fallback removed
+                data = [];
             }
 
             if (data) {

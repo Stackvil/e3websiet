@@ -38,21 +38,54 @@ const Login = ({ location = 'E3' }) => {
         setIsEditing(true);
     };
 
-    const handleSaveProfile = (e) => {
+    const handleSaveProfile = async (e) => {
         e.preventDefault();
-        const updatedUser = { ...user, name: editName, email: editEmail };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setIsEditing(false);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: editName, email: editEmail })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || "Failed to update profile");
+            }
+
+            const updatedUser = { ...user, name: editName, email: editEmail };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setIsEditing(false);
+
+            // After saving profile (likely from new user flow), navigate to home
+            if (location === 'E4') {
+                navigate('/events');
+            } else {
+                navigate('/');
+            }
+        } catch (err) {
+            console.error("Failed to update profile", err);
+            alert("Failed to save profile: " + err.message);
+        }
     };
 
 
 
-    const handleLoginSuccess = (userData) => {
+    const handleLoginSuccess = (userData, isNewUser) => {
         setUser(userData);
         if (userData.role === 'admin') {
             navigate('/admin');
+        } else if (isNewUser) {
+            // New user: Show edit profile form (do not navigate)
+            setIsEditing(true);
+            setEditName(''); // Ensure field is empty to prompt input
+            setEditEmail('');
         } else {
+            // Existing user: Navigate to destination
             if (location === 'E4') {
                 navigate('/events');
             } else {

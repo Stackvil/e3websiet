@@ -23,8 +23,7 @@ const connectionString = (process.env.POSTGRES_URL_NON_POOLING || process.env.PO
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME || 'E3-E4';
-
+const BUCKET_NAME = process.env.SUPABASE_BUCKET_NAME;
 if (!supabaseUrl || !supabaseKey) {
     console.error('Error: Missing Supabase credentials (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY).');
     process.exit(1);
