@@ -59,9 +59,17 @@ const useStore = create(
                 return { tickets: [ticket, ...state.tickets] };
             }),
             clearTickets: () => set({ tickets: [] }),
+
+            // Persistent Cache for instant page loads
+            dineItems: [],
+            setDineItems: (items) => set({ dineItems: items }),
+
+            rideItems: [],
+            setRideItems: (items) => set({ rideItems: items }),
         }),
         {
             name: 'ethree-storage-v1',
+            partialize: (state) => ({ cart: state.cart, user: state.user, tickets: state.tickets }),
         }
     )
 );

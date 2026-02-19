@@ -1,24 +1,38 @@
 const express = require('express');
 const router = express.Router();
-const MockModel = require('../utils/mockDB');
-const E3Order = new MockModel('E3Order');
-const E4Order = new MockModel('E4Order');
+const supabase = require('../utils/supabaseHelper'); // Use consistent Supabase client
 const validate = require('../middleware/validate');
 const { auth, admin } = require('../middleware/auth');
 const { checkoutSchema } = require('../schemas/validationSchemas');
 const { initiatePayment } = require('../utils/easebuzz');
 
-// Helper to get correct model
-const getOrderModel = (type) => {
-    return type === 'e4' ? E4Order : E3Order;
+// Helper to get correct table name
+const getOrderTable = (type) => {
+    return (type || 'e3').toLowerCase() === 'e4' ? 'e4orders' : 'e3orders';
+};
+
+const getUserTable = (type) => {
+    return (type || 'e3').toLowerCase() === 'e4' ? 'e4users' : 'e3users';
+};
+
+// Map Supabase ID
+const mapRecord = (record) => {
+    if (!record) return null;
+    const id = record._id || record.id;
+    return { ...record, _id: id, id: id };
 };
 
 // Generic Handler Factory
 const getAllOrders = (type) => async (req, res) => {
     try {
-        const OrderModel = getOrderModel(type);
-        const orders = await OrderModel.find();
-        res.json(orders);
+        const table = getOrderTable(type);
+        const { data, error } = await supabase
+            .from(table)
+            .select('*')
+            .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+        res.json(data.map(mapRecord));
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -26,11 +40,19 @@ const getAllOrders = (type) => async (req, res) => {
 
 const getUserOrders = (type) => async (req, res) => {
     try {
-        const OrderModel = getOrderModel(type);
-        const orders = await OrderModel.find({ user: req.user.id });
-        // Add location tag
-        const taggedOrders = orders.map(o => ({ ...o, location: type.toUpperCase() }));
-        taggedOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const table = getOrderTable(type);
+        const { data, error } = await supabase
+            .from(table)
+            .select('*')
+            .eq('userId', req.user.id) // Ensure userId column usage matches schema
+            .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+
+        const taggedOrders = data.map(o => ({
+            ...mapRecord(o),
+            location: type.toUpperCase()
+        }));
         res.json(taggedOrders);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -41,47 +63,50 @@ const checkoutHandler = (type) => async (req, res) => {
     try {
         const { items } = req.body;
         const targetLocation = type.toUpperCase();
-        const OrderModel = getOrderModel(type);
+        const orderTable = getOrderTable(type);
+        const userTable = getUserTable(type);
 
-        // Fetch User Details for Payment
-        const UserModel = new MockModel(type === 'e4' ? 'E4User' : 'E3User');
-        const userData = await UserModel.findOne({ _id: req.user.id });
+        // Fetch User Details using Supabase
+        const { data: userData, error: userError } = await supabase
+            .from(userTable)
+            .select('*')
+            .eq('_id', req.user.id) // Assuming auth middleware attaches .id which matches _id
+            .single();
 
-        if (!userData) {
+        if (userError || !userData) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
         const totalAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
         const txnid = 'ETH-' + Math.floor(100000 + Math.random() * 900000);
 
-        // Create Pending Order
-        const order = await OrderModel.create({
+        // Prepare Order Payload
+        const orderPayload = {
             _id: txnid,
-            user: req.user.id,
-            items: items.map(item => ({
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity,
-                product: item.id,
-                details: item.details
-            })),
-            totalAmount: totalAmount,
-            paymentMethod: 'easebuzz',
-            paymentStatus: 'pending',
-            orderStatus: 'placed',
-            location: targetLocation
-        });
+            userId: req.user.id,
+            items: items, // JSONB in Postgres
+            amount: totalAmount,
+            status: 'placed', // initial status
+            // payment details updated later
+            createdAt: new Date().toISOString()
+        };
 
-        // Initiate Payment
+        const { error: createError } = await supabase
+            .from(orderTable)
+            .insert([orderPayload]);
+
+        if (createError) throw createError;
+
+        // Initiate Payment via Easebuzz
         const paymentData = {
             txnid: txnid,
             amount: totalAmount,
             firstname: userData.name || 'User',
-            email: userData.email || 'user@example.com',
-            phone: userData.mobile || '9999999999',
+            email: userData.email || 'user@example.com', // fallback if empty
+            phone: userData.mobilenumber || userData.mobile || '9999999999',
             productinfo: `Order for ${items.length} items`,
-            location: targetLocation,
-            userId: req.user.id
+            udf1: targetLocation, // Pass location in UDF1 for callback
+            udf2: req.user.id     // Pass UserID in UDF2 for callback
         };
 
         const result = await initiatePayment(paymentData);
@@ -108,16 +133,31 @@ const checkoutHandler = (type) => async (req, res) => {
 };
 
 /**
- * Routes
+ * @swagger
+ * tags:
+ *   name: Orders
+ *   description: Order management and checkout
  */
 
 /**
  * @swagger
  * /api/orders/e3/all:
  *   get:
- *     summary: Get all E3 orders (Admin)
- *     tags: [Orders - E3]
- *     security: [{ bearerAuth: [] }]
+ *     summary: Get all E3 orders (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of E3 orders
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Order'
+ *       403:
+ *         description: Admin access required
  */
 router.get('/e3/all', [auth, admin], getAllOrders('e3'));
 
@@ -126,8 +166,18 @@ router.get('/e3/all', [auth, admin], getAllOrders('e3'));
  * /api/orders/e3:
  *   get:
  *     summary: Get my E3 orders
- *     tags: [Orders - E3]
- *     security: [{ bearerAuth: [] }]
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user's E3 orders
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Order'
  */
 router.get('/e3', auth, getUserOrders('e3'));
 
@@ -135,9 +185,39 @@ router.get('/e3', auth, getUserOrders('e3'));
  * @swagger
  * /api/orders/e3/checkout:
  *   post:
- *     summary: Checkout for E3
- *     tags: [Orders - E3]
- *     security: [{ bearerAuth: [] }]
+ *     summary: Checkout for E3 items
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [items]
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: string }
+ *                     name: { type: string }
+ *                     price: { type: number }
+ *                     quantity: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Payment initiated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 payment_url: { type: string }
+ *                 access_key: { type: string }
+ *                 txnid: { type: string }
  */
 router.post('/e3/checkout', [auth, validate(checkoutSchema)], checkoutHandler('e3'));
 
@@ -146,9 +226,19 @@ router.post('/e3/checkout', [auth, validate(checkoutSchema)], checkoutHandler('e
  * @swagger
  * /api/orders/e4/all:
  *   get:
- *     summary: Get all E4 orders (Admin)
- *     tags: [Orders - E4]
- *     security: [{ bearerAuth: [] }]
+ *     summary: Get all E4 orders (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of E4 orders
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Order'
  */
 router.get('/e4/all', [auth, admin], getAllOrders('e4'));
 
@@ -157,8 +247,18 @@ router.get('/e4/all', [auth, admin], getAllOrders('e4'));
  * /api/orders/e4:
  *   get:
  *     summary: Get my E4 orders
- *     tags: [Orders - E4]
- *     security: [{ bearerAuth: [] }]
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user's E4 orders
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Order'
  */
 router.get('/e4', auth, getUserOrders('e4'));
 
@@ -166,29 +266,41 @@ router.get('/e4', auth, getUserOrders('e4'));
  * @swagger
  * /api/orders/e4/checkout:
  *   post:
- *     summary: Checkout for E4
- *     tags: [Orders - E4]
- *     security: [{ bearerAuth: [] }]
+ *     summary: Checkout for E4 items
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [items]
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: string }
+ *                     name: { type: string }
+ *                     price: { type: number }
+ *                     quantity: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Payment initiated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 payment_url: { type: string }
+ *                 access_key: { type: string }
+ *                 txnid: { type: string }
  */
 router.post('/e4/checkout', [auth, validate(checkoutSchema)], checkoutHandler('e4'));
 
-
-// Combined/Legacy Route (Optional, for backward compat if needed, otherwise deprecate)
-// Mapping generic /all to E3 for now or merging both if specifically asked 'all'
-router.get('/all', [auth, admin], async (req, res) => {
-    try {
-        const e3 = await E3Order.find();
-        const e4 = await E4Order.find();
-        res.json([...e3, ...e4]);
-    } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
-router.get('/', auth, async (req, res) => {
-    try {
-        const e3 = await E3Order.find({ user: req.user.id });
-        const e4 = await E4Order.find({ user: req.user.id });
-        res.json([...e3, ...e4]);
-    } catch (err) { res.status(500).json({ message: err.message }); }
-});
 
 module.exports = router;

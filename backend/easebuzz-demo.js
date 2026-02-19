@@ -96,4 +96,4 @@ app.post('/refund', function (req, res) {
 });
 
 app.listen(3000);
-console.log("Easebuzz Payment Kit Demo server started at 3000");
+// console.log("Easebuzz Payment Kit Demo server started at 3000");

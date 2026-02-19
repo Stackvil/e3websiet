@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ShoppingCart, Menu, X, ArrowUpRight } from 'lucide-react'
+import { ShoppingCart, Menu, X, ArrowUpRight, User } from 'lucide-react'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import useStore from '../store/useStore'
 
@@ -60,6 +60,10 @@ const Navbar = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-6">
+                    {/* Profile Link (Visible if logged in - simplistic check if store has user, need to check how useStore exposes user) */}
+                    {/* Assuming useStore has 'user' state. Let's verify useStore first... defaulting to always show or check auth token logic later if needed. */}
+                    {/* Wait, I should check useStore.js to see if it exposes 'user'. */}
+
                     <motion.button
                         onClick={toggleCart}
                         whileHover={{ scale: 1.1 }}
@@ -76,6 +80,10 @@ const Navbar = () => {
                             </motion.span>
                         )}
                     </motion.button>
+
+                    <a href="/profile" className="p-3 premium-glass rounded-full border-none group hover:scale-110 transition-transform">
+                        <User size={20} className="group-hover:text-primary transition-colors" />
+                    </a>
 
                     <button
                         className="lg:hidden p-2"

@@ -12,8 +12,23 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
     body: z.object({
-        email: z.string().email(),
-        password: z.string().min(1)
+        mobile: z.string().regex(/^\d{10}$/, 'Invalid mobile number'),
+        password: z.string().min(1, 'Password is required')
+    })
+});
+
+const signupInitSchema = z.object({
+    body: z.object({
+        mobile: z.string().regex(/^\d{10}$/, 'Invalid mobile number')
+    })
+});
+
+const signupCompleteSchema = z.object({
+    body: z.object({
+        mobile: z.string().regex(/^\d{10}$/, 'Invalid mobile number'),
+        otp: z.string().length(6, 'OTP must be 6 digits'),
+        password: z.string().min(6, 'Password must be at least 6 characters'),
+        name: z.string().min(2).optional()
     })
 });
 
@@ -44,8 +59,12 @@ const addRideSchema = z.object({
         category: z.literal('play').optional(),
         type: z.string().optional(),
         status: z.enum(['on', 'off']).optional(),
-        image: z.string().url().optional(),
-        desc: z.string().optional()
+        image: z.string().optional(), // Allow Base64 or URL
+        desc: z.string().optional(),
+        stall: z.string().optional(),
+        isCombo: z.boolean().optional(),
+        rideCount: z.number().optional(),
+        images: z.array(z.string()).optional()
     })
 });
 
@@ -56,9 +75,11 @@ const addDineSchema = z.object({
         category: z.literal('dine').optional(),
         cuisine: z.string().optional(),
         stall: z.string().optional(),
-        image: z.string().url().optional(),
+        image: z.string().optional(), // Allow Base64 or URL
         status: z.enum(['on', 'off']).optional(),
-        open: z.boolean().optional()
+        open: z.boolean().optional(),
+        menuImages: z.array(z.string()).optional(),
+        contactNumber: z.string().optional()
     })
 });
 
@@ -78,7 +99,7 @@ const addEventSchema = z.object({
         price: z.number().nonnegative(),
         type: z.string().optional(),
         status: z.string().optional(),
-        image: z.string().url().optional()
+        image: z.string().optional() // Allow Base64 or URL
     })
 });
 
@@ -95,7 +116,9 @@ const checkoutSchema = z.object({
                 date: z.string().optional(),
                 startTime: z.string().optional(),
                 endTime: z.string().optional(),
-                guests: z.string().optional()
+                guests: z.string().optional(),
+                isCombo: z.boolean().optional(),
+                rideCount: z.number().optional()
             }).optional()
         }))
     })
@@ -127,7 +150,7 @@ const initiatePaymentSchema = z.object({
 const addSponsorSchema = z.object({
     body: z.object({
         name: z.string().min(1),
-        image: z.string().url(),
+        image: z.string(), // Allow Base64 or URL
         website: z.string().url().optional(),
         tier: z.string().optional()
     })
@@ -145,6 +168,8 @@ const updateProfileSchema = z.object({
 module.exports = {
     registerSchema,
     loginSchema,
+    signupInitSchema,
+    signupCompleteSchema,
     sendOtpSchema,
     verifyOtpSchema,
 

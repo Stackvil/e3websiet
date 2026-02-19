@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useStore from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config/api';
+import { formatTime12h } from '../utils/timeUtils';
 
 const EVENT_SPACE = {
     id: 1,
@@ -28,11 +29,21 @@ const Events = ({ location = 'E3' }) => {
                 const res = await fetch(`${API_URL}/events?location=${location}`);
                 if (res.ok) {
                     const data = await res.json();
-                    setEvents(data);
-                    if (data.length > 0) setSelectedRoom(data[0]); // Default to first event
+                    if (data && data.length > 0) {
+                        setEvents(data);
+                        setSelectedRoom(data[0]);
+                    } else {
+                        // Fallback to local data if API returns empty
+                        setEvents([EVENT_SPACE]);
+                        setSelectedRoom(EVENT_SPACE);
+                    }
+                } else {
+                    throw new Error('API request failed');
                 }
             } catch (err) {
-                console.error("Failed to fetch events", err);
+                console.warn("Failed to fetch events, using local data", err);
+                setEvents([EVENT_SPACE]);
+                setSelectedRoom(EVENT_SPACE);
             } finally {
                 setLoading(false);
             }
@@ -271,7 +282,7 @@ const Events = ({ location = 'E3' }) => {
                                     transition={{ duration: 0.4 }}
                                 >
                                     <div className="relative h-[400px] rounded-[2rem] overflow-hidden mb-8 group">
-                                        <img src={selectedRoom?.image} alt={selectedRoom?.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                        <img src={selectedRoom?.image || '/event%20place.webp'} alt={selectedRoom?.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                                         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl font-bold text-sunset-orange shadow-lg">
                                             ₹{selectedRoom?.price}<span className="text-xs text-gray-500 font-normal">/hr</span>
                                         </div>
@@ -333,14 +344,7 @@ const Events = ({ location = 'E3' }) => {
                                                             <div className="flex items-center gap-1">
                                                                 <Clock size={14} className="text-riverside-teal" />
                                                                 <span>
-                                                                    {(() => {
-                                                                        const format = (t) => {
-                                                                            if (!t) return '';
-                                                                            const [h, m] = t.split(':').map(Number);
-                                                                            return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-                                                                        };
-                                                                        return `${format(item.details.startTime)} - ${format(item.details.endTime)}`;
-                                                                    })()}
+                                                                    {`${formatTime12h(item.details.startTime)} - ${formatTime12h(item.details.endTime)}`}
                                                                 </span>
                                                             </div>
                                                         </div>

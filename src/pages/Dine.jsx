@@ -63,33 +63,45 @@ const menuImages = {
 
 const Dine = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [menuItems, setMenuItems] = useState([]);
-    const { addToCart, cart, toggleCart } = useStore();
+    const [loading, setLoading] = useState(false);
+    const { addToCart, cart, toggleCart, dineItems, setDineItems } = useStore();
+
+    // Initialize with cached data for instant display (milliseconds)
+    // Removed local state menuItems
     const [selectedMenu, setSelectedMenu] = useState(null); // { stallName: string, images: string[] }
 
     useEffect(() => {
         const fetchDineItems = async () => {
-            let data = [];
-            try {
-                const res = await fetch(`${API_URL}/e3/dine`);
-                if (!res.ok) throw new Error('API Failed');
-                data = await res.json();
-            } catch (err) {
-                console.warn("Failed to fetch E3 dine items, using fallback", err);
-                data = localProducts.filter(item => item.category === 'dine' || item.category === 'food');
+            // Only show loader if we have NO data to show
+            if (!dineItems || dineItems.length === 0) {
+                setLoading(true);
             }
 
-            if (data) {
-                setMenuItems(data);
+            try {
+                const res = await fetch(`${API_URL}/e3/dine`);
+                if (res.ok) {
+                    const apiData = await res.json();
+                    if (Array.isArray(apiData)) {
+                        setDineItems(apiData); // Update global cache
+                        // Removed setLocalMenuItems
+                    }
+                } else {
+                    console.error("Failed to fetch dine items");
+                }
+            } catch (err) {
+                console.error("Error fetching dine items:", err);
+            } finally {
+                setLoading(false);
             }
         };
         fetchDineItems();
-    }, []);
+    }, [setDineItems]);
 
-    const filteredItems = menuItems.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (item.stall && item.stall.toLowerCase().includes(searchQuery.toLowerCase()));
-        return matchesSearch;
+    const filteredItems = (dineItems || []).filter(item => {
+        const query = searchQuery.toLowerCase();
+        const nameMatch = item.name ? item.name.toLowerCase().includes(query) : false;
+        const stallMatch = item.stall ? item.stall.toLowerCase().includes(query) : false;
+        return nameMatch || stallMatch;
     });
 
     const handleViewMenu = (item) => {
@@ -135,7 +147,10 @@ const Dine = () => {
                 {/* Header & Search */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-heading font-bold text-charcoal-grey">Dine & Delight</h1>
+                        <h1 className="text-3xl font-heading font-bold text-charcoal-grey flex items-center gap-3">
+                            Dine & Delight
+                            {loading && <div className="w-5 h-5 border-2 border-sunset-orange border-t-transparent rounded-full animate-spin"></div>}
+                        </h1>
                         <p className="text-gray-500">Explore the best food stalls at Ethree</p>
                     </div>
 
@@ -158,7 +173,7 @@ const Dine = () => {
                     <AnimatePresence mode="popLayout">
                         {filteredItems.map((item) => (
                             <motion.div
-                                key={item._id || item.id}
+                                key={item.id || item._id}
                                 layout
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -171,8 +186,14 @@ const Dine = () => {
 
                                 <div className="p-3">
                                     <div className="mb-2">
-                                        <h3 className="text-sm font-bold leading-tight truncate text-charcoal-grey group-hover:text-riverside-teal transition-colors">{item.stall}</h3>
-                                        <p className="text-gray-400 text-[10px] leading-tight line-clamp-1">{item.cuisine || item.category} Cuisine</p>
+                                        <h3 className="text-sm font-bold leading-tight truncate text-charcoal-grey group-hover:text-riverside-teal transition-colors">
+                                            {item.stall || item.name || 'Unknown Stall'}
+                                        </h3>
+                                        {item.contactNumber && (
+                                            <p className="text-charcoal-grey font-bold font-mono text-xs mt-1 flex items-center gap-1">
+                                                📞 {item.contactNumber}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <button

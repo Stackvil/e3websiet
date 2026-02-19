@@ -2,15 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw, Download } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw, Download, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
+import { formatTime12h } from '../utils/timeUtils';
 import autoTable from 'jspdf-autotable';
 import { API_URL } from '../config/api';
+import { compressImage } from '../utils/imageUtils';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('analytics');
     const [bookings, setBookings] = useState([]);
-    const [products, setProducts] = useState([]);
+
+    // Access global store
+    const { setUser, dineItems, rideItems, setDineItems, setRideItems } = useStore();
+
+    // Initialize products with cached data from store
+    const [products, setProducts] = useState([...(rideItems || []), ...(dineItems || [])]);
+
     const [sponsors, setSponsors] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
@@ -20,18 +28,33 @@ const AdminDashboard = () => {
     const [visibleCount, setVisibleCount] = useState(10);
     // const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events', 'other'
     const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events'
+
+    // Add cuisine to initial state if editing doesn't provide it
+    const defaultForm = { name: '', category: 'dine', price: '', description: '', image: '', images: [], menuImages: [], status: 'open', cuisine: '', ageGroup: 'All', stall: '', isCombo: false, rideCount: '', contactNumber: '' };
     const navigate = useNavigate();
-    const { setUser } = useStore();
+    // setUser is already destructured above
 
 
     const fetchData = async () => {
         const token = localStorage.getItem('token');
+        if (!token) {
+            console.error("No authentication token found. Please login again.");
+            // Don't auto-logout immediately to avoid loop if storage broken, but stop fetch
+            setBookings([]);
+            setTransactions([]);
+            return;
+        }
         const headers = { 'x-auth-token': token };
         try {
-            console.log("Fetching admin data...");
+            console.log("Fetching admin data with token...");
 
             // 1. Fetch Products from E3 endpoints only
             try {
+                // If we have cached data, ensure it is set (though useState init handles this on mount)
+                if (products.length === 0 && (rideItems?.length > 0 || dineItems?.length > 0)) {
+                    setProducts([...(rideItems || []), ...(dineItems || [])]);
+                }
+
                 const [e3RidesRes, e3DineRes] = await Promise.all([
                     fetch(`${API_URL}/e3/rides`),
                     fetch(`${API_URL}/e3/dine`)
@@ -41,20 +64,29 @@ const AdminDashboard = () => {
 
                 if (e3RidesRes.ok) {
                     const e3Rides = await e3RidesRes.json();
-                    allProducts.push(...e3Rides);
+                    if (Array.isArray(e3Rides)) {
+                        setRideItems(e3Rides); // Update global cache
+                        allProducts.push(...e3Rides);
+                    }
                 }
 
                 if (e3DineRes.ok) {
                     const e3Dine = await e3DineRes.json();
-                    console.log("Fetched E3 Dine items:", e3Dine); // Added log
-                    allProducts.push(...e3Dine);
+                    console.log("Fetched E3 Dine items:", e3Dine);
+                    if (Array.isArray(e3Dine)) {
+                        setDineItems(e3Dine); // Update global cache
+                        allProducts.push(...e3Dine);
+                    }
                 }
 
-                setProducts(allProducts);
-                console.log("Total Fetched Products (Rides + Dine):", allProducts.length, allProducts); // Enhanced log
+                // Update local view with fresh data
+                if (allProducts.length > 0) {
+                    setProducts(allProducts);
+                    console.log("Total Fetched Products (Rides + Dine):", allProducts.length);
+                }
             } catch (productsErr) {
                 console.error("E3 Products fetch failed", productsErr);
-                setProducts([]);
+                // Do NOT clear products on error, keep cached version
             }
 
             // 2. Fetch Bookings (Safely)
@@ -118,7 +150,7 @@ const AdminDashboard = () => {
     const handleEditItem = (item) => {
         setEditingItem(item);
         const defaultCategory = activeTab === 'rides' ? 'play' : 'dine';
-        setFormData(item ? { menuImages: [], status: 'open', ...item } : { name: '', category: defaultCategory, price: '', description: '', image: '', menuImages: [], status: 'open' });
+        setFormData(item ? { menuImages: [], status: 'open', cuisine: item.cuisine || '', ageGroup: item.ageGroup || 'All', stall: item.stall || '', isCombo: item.isCombo || false, rideCount: item.rideCount || '', images: item.images || [], contactNumber: item.contactNumber || '', ...item } : { ...defaultForm, category: defaultCategory });
         setShowModal(true);
     };
 
@@ -145,6 +177,7 @@ const AdminDashboard = () => {
         }
 
         try {
+            console.log('Token used for delete:', token);
             const res = await fetch(`${API_URL}${endpoint}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': token }
@@ -161,6 +194,120 @@ const AdminDashboard = () => {
             console.error('Delete error:', err);
             alert(`Error deleting item: ${err.message}`);
         }
+    };
+
+    const handleToggleRideStatus = async (ride) => {
+        const token = localStorage.getItem('token');
+        const newStatus = (ride.status === 'closed' || ride.status === 'off') ? 'on' : 'off';
+
+        try {
+            const res = await fetch(`${API_URL}/e3/rides/${ride._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({
+                    ...ride,
+                    status: newStatus
+                })
+            });
+
+            if (res.ok) {
+                const updatedRide = await res.json();
+                setProducts(products.map(p => p._id === ride._id ? updatedRide : p));
+                // Also update the global store
+                setRideItems(rideItems.map(r => r._id === ride._id ? updatedRide : r));
+            } else {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Failed to update status');
+            }
+        } catch (err) {
+            console.error('Toggle status error:', err);
+            alert(`Error updating ride status: ${err.message}`);
+        }
+    };
+
+    const handleDownloadReceipt = (booking) => {
+        const doc = new jsPDF();
+
+        // Company Header
+        doc.setFontSize(22);
+        doc.setTextColor(255, 107, 107); // Sunset Orange
+        doc.text('Ethree Adventure Park', 105, 20, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text('123 Adventure Lane, Fun City, India', 105, 26, { align: 'center' });
+        doc.text('support@ethree.com | +91 98765 43210', 105, 31, { align: 'center' });
+
+        doc.setLineWidth(0.5);
+        doc.line(20, 35, 190, 35);
+
+        // Receipt Title
+        doc.setFontSize(16);
+        doc.setTextColor(0);
+        doc.text('Event Booking Receipt', 105, 45, { align: 'center' });
+
+        // Customer Details
+        doc.setFontSize(12);
+        doc.text('Customer Details:', 20, 60);
+        doc.setFontSize(11);
+        doc.setTextColor(80);
+        doc.text(`Name: ${booking.name || 'Valued Customer'}`, 25, 68);
+        doc.text(`Email: ${booking.email || 'N/A'}`, 25, 74);
+        doc.text(`Mobile: ${booking.mobile || 'N/A'}`, 25, 80);
+
+        // Booking Details
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text('Booking Information:', 110, 60);
+        doc.setFontSize(11);
+        doc.setTextColor(80);
+        doc.text(`Event: ${booking.facility}`, 115, 68);
+        doc.text(`Booking ID: #${(booking.bookingId || '').slice(-6).toUpperCase()}`, 115, 74);
+        doc.text(`Date: ${new Date(booking.date).toLocaleDateString()}`, 115, 80);
+
+        // Time (already formatted string usually, but format if needed)
+        // If booking.time is "start - end" string, use it directly.
+        // Or re-format if backend sends raw times? Backend sends formatted string "h:mm A - h:mm A".
+        // But AdminDashboard displays formatTime12h(booking.time).
+        // If booking.time is ALREADY formatted "2:30 PM - 3:30 PM", then formatTime12h() returns it AS IS.
+        // So safe to assume booking.time is display ready or needs simple formatting check.
+        // Time (already formatted string)
+        const timeStr = booking.time;
+        doc.text(`Time Slot: ${timeStr}`, 115, 86);
+
+        // Table Header
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, 95, 170, 10, 'F');
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        doc.font = 'helvetica';
+        doc.setFont(undefined, 'bold');
+        doc.text('Description', 25, 101);
+        doc.text('Guests', 130, 101);
+        doc.text('Price', 160, 101);
+
+        // Table Content
+        doc.setFont(undefined, 'normal');
+        doc.text(`${booking.facility}`, 25, 112);
+        doc.text(`${booking.quantity || 1}`, 130, 112);
+        doc.text(`Rs. ${booking.price}`, 160, 112);
+
+        // Total
+        doc.line(20, 120, 190, 120);
+        doc.setFont(undefined, 'bold');
+        doc.text('Total Amount:', 130, 128);
+        doc.text(`Rs. ${booking.price}`, 160, 128);
+
+        // Footer
+        doc.setFontSize(9);
+        doc.setTextColor(150);
+        doc.text('Thank you for choosing Ethree!', 105, 145, { align: 'center' });
+        doc.text('Please present this receipt at the venue entry.', 105, 150, { align: 'center' });
+
+        doc.save(`Receipt_${(booking.facility || 'Event').replace(/\s+/g, '_')}_${(booking.bookingId || 'ID').slice(-4)}.pdf`);
     };
 
     const handleSaveItem = async (e) => {
@@ -192,15 +339,24 @@ const AdminDashboard = () => {
 
         if (formData.category === 'play') {
             payload.category = 'play';
-            payload.desc = formData.description; // Map description -> desc
-            payload.type = 'Ride'; // Default type
-            payload.ageGroup = 'All'; // Default
+            payload.desc = formData.description;
+            // Map "Ride Category" to 'type'
+            payload.type = formData.stall || 'Ride';
+            payload.ageGroup = formData.ageGroup || 'All';
+            if (formData.isCombo) {
+                payload.isCombo = true;
+                payload.rideCount = Number(formData.rideCount);
+                payload.type = 'Combo'; // Force type for combos
+                payload.images = formData.images || []; // Send multiple images
+            }
         } else {
             payload.category = 'dine';
-            // Dine schema has 'cuisine', 'stall', etc.
-            payload.cuisine = 'General';
+            payload.cuisine = formData.cuisine || 'General';
+            // Treat the Name input as the Stall Name for Dine items
             payload.stall = formData.name;
             payload.open = formData.status === 'open';
+            payload.menuImages = formData.menuImages || [];
+            payload.contactNumber = formData.contactNumber || '';
         }
 
         try {
@@ -273,6 +429,29 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleDeleteBooking = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`${API_URL}/bookings/${id}`, {
+                method: 'DELETE',
+                headers: { 'x-auth-token': token }
+            });
+
+            if (res.ok) {
+                // Remove from state
+                setBookings(bookings.filter(b => b.id !== id));
+            } else {
+                const data = await res.json();
+                alert(data.message || 'Failed to delete booking');
+            }
+        } catch (err) {
+            console.error('Error deleting booking:', err);
+            alert('Error deleting booking');
+        }
+    };
+
     const tabs = [
         { id: 'analytics', label: 'Analytics', icon: LayoutDashboard },
         { id: 'dine', label: 'Dine', icon: Utensils },
@@ -281,7 +460,11 @@ const AdminDashboard = () => {
     ];
 
     const getVisibleProducts = () => {
-        if (activeTab === 'rides') return products.filter(p => p.category === 'play');
+        if (activeTab === 'rides') {
+            return products
+                .filter(p => p.category === 'play')
+                .sort((a, b) => (b.isCombo ? 1 : 0) - (a.isCombo ? 1 : 0));
+        }
         if (activeTab === 'dine') return products.filter(p => p.category === 'dine' || !p.category);
         return [];
     };
@@ -359,7 +542,22 @@ const AdminDashboard = () => {
                                         </div>
                                         <h3 className="font-bold text-lg text-charcoal-grey">{booking.name}</h3>
                                         <p className="text-gray-500 text-sm mt-1">{booking.date} • {booking.time}</p>
-
+                                        <div className="flex gap-2 mt-4">
+                                            <button
+                                                onClick={() => handleDownloadReceipt(booking)}
+                                                className="flex-1 bg-riverside-teal/10 text-riverside-teal py-2 rounded-lg text-sm font-bold hover:bg-riverside-teal hover:text-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                                Receipt
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteBooking(booking.id)}
+                                                className="bg-red-50 text-red-500 px-3 py-2 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                                                title="Delete Booking"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -387,17 +585,17 @@ const AdminDashboard = () => {
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                             />
 
-                                            {item.status === 'off' && (
-                                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                                                    <p className="text-white font-bold bg-red-500/80 px-3 py-1 rounded text-xs">Closed</p>
-                                                </div>
-                                            )}
+
                                         </div>
 
                                         <div className="p-4">
                                             <div className="mb-4">
                                                 <h3 className="font-bold text-charcoal-grey truncate">{item.stall || item.name}</h3>
-                                                <p className="text-gray-400 text-xs truncate capitalize">{item.cuisine || item.category} Cuisine</p>
+                                                {item.contactNumber && (
+                                                    <p className="text-charcoal-grey text-xs font-bold mt-1 font-mono">
+                                                        📞 {item.contactNumber}
+                                                    </p>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-2">
@@ -431,6 +629,17 @@ const AdminDashboard = () => {
                                     <Package className="w-5 h-5 mr-2" />
                                     Add New Ride
                                 </button>
+                                <button
+                                    onClick={() => {
+                                        setEditingItem(null);
+                                        setFormData({ ...defaultForm, category: 'play', isCombo: true });
+                                        setShowModal(true);
+                                    }}
+                                    className="ml-4 bg-sunset-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
+                                >
+                                    <Package className="w-5 h-5 mr-2" />
+                                    Add Combo
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -458,13 +667,24 @@ const AdminDashboard = () => {
                                                 {ride.isCombo && (
                                                     <div className="mt-1 px-2 py-0.5 bg-sunset-orange/90 border-2 border-white/80 rounded-md shadow-lg">
                                                         <p className="text-[9px] text-white font-black text-center whitespace-nowrap uppercase tracking-wide">
-                                                            Any 5 Rides
+                                                            Any {ride.rideCount || 5} Rides
                                                         </p>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-2 mt-1">
+
+                                            <div className="grid grid-cols-3 gap-1 mt-1">
+                                                <button
+                                                    onClick={() => handleToggleRideStatus(ride)}
+                                                    className={`${ride.status === 'closed' || ride.status === 'off'
+                                                        ? 'bg-red-500/20 hover:bg-green-500/30 text-red-400 hover:text-green-500'
+                                                        : 'bg-green-500/20 hover:bg-red-500/30 text-green-500 hover:text-red-400'
+                                                        } py-1 rounded-md text-[10px] font-bold transition-colors border ${ride.status === 'closed' || ride.status === 'off' ? 'border-red-500/50' : 'border-green-500/50'}`}
+                                                    title={ride.status === 'closed' || ride.status === 'off' ? 'Open Ride' : 'Close Ride'}
+                                                >
+                                                    {ride.status === 'closed' || ride.status === 'off' ? 'Open' : 'Close'}
+                                                </button>
                                                 <button
                                                     onClick={() => handleEditItem(ride)}
                                                     className="bg-riverside-teal/20 hover:bg-riverside-teal/30 text-riverside-teal py-1 rounded-md text-[10px] font-bold transition-colors border border-riverside-teal/50"
@@ -506,7 +726,7 @@ const AdminDashboard = () => {
                             return true;
                         }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-                        const totalAmount = filteredTransactions.reduce((acc, tx) => acc + (tx.totalAmount || tx.amount || 0), 0);
+                        const totalAmount = filteredTransactions.reduce((acc, tx) => acc + (Number(tx.totalAmount) || Number(tx.amount) || 0), 0);
 
                         // Platform Stats Calculation (If API fails, fallback to rudimentary calculation from logs/DB if needed, but we rely on API)
                         const totalUsers = platformStats.total || (platformStats.web + platformStats.mobile) || 1;
@@ -682,23 +902,7 @@ const AdminDashboard = () => {
                         );
                     })()}
 
-                    {/* Bookings Section */}
-                    {
-                        activeTab === 'bookings' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {bookings.map((booking) => (
-                                    <div key={booking.id} className="bg-white p-6 rounded-xl border shadow-sm">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <span className="px-3 py-1 bg-riverside-teal/10 text-riverside-teal rounded-full text-xs font-bold font-heading">{booking.facility}</span>
-                                            <span className="text-gray-400 text-sm">#{booking.bookingId || booking.id}</span>
-                                        </div>
-                                        <h3 className="font-bold text-lg text-charcoal-grey">{booking.name}</h3>
-                                        <p className="text-gray-500 text-sm mt-1">{booking.date} • {booking.time}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        )
-                    }
+
 
                     {/* Sponsors Section */}
                     {
@@ -747,9 +951,26 @@ const AdminDashboard = () => {
                         showModal && (
                             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                                 <div className="bg-white rounded-xl p-8 max-w-md w-full">
-                                    <h3 className="text-xl font-bold mb-6">{editingItem ? 'Edit Item' : 'Add New Item'}</h3>
+                                    <h3 className="text-xl font-bold mb-6">{editingItem ? 'Edit Item' : (formData.isCombo ? 'Add New Combo' : 'Add New Item')}</h3>
                                     <form onSubmit={activeTab === 'sponsors' ? handleSaveSponsor : handleSaveItem} className="space-y-4">
-                                        <input placeholder="Name" className="w-full border p-2 rounded" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                        <input
+                                            placeholder={activeTab === 'sponsors' ? "Sponsor Name" : (formData.isCombo ? "Combo Name (e.g. Super Saver)" : (formData.category === 'dine' ? "Stall Name" : "Item Name"))}
+                                            className="w-full border p-2 rounded"
+                                            value={formData.name}
+                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                            required
+                                        />
+
+                                        {formData.isCombo && (
+                                            <input
+                                                type="number"
+                                                placeholder="How many rides? (e.g. 5)"
+                                                className="w-full border p-2 rounded"
+                                                value={formData.rideCount}
+                                                onChange={e => setFormData({ ...formData, rideCount: e.target.value })}
+                                                required
+                                            />
+                                        )}
 
                                         {activeTab === 'sponsors' ? (
                                             <>
@@ -762,30 +983,72 @@ const AdminDashboard = () => {
                                             </>
                                         ) : (
                                             <>
-                                                <select className="w-full border p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
-                                                    <option value="dine">Dine (Food)</option>
-                                                    <option value="play">Play (Rides)</option>
-                                                    <option value="events">Event</option>
-                                                </select>
-                                                {formData.category !== 'dine' && (
-                                                    <input type="number" placeholder="Price" className="w-full border p-2 rounded" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} required />
+                                                {!formData.isCombo && (
+                                                    <select className="w-full border p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
+                                                        <option value="dine">Dine (Food)</option>
+                                                        <option value="play">Play (Rides)</option>
+                                                        <option value="events">Event</option>
+                                                    </select>
                                                 )}
-                                                <textarea placeholder="Description" className="w-full border p-2 rounded" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                                {formData.category === 'dine' && (
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Contact Number"
+                                                        className="w-full border p-2 rounded"
+                                                        value={formData.contactNumber || ''}
+                                                        onChange={e => setFormData({ ...formData, contactNumber: e.target.value })}
+                                                    />
+                                                )}
+                                                {formData.category !== 'dine' && (
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Price (₹)"
+                                                        className="w-full border p-2 rounded"
+                                                        value={formData.price}
+                                                        onChange={e => setFormData({ ...formData, price: e.target.value })}
+                                                        required
+                                                    />
+                                                )}
+                                                {formData.category === 'play' && !formData.isCombo && (
+                                                    <>
+                                                        <select
+                                                            className="w-full border p-2 rounded"
+                                                            value={formData.ageGroup || 'All'}
+                                                            onChange={e => setFormData({ ...formData, ageGroup: e.target.value })}
+                                                        >
+                                                            <option value="All">All Ages</option>
+                                                            <option value="Kids">Kids</option>
+                                                            <option value="Toddlers">Toddlers</option>
+                                                            <option value="Youth">Youth</option>
+                                                            <option value="Family">Family</option>
+                                                            <option value="7+ years">7+ years</option>
+                                                            <option value="10+">10+</option>
+                                                        </select>
+
+                                                    </>
+                                                )}
+                                                {formData.category !== 'dine' && (
+                                                    <textarea placeholder="Description" className="w-full border p-2 rounded" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                                )}
                                             </>
                                         )}
 
                                         <div className="flex flex-col gap-2">
-                                            <input placeholder="Image URL" className="w-full border p-2 rounded" value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} />
+                                            <input placeholder="Image URL (Main Cover)" className="w-full border p-2 rounded" value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} />
                                             {/* Image Upload Logic Placeholder - Kept simple for now for stability */}
                                             <div className="flex items-center gap-2">
                                                 <label className="flex-1 cursor-pointer bg-gray-50 border border-dashed border-gray-300 rounded p-2 text-center text-sm text-gray-500 hover:bg-gray-100 transition-colors">
-                                                    <span>Upload Image</span>
-                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                                                    <span>Upload Main Cover (Auto-compressed)</span>
+                                                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                                                         const file = e.target.files[0];
                                                         if (file) {
-                                                            const reader = new FileReader();
-                                                            reader.onloadend = () => setFormData({ ...formData, image: reader.result });
-                                                            reader.readAsDataURL(file);
+                                                            try {
+                                                                const compressed = await compressImage(file, 800, 0.7);
+                                                                setFormData({ ...formData, image: compressed });
+                                                            } catch (err) {
+                                                                console.error("Image compression failed:", err);
+                                                                alert("Failed to process image. Please try another.");
+                                                            }
                                                         }
                                                     }} />
                                                 </label>
@@ -797,18 +1060,73 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
 
+                                        {/* Combo Multiple Images Upload */}
+                                        {formData.isCombo && (
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-sm font-bold text-gray-700">Combo Images (Slideshow)</label>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    {(formData.images || []).map((img, idx) => (
+                                                        <div key={idx} className="w-16 h-16 rounded overflow-hidden border relative group">
+                                                            <img src={img} alt={`Combo ${idx}`} className="w-full h-full object-cover" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
+                                                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    <label className="w-16 h-16 cursor-pointer bg-gray-50 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+                                                        <span className="text-2xl">+</span>
+                                                        <input type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+                                                            const files = Array.from(e.target.files);
+                                                            try {
+                                                                // Process all files in parallel
+                                                                const compressedImages = await Promise.all(
+                                                                    files.map(file => compressImage(file, 800, 0.7))
+                                                                );
+                                                                setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...compressedImages] }));
+                                                            } catch (err) {
+                                                                console.error("Batch compression failed:", err);
+                                                                alert("Failed to process one or more images.");
+                                                            }
+                                                        }} />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Dine Menu Images */}
                                         {formData.category === 'dine' && activeTab !== 'sponsors' && (
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-sm font-bold text-gray-700">Menu Pages</label>
-                                                <input type="file" accept="image/*" multiple className="border p-2 rounded" onChange={(e) => {
-                                                    const files = Array.from(e.target.files);
-                                                    Promise.all(files.map(f => new Promise((resolve) => {
-                                                        const r = new FileReader();
-                                                        r.onload = () => resolve(r.result);
-                                                        r.readAsDataURL(f);
-                                                    }))).then(imgs => setFormData(prev => ({ ...prev, menuImages: [...prev.menuImages, ...imgs] })));
-                                                }} />
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    className="border p-2 rounded block w-full text-sm text-slate-500
+                                                        file:mr-4 file:py-2 file:px-4
+                                                        file:rounded-full file:border-0
+                                                        file:text-sm file:font-semibold
+                                                        file:bg-riverside-teal/10 file:text-riverside-teal
+                                                        hover:file:bg-riverside-teal/20"
+                                                    onChange={async (e) => {
+                                                        const files = Array.from(e.target.files);
+                                                        try {
+                                                            const compressedList = await Promise.all(
+                                                                files.map(file => compressImage(file, 800, 0.6))
+                                                            );
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                menuImages: [...(prev.menuImages || []), ...compressedList]
+                                                            }));
+                                                        } catch (err) {
+                                                            console.error("Menu compression failed", err);
+                                                            alert("Failed to process menu images. Please try fewer images.");
+                                                        }
+                                                    }}
+                                                />
                                             </div>
                                         )}
 

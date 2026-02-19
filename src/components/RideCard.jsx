@@ -8,19 +8,24 @@ const RideCard = ({ ride }) => {
 
     const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
-    // Auto-cycle images for combo packs
+    // Determine which images to use (uploaded gallery > combo images)
+    const galleryImages = (ride.images && ride.images.length > 0)
+        ? ride.images
+        : (ride.isCombo && ride.comboImages ? ride.comboImages : []);
+
+    // Auto-cycle images if multiple exist
     React.useEffect(() => {
         let interval;
-        if (ride.isCombo && ride.comboImages && ride.comboImages.length > 0) {
+        if (galleryImages.length > 1) {
             interval = setInterval(() => {
-                setCurrentImgIndex((prev) => (prev + 1) % ride.comboImages.length);
+                setCurrentImgIndex((prev) => (prev + 1) % galleryImages.length);
             }, 2000); // Change image every 2 seconds
         }
         return () => clearInterval(interval);
-    }, [ride.isCombo, ride.comboImages]);
+    }, [galleryImages]);
 
-    const displayImage = (ride.isCombo && ride.comboImages && ride.comboImages.length > 0)
-        ? ride.comboImages[currentImgIndex]
+    const displayImage = galleryImages.length > 0
+        ? galleryImages[currentImgIndex]
         : ride.image;
 
     const handleAddToCart = (e) => {
@@ -42,7 +47,7 @@ const RideCard = ({ ride }) => {
     };
 
     return (
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all duration-500 group flex flex-col aspect-[3/4] w-full shadow-lg hover:shadow-2xl hover:shadow-sunset-orange/20 hover:-translate-y-2">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-all duration-500 group flex flex-col aspect-[3/5] md:aspect-[3/4] w-full shadow-lg hover:shadow-2xl hover:shadow-sunset-orange/20 hover:-translate-y-2">
             <div className="h-[60%] overflow-hidden relative">
                 <img
                     src={displayImage}
@@ -72,28 +77,12 @@ const RideCard = ({ ride }) => {
 
             <div className="p-1 flex flex-col h-[40%] justify-between bg-white">
                 <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-charcoal-grey font-bold leading-tight text-center line-clamp-1 text-xs">{ride.name || ride.title}</h3>
+                    <h3 className="text-charcoal-grey font-bold leading-tight text-center line-clamp-1 text-sm">{ride.name || ride.title}</h3>
                 </div>
 
                 <div className="space-y-1.5 w-full flex-shrink-0">
                     {/* Quantity */}
-                    <div className="flex items-center justify-between bg-gray-100 rounded-md p-1 border border-gray-200 transition-colors hover:border-gray-300">
-                        <button
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                            disabled={ride.status === 'closed'}
-                            className="w-7 h-7 flex items-center justify-center text-charcoal-grey hover:bg-gray-200 rounded transition-all duration-300 hover:scale-110 active:scale-90 font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            -
-                        </button>
-                        <span className="text-charcoal-grey font-bold text-sm w-8 text-center">{quantity}</span>
-                        <button
-                            onClick={() => setQuantity(quantity + 1)}
-                            disabled={ride.status === 'closed'}
-                            className="w-7 h-7 flex items-center justify-center text-charcoal-grey hover:bg-gray-200 rounded transition-all duration-300 hover:scale-110 active:scale-90 font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            +
-                        </button>
-                    </div>
+
 
                     <div className="grid grid-cols-2 gap-1.5">
                         <button

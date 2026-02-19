@@ -3,12 +3,26 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ShoppingCart, MapPin, Clock, Info, Ticket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cart from '../Cart';
+import Logo from '../Logo';
 import useStore from '../../store/useStore';
+
+const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
+};
+
+const getAvatarColor = (name) => {
+    const colors = ['#F87171', '#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F472B6', '#818CF8', '#2DD4BF', '#FB923C'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+};
 
 const Header = () => {
     const [isOpen, setIsOpen] = useState(false);
     const location = useLocation();
     const { user } = useStore();
+    const displayName = user ? (user.role === 'admin' ? 'Admin' : (user.name || 'User')) : null;
 
     const navLinks = [
         { name: 'Home', path: '/' },
@@ -19,10 +33,10 @@ const Header = () => {
     ];
 
     return (
-        <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-gray-200 py-4 px-6">
-            <div className="container mx-auto flex justify-between items-center">
+        <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-gray-200 py-2 px-6">
+            <div className="container mx-auto flex justify-between items-center max-w-7xl">
                 <Link to="/" className="flex items-center gap-2">
-                    <img src="/e3logo.png" alt="E3 Logo" className="h-20 w-auto object-contain rounded-lg" />
+                    <Logo className="scale-60 md:scale-75" />
                 </Link>
 
                 {/* Desktop Nav */}
@@ -38,8 +52,16 @@ const Header = () => {
                             <span className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-sunset-orange transition-all duration-300 group-hover:w-full ${location.pathname === link.path ? 'w-full' : ''}`}></span>
                         </Link>
                     ))}
-                    <Link to="/login" className="font-semibold text-charcoal-grey hover:text-sunset-orange transition-all duration-300 hover:scale-105">
-                        {user ? (user.role === 'admin' ? 'Admin' : (user.name || 'User')) : 'Login'}
+                    <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} className={`font-semibold transition-all duration-300 hover:scale-105 ${user ? '' : 'text-charcoal-grey hover:text-sunset-orange'}`}>
+                        {user ? (
+                            <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md text-sm"
+                                style={{ backgroundColor: getAvatarColor(displayName) }}
+                                title={displayName}
+                            >
+                                {getInitials(displayName)}
+                            </div>
+                        ) : 'Login'}
                     </Link>
                     {location.pathname !== '/' && (
                         <Link to="/" className="btn-orange flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform duration-300 shadow-lg hover:shadow-orange-500/30">
@@ -74,7 +96,7 @@ const Header = () => {
                                     {link.name}
                                 </Link>
                             ))}
-                            <Link to="/login" onClick={() => setIsOpen(false)} className="text-lg font-semibold">
+                            <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} onClick={() => setIsOpen(false)} className="text-lg font-semibold">
                                 {user ? (user.role === 'admin' ? 'Admin' : (user.name || 'User')) : 'Login'}
                             </Link>
                             {location.pathname !== '/' && (
@@ -127,7 +149,9 @@ const Layout = ({ children }) => {
             <footer className={`bg-white border-t border-gray-100 pt-12 pb-32 md:pb-24 px-6 mt-auto transition-all duration-300 ${isAdmin ? 'md:ml-64' : ''}`}>
                 <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
                     <div className="col-span-2">
-                        <img src="/e3logo.png" alt="E3 Logo" className="h-24 w-auto object-contain mb-6 rounded-lg transition-transform hover:scale-105 duration-500" />
+                        <Link to="/" className="inline-block mb-6">
+                            <Logo className="scale-90 origin-left" />
+                        </Link>
                         <p className="text-gray-500 max-w-sm">
                             Eat, Enjoy, and Entertainment - Vijayawada's premier open-air family hub on the banks of Krishna River.
                         </p>
