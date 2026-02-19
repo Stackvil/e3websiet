@@ -20,7 +20,7 @@ const AdminDashboard = () => {
     const [products, setProducts] = useState([...(rideItems || []), ...(dineItems || [])]);
 
     // E4 state
-    const [e4Products, setE4Products] = useState([]);
+
 
     const [sponsors, setSponsors] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -29,6 +29,8 @@ const AdminDashboard = () => {
     const [transactions, setTransactions] = useState([]);
     const [platformStats, setPlatformStats] = useState({ web: 0, mobile: 0 });
     const [dailySales, setDailySales] = useState({ today: { total: 0, count: 0, allOrdersCount: 0, orders: [] }, history: [] });
+    const [poaData, setPoaData] = useState({ e3: null });
+    const [poaError, setPoaError] = useState('');
     const [visibleCount, setVisibleCount] = useState(10);
     // const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events', 'other'
     const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events'
@@ -93,19 +95,6 @@ const AdminDashboard = () => {
                 // Do NOT clear products on error, keep cached version
             }
 
-            // 1b. Fetch E4 Rides
-            try {
-                const e4RidesRes = await fetch(`${API_URL}/e4/rides`);
-                if (e4RidesRes.ok) {
-                    const e4Rides = await e4RidesRes.json();
-                    if (Array.isArray(e4Rides)) {
-                        setE4Products(e4Rides);
-                        console.log("Fetched E4 Rides:", e4Rides.length);
-                    }
-                }
-            } catch (e4Err) {
-                console.error("E4 Rides fetch failed", e4Err);
-            }
 
             // 2. Fetch Bookings (Safely)
             try {
@@ -158,6 +147,16 @@ const AdminDashboard = () => {
                 }
             } catch (statsErr) {
                 console.error("E3 Analytics fetch error:", statsErr);
+            }
+
+            // 6. Fetch POA data (E3 only)
+            try {
+                const poaE3Res = await fetch(`${API_URL}/poa/e3`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const e3 = poaE3Res.ok ? await poaE3Res.json() : null;
+                setPoaData({ e3 });
+            } catch (poaErr) {
+                setPoaError('Could not load POA data');
+                console.error('POA fetch error:', poaErr);
             }
 
         } catch (err) {
@@ -512,9 +511,9 @@ const AdminDashboard = () => {
 
     const tabs = [
         { id: 'analytics', label: 'Analytics', icon: LayoutDashboard },
+        { id: 'poa', label: 'POA', icon: Package },
         { id: 'dine', label: 'Dine', icon: Utensils },
         { id: 'rides', label: 'E3 Rides', icon: Gamepad2 },
-        { id: 'e4rides', label: 'E4 Rides', icon: Gamepad2 },
         { id: 'bookings', label: 'Event Bookings', icon: Calendar },
     ];
 
@@ -578,6 +577,169 @@ const AdminDashboard = () => {
                     </header>
 
 
+
+                    {/* ── POA Tab ─────────────────────────────────────────── */}
+                    {activeTab === 'poa' && (() => {
+                        const statusBadge = (s) => {
+                            const map = {
+                                running: 'bg-green-100 text-green-700',
+                                open: 'bg-green-100 text-green-700',
+                                maintenance: 'bg-amber-100 text-amber-700',
+                                offline: 'bg-red-100 text-red-600',
+                                closed: 'bg-red-100 text-red-600',
+                                completed: 'bg-green-100 text-green-700',
+                                pending: 'bg-amber-100 text-amber-700',
+                                failed: 'bg-red-100 text-red-600',
+                            };
+                            return (
+                                <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide ${map[s] || 'bg-gray-100 text-gray-500'}`}>
+                                    {s}
+                                </span>
+                            );
+                        };
+
+                        const alertIcon = (type) => {
+                            if (type === 'warning') return '⚠️';
+                            if (type === 'success') return '✅';
+                            return 'ℹ️';
+                        };
+                        const alertBg = (type) => {
+                            if (type === 'warning') return 'bg-amber-50 border-amber-200 text-amber-800';
+                            if (type === 'success') return 'bg-green-50 border-green-200 text-green-800';
+                            return 'bg-blue-50 border-blue-200 text-blue-800';
+                        };
+
+                        const Panel = ({ data, color }) => {
+                            if (!data) return (
+                                <div className="flex-1 bg-white rounded-2xl p-8 border border-gray-100 flex items-center justify-center text-gray-400 text-sm font-medium">
+                                    Loading {color} data…
+                                </div>
+                            );
+                            const currency = (v) => `₹${Number(v).toLocaleString('en-IN')}`;
+
+                            return (
+                                <div className="flex-1 min-w-0 space-y-5">
+                                    {/* Location header */}
+                                    <div className={`rounded-2xl p-5 text-white ${color === 'E3' ? 'bg-gradient-to-r from-riverside-teal to-teal-600' : 'bg-gradient-to-r from-sunset-orange to-orange-600'}`}>
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h3 className="text-2xl font-black">{data.location}</h3>
+                                                <p className="text-white/70 text-xs mt-0.5">Updated {new Date(data.lastUpdated).toLocaleTimeString()}</p>
+                                            </div>
+                                            <span className="text-3xl font-black">{currency(data.summary.totalRevenue)}</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-3 text-center">
+                                            {[
+                                                { label: 'Orders', value: data.summary.totalOrders },
+                                                { label: 'Visitors', value: data.summary.totalVisitors },
+                                                { label: 'Avg Order', value: currency(data.summary.avgOrderValue) },
+                                            ].map(({ label, value }) => (
+                                                <div key={label} className="bg-white/10 rounded-xl p-2">
+                                                    <div className="text-lg font-black">{value}</div>
+                                                    <div className="text-[10px] text-white/70 uppercase tracking-wider">{label}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Alerts */}
+                                    {data.alerts.length > 0 && (
+                                        <div className="space-y-2">
+                                            {data.alerts.map((a, i) => (
+                                                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium ${alertBg(a.type)}`}>
+                                                    <span>{alertIcon(a.type)}</span>
+                                                    {a.message}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Recent Orders */}
+                                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                                        <div className="px-5 py-3 border-b border-gray-50 flex justify-between items-center">
+                                            <h4 className="font-bold text-sm text-charcoal-grey">Recent Orders</h4>
+                                            <span className="text-xs text-gray-400">{data.recentOrders.length} shown</span>
+                                        </div>
+                                        <div className="divide-y divide-gray-50">
+                                            {data.recentOrders.map((o) => (
+                                                <div key={o.id} className="px-5 py-3 flex items-center gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-0.5">
+                                                            <span className="font-bold text-xs text-charcoal-grey truncate">{o.customer}</span>
+                                                            <span className="text-[10px] text-gray-400 shrink-0">{o.time}</span>
+                                                        </div>
+                                                        <p className="text-[11px] text-gray-400 truncate">{o.items.join(', ')}</p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <div className="font-black text-sm text-charcoal-grey">{currency(o.amount)}</div>
+                                                        <div className="mt-0.5">{statusBadge(o.status)}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Rides Status */}
+                                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                                        <div className="px-5 py-3 border-b border-gray-50">
+                                            <h4 className="font-bold text-sm text-charcoal-grey">
+                                                Rides — <span className="text-green-600">{data.summary.activeRides} active</span>
+                                            </h4>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-px bg-gray-50">
+                                            {data.rideStatus.map((r) => (
+                                                <div key={r.name} className="bg-white px-4 py-3">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="font-bold text-xs text-charcoal-grey truncate">{r.name}</span>
+                                                        {statusBadge(r.status)}
+                                                    </div>
+                                                    {r.waitTime !== '-' && (
+                                                        <p className="text-[10px] text-gray-400">Wait: {r.waitTime} · Cap: {r.capacity}</p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Stall Revenue */}
+                                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                                        <div className="px-5 py-3 border-b border-gray-50 flex justify-between items-center">
+                                            <h4 className="font-bold text-sm text-charcoal-grey">
+                                                Stalls — <span className="text-green-600">{data.summary.openStalls} open</span>
+                                            </h4>
+                                        </div>
+                                        <div className="divide-y divide-gray-50">
+                                            {data.stallStatus.map((s) => (
+                                                <div key={s.name} className="px-5 py-3 flex items-center justify-between">
+                                                    <div>
+                                                        <p className="font-bold text-xs text-charcoal-grey">{s.name}</p>
+                                                        <p className="text-[10px] text-gray-400">{s.orders} orders</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-black text-sm text-charcoal-grey">{currency(s.revenue)}</span>
+                                                        {statusBadge(s.status)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        };
+
+                        return (
+                            <div>
+                                {poaError && (
+                                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium">
+                                        ⚠️ {poaError}
+                                    </div>
+                                )}
+                                <div className="flex gap-6 items-start">
+                                    <Panel data={poaData.e3} color="E3" />
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {activeTab === 'bookings' && (
                         <div>
@@ -779,115 +941,7 @@ const AdminDashboard = () => {
                         </div>
                     )}
 
-                    {activeTab === 'e4rides' && (
-                        <div>
-                            <div className="mb-6 flex justify-between items-center">
-                                <div>
-                                    <h2 className="text-xl font-bold text-charcoal-grey">E4 Rides</h2>
-                                    <p className="text-sm text-gray-400 mt-1">Toggle ride availability for E4 park</p>
-                                </div>
-                                <button
-                                    onClick={fetchData}
-                                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-riverside-teal font-bold transition-colors bg-white px-4 py-2 rounded-lg border border-gray-100 shadow-sm"
-                                >
-                                    <RefreshCw size={16} />
-                                    Refresh
-                                </button>
-                            </div>
 
-                            {e4Products.filter(p => p.category === 'play').length === 0 ? (
-                                <div className="text-center py-20 text-gray-400">
-                                    <Gamepad2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                    <p className="font-bold">No E4 rides found</p>
-                                    <p className="text-sm mt-1">Add rides via the E4 backend or check your connection.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                    {e4Products
-                                        .filter(p => p.category === 'play')
-                                        .sort((a, b) => (b.isCombo ? 1 : 0) - (a.isCombo ? 1 : 0))
-                                        .map((ride) => (
-                                            <div key={ride._id} className="bg-white backdrop-blur-md rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all group flex flex-col aspect-square w-full shadow-sm relative">
-                                                <div className="h-[65%] overflow-hidden relative">
-                                                    <img
-                                                        src={ride.image}
-                                                        alt={ride.name}
-                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                    />
-                                                    <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg text-sm font-bold text-sunset-orange border border-sunset-orange/50 shadow-lg">
-                                                        ₹{ride.price}
-                                                    </div>
-                                                    {(ride.status === 'closed' || ride.status === 'off') && (
-                                                        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
-                                                            <p className="text-white font-bold bg-red-500/80 px-4 py-2 rounded-lg text-sm border border-red-400">CLOSED</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="p-2 flex flex-col h-[35%] justify-between bg-charcoal-grey">
-                                                    <div className="flex flex-col items-center justify-center flex-grow">
-                                                        <h3 className="text-white font-bold text-xs leading-tight text-center line-clamp-2">{ride.name}</h3>
-                                                        {ride.isCombo && (
-                                                            <div className="mt-1 px-2 py-0.5 bg-sunset-orange/90 border-2 border-white/80 rounded-md shadow-lg">
-                                                                <p className="text-[9px] text-white font-black text-center whitespace-nowrap uppercase tracking-wide">
-                                                                    Any {ride.rideCount || 5} Rides
-                                                                </p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* ON/OFF Toggle */}
-                                                    <div className="flex flex-col gap-1 mt-1">
-                                                        <button
-                                                            onClick={() => handleToggleE4RideStatus(ride)}
-                                                            title={ride.status === 'off' || ride.status === 'closed' ? 'Turn Ride ON' : 'Turn Ride OFF'}
-                                                            className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-black transition-all border ${ride.status === 'off' || ride.status === 'closed'
-                                                                ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30'
-                                                                : 'bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30'
-                                                                }`}
-                                                        >
-                                                            <span className="uppercase tracking-widest">
-                                                                {ride.status === 'off' || ride.status === 'closed' ? 'OFF' : 'ON'}
-                                                            </span>
-                                                            <span className={`relative inline-flex w-7 h-3.5 rounded-full transition-colors ${ride.status === 'off' || ride.status === 'closed' ? 'bg-red-500/40' : 'bg-green-500/60'
-                                                                }`}>
-                                                                <span className={`absolute top-0.5 h-2.5 w-2.5 rounded-full shadow transition-all ${ride.status === 'off' || ride.status === 'closed'
-                                                                    ? 'left-0.5 bg-red-400'
-                                                                    : 'left-4 bg-green-400'
-                                                                    }`} />
-                                                            </span>
-                                                        </button>
-                                                        <div className="grid grid-cols-2 gap-1">
-                                                            <button
-                                                                onClick={() => handleEditItem(ride)}
-                                                                className="bg-riverside-teal/20 hover:bg-riverside-teal/30 text-riverside-teal py-1 rounded-md text-[10px] font-bold transition-colors border border-riverside-teal/50"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                onClick={async () => {
-                                                                    if (!window.confirm('Delete this E4 ride?')) return;
-                                                                    const token = localStorage.getItem('token');
-                                                                    const res = await fetch(`${API_URL}/e4/rides/${ride._id}`, {
-                                                                        method: 'DELETE',
-                                                                        headers: { 'x-auth-token': token }
-                                                                    });
-                                                                    if (res.ok) setE4Products(e4Products.filter(p => p._id !== ride._id));
-                                                                    else alert('Failed to delete E4 ride');
-                                                                }}
-                                                                className="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-1 rounded-md text-[10px] font-bold transition-colors border border-red-500/50"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     {activeTab === 'analytics' && (() => {
                         const filteredTransactions = transactions.filter(tx => {
@@ -1029,10 +1083,10 @@ const AdminDashboard = () => {
                                                                     </div>
                                                                     <div
                                                                         className={`w-full rounded-t-sm transition-all ${isToday
-                                                                                ? 'bg-riverside-teal'
-                                                                                : day.total > 0
-                                                                                    ? 'bg-sunset-orange/70 group-hover:bg-sunset-orange'
-                                                                                    : 'bg-gray-100'
+                                                                            ? 'bg-riverside-teal'
+                                                                            : day.total > 0
+                                                                                ? 'bg-sunset-orange/70 group-hover:bg-sunset-orange'
+                                                                                : 'bg-gray-100'
                                                                             }`}
                                                                         style={{ height: `${heightPct}%` }}
                                                                     />
@@ -1087,8 +1141,8 @@ const AdminDashboard = () => {
                                                                     <td className="px-5 py-3 text-xs font-bold text-riverside-teal">₹{o.amount || o.totalAmount || 0}</td>
                                                                     <td className="px-5 py-3">
                                                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${isPaidOrder
-                                                                                ? 'bg-green-50 text-green-600 border-green-200'
-                                                                                : 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                                                                            ? 'bg-green-50 text-green-600 border-green-200'
+                                                                            : 'bg-yellow-50 text-yellow-600 border-yellow-200'
                                                                             }`}>
                                                                             {o.status || 'pending'}
                                                                         </span>

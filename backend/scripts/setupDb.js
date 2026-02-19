@@ -143,6 +143,7 @@ async function setup() {
                 CREATE TABLE otps (
                     mobile TEXT PRIMARY KEY,
                     otp TEXT NOT NULL,
+                    location TEXT DEFAULT 'E3',
                     "expiresAt" TIMESTAMPTZ NOT NULL,
                     "createdAt" TIMESTAMPTZ DEFAULT NOW()
                 );

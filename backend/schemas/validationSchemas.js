@@ -42,10 +42,11 @@ const sendOtpSchema = z.object({
 const verifyOtpSchema = z.object({
     body: z.object({
         mobile: z.string().regex(/^\d{10}$/, 'Invalid mobile number'),
-        otp: z.string().length(6, 'OTP must be 6 digits'),
-        location: z.enum(['E3', 'E4']).optional().default('E3')
+        otp: z.string().length(6, 'OTP must be 6 digits')
+        // location is automatically read from the OTP record saved during send-otp
     })
 });
+
 
 
 

@@ -37,21 +37,80 @@ const findUser = async (id) => {
 
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     ProfileResponse:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: User ID (_id from database)
+ *           example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *         name:
+ *           type: string
+ *           example: "Karthik"
+ *         mobile:
+ *           type: string
+ *           example: "9876543210"
+ *         role:
+ *           type: string
+ *           enum: [customer, admin]
+ *           example: "customer"
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           example: "2024-01-15T10:30:00.000Z"
+ *         location:
+ *           type: string
+ *           enum: [E3, E4]
+ *           description: Which park the user is registered under
+ *           example: "E3"
+ */
+
+/**
+ * @swagger
  * /api/profile:
  *   get:
- *     summary: Get User Profile
+ *     summary: Get authenticated user's profile
+ *     description: |
+ *       Returns the profile of the currently authenticated user.
+ *       The user is identified via the JWT access token in the `Authorization` header.
+ *       The system automatically searches both E3 and E4 user tables.
  *     tags: [Profile]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: User profile
+ *         description: User profile returned successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/ProfileResponse'
+ *             example:
+ *               id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *               name: "Karthik"
+ *               mobile: "9876543210"
+ *               role: "customer"
+ *               createdAt: "2024-01-15T10:30:00.000Z"
+ *               location: "E3"
+ *       401:
+ *         description: Missing or invalid JWT token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: User not found
+ *         description: User not found in E3 or E4 tables
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.get('/', auth, async (req, res) => {
     try {
@@ -81,7 +140,11 @@ router.get('/', auth, async (req, res) => {
  * @swagger
  * /api/profile:
  *   put:
- *     summary: Update User Profile
+ *     summary: Update authenticated user's profile
+ *     description: |
+ *       Updates the name and/or email of the currently authenticated user.
+ *       Only the fields provided in the request body will be updated (partial update).
+ *       The user is identified via the JWT access token.
  *     tags: [Profile]
  *     security:
  *       - bearerAuth: []
@@ -94,15 +157,48 @@ router.get('/', auth, async (req, res) => {
  *             properties:
  *               name:
  *                 type: string
+ *                 example: "Karthik Kumar"
+ *                 description: New display name
  *               email:
- *                  type: string
+ *                 type: string
+ *                 format: email
+ *                 example: "karthik@example.com"
+ *                 description: New email address
+ *           example:
+ *             name: "Karthik Kumar"
+ *             email: "karthik@example.com"
  *     responses:
  *       200:
- *         description: Profile updated
+ *         description: Profile updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/ProfileResponse'
+ *             example:
+ *               id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *               name: "Karthik Kumar"
+ *               mobile: "9876543210"
+ *               role: "customer"
+ *               createdAt: "2024-01-15T10:30:00.000Z"
+ *               location: "E3"
+ *       400:
+ *         description: Validation error or database update failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Missing or invalid JWT token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put('/', [auth, validate(updateProfileSchema)], async (req, res) => {
     try {
@@ -140,10 +236,40 @@ router.put('/', [auth, validate(updateProfileSchema)], async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/profile/{type}:
+ *   get:
+ *     summary: Get profile (backward compatibility alias)
+ *     description: |
+ *       Backward compatibility route. Accepts `/api/profile/e3` or `/api/profile/e4`
+ *       but internally delegates to `GET /api/profile`.
+ *       Prefer using `GET /api/profile` directly.
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [e3, e4]
+ *         description: Park type (ignored — resolved automatically from token)
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProfileResponse'
+ *       401:
+ *         description: Missing or invalid JWT token
+ *       404:
+ *         description: User not found
+ */
 // Backward compatibility routes (optional, but good to keep if frontend relies on them)
 router.get('/:type', auth, async (req, res) => {
-    // This will catch /e3 or /e4 request if frontend not updated, but let's just use the generic logic above.
-    // If exact match needed:
     req.url = '/';
     req.app.handle(req, res);
 });

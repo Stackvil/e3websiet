@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, ArrowRight, Phone, CheckCircle, Smartphone } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ArrowRight, Phone, CheckCircle, Smartphone, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '../../config/api';
 
@@ -15,9 +15,35 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
 
+    // Resend OTP countdown (60 seconds)
+    const [resendTimer, setResendTimer] = useState(0);
+    const timerRef = useRef(null);
+
+    // Start 60-second countdown whenever we enter OTP step
+    const startResendTimer = () => {
+        setResendTimer(60);
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setResendTimer(prev => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, []);
+
     // Step 1: Request OTP
     const handleSendOtp = async (e) => {
-        e.preventDefault();
+        e?.preventDefault();
         setError('');
         setIsLoading(true);
 
@@ -34,11 +60,49 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
 
             if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
 
-            // Success -> Move to OTP step
+            // Move to OTP step and start countdown
             setStep('otp');
-            // If dev mode sends OTP in response, log it
-            if (data.debugOtp) console.log("Dev OTP:", data.debugOtp);
+            setOtp('');
+            startResendTimer();
 
+            // Dev mode: auto-fill OTP
+            if (data.debugOtp) {
+                console.log("Dev OTP:", data.debugOtp);
+                setOtp(data.debugOtp);
+            }
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Resend OTP (same as send, but from OTP step)
+    const handleResend = async () => {
+        if (resendTimer > 0 || isLoading) return;
+        setError('');
+        setIsLoading(true);
+        setOtp('');
+
+        try {
+            const res = await fetch(`${API_URL}/auth/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mobile,
+                    location: initialLocation
+                })
+            });
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.message || 'Failed to resend OTP');
+
+            startResendTimer();
+            if (data.debugOtp) {
+                console.log("Dev OTP:", data.debugOtp);
+                setOtp(data.debugOtp);
+            }
         } catch (err) {
             setError(err.message);
         } finally {
@@ -56,27 +120,20 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
             const res = await fetch(`${API_URL}/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include', // Important for cookies
-                body: JSON.stringify({
-                    mobile,
-                    otp,
-                    location: initialLocation
-                })
+                credentials: 'include',
+                body: JSON.stringify({ mobile, otp })  // location now comes from OTP record
             });
             const data = await res.json();
 
             if (!res.ok) throw new Error(data.message || 'Invalid OTP');
 
             if (data.token) {
-                // Save session
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
 
                 if (data.isNewUser) {
                     setStep('profile');
-                    // onSuccess will be called after profile completion
                 } else {
-                    // Existing user - done
                     if (onSuccess) onSuccess(data.user);
                 }
             }
@@ -95,30 +152,21 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
 
         try {
             const token = localStorage.getItem('token');
-            const locationPath = initialLocation.toLowerCase(); // e3 or e4
 
-            const res = await fetch(`${API_URL}/profile/${locationPath}`, {
+            const res = await fetch(`${API_URL}/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    name,
-                    email
-                })
+                body: JSON.stringify({ name, email })
             });
 
             const updatedUser = await res.json();
             if (!res.ok) throw new Error(updatedUser.message || 'Failed to update profile');
 
-            // Update local storage with new details (token remains same)
-            // But we might want to merge with existing user data to keep ID/role etc if backend didn't return everything
-            // Backend returns profile without password, so it should be fine.
-            // Let's ensure we merge just in case backend response is partial, though typically it returns full profile.
             const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
             const finalUser = { ...currentUser, ...updatedUser };
-
             localStorage.setItem('user', JSON.stringify(finalUser));
 
             if (onSuccess) onSuccess(finalUser);
@@ -130,6 +178,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
         }
     };
 
+    // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <div className="w-full max-w-sm bg-white p-6 rounded-3xl shadow-2xl border border-gray-100 relative overflow-hidden font-body">
             {/* Header */}
@@ -139,7 +188,11 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                         {step === 'mobile' ? 'Login / Signup' : step === 'otp' ? 'Verify OTP' : 'Complete Profile'}
                     </h2>
                     <p className="text-gray-400 text-xs font-medium">
-                        {step === 'mobile' ? 'Enter mobile number' : step === 'otp' ? `Code sent to +91 ${mobile}` : 'Tell us a bit about yourself'}
+                        {step === 'mobile'
+                            ? 'Enter your mobile number'
+                            : step === 'otp'
+                                ? `Code sent to +91 ${mobile}`
+                                : 'Tell us a bit about yourself'}
                     </p>
                 </div>
                 {onClose && (
@@ -153,12 +206,12 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
             <AnimatePresence>
                 {error && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
                         className="bg-red-50 text-red-500 text-xs p-3 rounded-lg mb-4 font-bold flex items-center gap-2"
                     >
-                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full shrink-0"></div>
+                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full shrink-0" />
                         {error}
                     </motion.div>
                 )}
@@ -166,6 +219,8 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
 
             {/* Forms */}
             <AnimatePresence mode="wait">
+
+                {/* ── Step 1: Mobile ── */}
                 {step === 'mobile' && (
                     <motion.form
                         key="step-mobile"
@@ -176,7 +231,9 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                         className="space-y-4"
                     >
                         <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Mobile Number</label>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">
+                                Mobile Number
+                            </label>
                             <div className="relative group">
                                 <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-sunset-orange transition-colors" />
                                 <input
@@ -192,7 +249,6 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                                 />
                             </div>
                         </div>
-
                         <button
                             type="submit"
                             disabled={isLoading || mobile.length < 10}
@@ -203,6 +259,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                     </motion.form>
                 )}
 
+                {/* ── Step 2: OTP ── */}
                 {step === 'otp' && (
                     <motion.form
                         key="step-otp"
@@ -213,15 +270,18 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                         className="space-y-4"
                     >
                         <div>
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Enter 6-Digit Code</label>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">
+                                Enter 6-Digit Code
+                            </label>
                             <div className="relative group">
                                 <Smartphone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-sunset-orange transition-colors" />
                                 <input
                                     type="text"
+                                    inputMode="numeric"
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    placeholder="123456"
-                                    className="w-full pl-10 pr-3 py-3 bg-gray-50 rounded-lg font-bold text-xl tracking-[0.2em] text-charcoal-grey outline-none focus:bg-white focus:ring-2 focus:ring-sunset-orange/20 transition-all border border-transparent focus:border-sunset-orange text-center"
+                                    placeholder="• • • • • •"
+                                    className="w-full pl-10 pr-3 py-3 bg-gray-50 rounded-lg font-bold text-xl tracking-[0.3em] text-charcoal-grey outline-none focus:bg-white focus:ring-2 focus:ring-sunset-orange/20 transition-all border border-transparent focus:border-sunset-orange text-center"
                                     required
                                     pattern="[0-9]{6}"
                                     maxLength="6"
@@ -230,14 +290,43 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                             </div>
                         </div>
 
-                        <div className="flex gap-2 pt-1">
+                        {/* Resend OTP row */}
+                        <div className="flex items-center justify-between px-1">
                             <button
                                 type="button"
-                                onClick={() => setStep('mobile')}
-                                className="px-4 py-3 rounded-lg font-bold text-sm text-gray-500 hover:bg-gray-100 transition-all"
+                                onClick={() => { setStep('mobile'); setError(''); }}
+                                className="text-xs text-gray-400 hover:text-charcoal-grey font-bold transition-colors"
                             >
-                                Back
+                                ← Change number
                             </button>
+
+                            <button
+                                type="button"
+                                onClick={handleResend}
+                                disabled={resendTimer > 0 || isLoading}
+                                className={`flex items-center gap-1.5 text-xs font-bold transition-all ${resendTimer > 0
+                                        ? 'text-gray-300 cursor-not-allowed'
+                                        : 'text-sunset-orange hover:text-orange-600 active:scale-95'
+                                    }`}
+                            >
+                                <RefreshCw size={12} className={resendTimer > 0 ? '' : 'group-hover:rotate-180 transition-transform'} />
+                                {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+                            </button>
+                        </div>
+
+                        {/* Progress bar for countdown */}
+                        {resendTimer > 0 && (
+                            <div className="w-full h-0.5 bg-gray-100 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full bg-sunset-orange/40 rounded-full"
+                                    initial={{ width: '100%' }}
+                                    animate={{ width: `${(resendTimer / 60) * 100}%` }}
+                                    transition={{ duration: 1, ease: 'linear' }}
+                                />
+                            </div>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
                             <button
                                 type="submit"
                                 disabled={isLoading || otp.length < 6}
@@ -249,6 +338,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                     </motion.form>
                 )}
 
+                {/* ── Step 3: Profile ── */}
                 {step === 'profile' && (
                     <motion.form
                         key="step-profile"
@@ -281,7 +371,6 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                                 className="w-full px-3 py-3 bg-gray-50 rounded-lg font-bold text-charcoal-grey outline-none focus:bg-white focus:ring-2 focus:ring-sunset-orange/20 transition-all border border-transparent focus:border-sunset-orange"
                             />
                         </div>
-
                         <button
                             type="submit"
                             disabled={isLoading || !name.trim()}
@@ -291,6 +380,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                         </button>
                     </motion.form>
                 )}
+
             </AnimatePresence>
         </div>
     );

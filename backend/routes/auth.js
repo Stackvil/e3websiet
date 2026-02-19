@@ -29,6 +29,11 @@ const getUserTable = (location) => {
  * /api/auth/send-otp:
  *   post:
  *     summary: Send OTP to mobile number
+ *     description: |
+ *       Sends a 6-digit OTP via SMS (AUTHKEY). In development mode (no AUTHKEY env var),
+ *       the OTP is returned in the response as `debugOtp`.
+ *       The `location` (E3 or E4) is saved alongside the OTP so that `/verify-otp`
+ *       does not need to ask for it again.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -40,11 +45,13 @@ const getUserTable = (location) => {
  *             properties:
  *               mobile:
  *                 type: string
- *                 description: 10-digit mobile number
+ *                 example: "9876543210"
+ *                 description: 10-digit Indian mobile number
  *               location:
  *                 type: string
  *                 enum: [E3, E4]
  *                 default: E3
+ *                 description: Park location — saved in the OTP record and auto-embedded in the JWT on verification
  *     responses:
  *       200:
  *         description: OTP sent successfully
@@ -55,13 +62,26 @@ const getUserTable = (location) => {
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: OTP sent successfully
  *                 mobile:
  *                   type: string
+ *                   example: "9876543210"
  *                 debugOtp:
  *                   type: string
- *                   description: Development only OTP
+ *                   example: "123456"
+ *                   description: "Only returned in development mode (when AUTHKEY env var is not set)"
  *       400:
- *         description: Invalid input
+ *         description: Validation error (missing or invalid mobile)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error or SMS provider failure
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
     try {
@@ -77,37 +97,40 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
         // AUTHKEY Integration (or Simulation)
         const AUTHKEY = process.env.AUTHKEY;
         const SID = process.env.SID;
+        const COUNTRYCODE = process.env.COUNTRYCODE || '91';
 
         if (AUTHKEY && SID) {
             try {
-                // Real SMS sending logic (Sample fetch implementation)
                 const url = "https://api.authkey.io/request";
                 const params = new URLSearchParams({
                     authkey: AUTHKEY,
                     mobile: cleanMobile,
-                    country_code: '91',
+                    country_code: COUNTRYCODE,
                     sid: SID,
                     company: location === 'E4' ? 'E4' : 'E3',
                     otp: otp,
                     time: '10 mins'
                 });
 
-                // Using global fetch (require Node 18+)
-                await fetch(`${url}?${params.toString()}`);
-                // console.log(`OTP sent to ${cleanMobile}`);
+                const smsRes = await fetch(`${url}?${params.toString()}`);
+                const smsText = await smsRes.text();
+                console.log(`[OTP] SMS sent to +${COUNTRYCODE}${cleanMobile} | Response: ${smsText}`);
             } catch (err) {
-                console.error('SMS Provider Error:', err);
+                console.error('SMS Provider Error:', err.message);
+                // Don't throw — OTP is still saved, user can retry
             }
+
         } else {
             console.log(`[DEV] SIMULATED OTP for ${cleanMobile}: ${otp}`);
         }
 
-        // Upsert OTP into 'otps' table
+        // Upsert OTP into 'otps' table — also save location so verify-otp doesn't need to ask again
         const { error } = await supabase
             .from('otps')
             .upsert({
                 mobile: cleanMobile,
                 otp: otp,
+                location: (location || 'E3').toUpperCase(),
                 "expiresAt": expiresAt,
                 "createdAt": new Date()
             }, { onConflict: 'mobile' });
@@ -133,8 +156,14 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
  * @swagger
  * /api/auth/verify-otp:
  *   post:
- *     summary: Verify OTP and login/register
- *     description: Verifies the OTP. If user exists, logs them in. If not, creates a new user with role 'customer'.
+ *     summary: Verify OTP and login / register
+ *     description: |
+ *       Verifies the submitted OTP against the stored value.
+ *       - If the user **exists** → logs them in and returns tokens.
+ *       - If the user **does not exist** → creates a new account with role `customer` and returns tokens.
+ *       The **location (E3/E4) is read automatically from the OTP record** — you do not need to send it again.
+ *       It is then embedded into the JWT as the `type` claim for all future requests.
+ *       A long-lived `refreshToken` is also set as an **HTTP-Only cookie** (not visible in the response body).
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -146,14 +175,18 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
  *             properties:
  *               mobile:
  *                 type: string
+ *                 example: "9876543210"
  *               otp:
  *                 type: string
- *               location:
- *                 type: string
- *                 enum: [E3, E4]
+ *                 example: "123456"
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login / registration successful
+ *         headers:
+ *           Set-Cookie:
+ *             description: HTTP-Only refreshToken cookie (30 days)
+ *             schema:
+ *               type: string
  *         content:
  *           application/json:
  *             schema:
@@ -161,16 +194,29 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
  *               properties:
  *                 token:
  *                   type: string
+ *                   description: Short-lived JWT access token (15 minutes) — contains id, role, type (location)
+ *                 isNewUser:
+ *                   type: boolean
+ *                   description: true if the account was just created
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Invalid OTP or expired
+ *         description: Invalid OTP, expired OTP, or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
     try {
-        const { mobile, otp, location } = req.body;
+        const { mobile, otp } = req.body;  // location no longer needed from body
         const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
-        const userTable = getUserTable(location);
 
         // 1. Verify OTP
         const { data: otpRecord, error: otpError } = await supabase
@@ -189,6 +235,10 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
         if (String(otpRecord.otp) !== String(otp)) {
             return res.status(400).json({ message: 'Invalid OTP' });
         }
+
+        // Read location from the OTP record (saved during send-otp)
+        const location = (otpRecord.location || 'E3').toUpperCase();
+        const userTable = getUserTable(location);
 
         // Delete used OTP
         await supabase.from('otps').delete().eq('mobile', cleanMobile);
@@ -225,16 +275,16 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
         // Logic to promote admins removed - everyone stays as their assigned role (or defaults to customer on creation)
 
         // 3. Generate Tokens
-        // Access Token (Short-lived: 15m)
+        // Access Token (Short-lived: 15m) — type carries E3/E4 location
         const accessToken = jwt.sign(
-            { id: user._id, role: user.role, type: location || 'E3' },
+            { id: user._id, role: user.role, type: location },
             process.env.JWT_SECRET || 'dev_secret_key',
             { expiresIn: '15m' }
         );
 
-        // Refresh Token (Long-lived: 30d)
+        // Refresh Token (Long-lived: 30d) — also carries location
         const refreshToken = jwt.sign(
-            { id: user._id, role: user.role, type: 'refresh' },
+            { id: user._id, role: user.role, type: location },
             process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret_key',
             { expiresIn: '30d' }
         );
@@ -264,11 +314,14 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
  * /api/auth/refresh-token:
  *   post:
  *     summary: Refresh Access Token
- *     description: Uses the httpOnly refreshToken cookie to issue a new accessToken.
+ *     description: |
+ *       Uses the **`refreshToken` HTTP-Only cookie** (set automatically by `/verify-otp`) to issue a new short-lived access token.
+ *       No request body is needed — the cookie is sent automatically by the browser.
+ *       If the cookie is missing or invalid, returns 401/403.
  *     tags: [Auth]
  *     responses:
  *       200:
- *         description: Token refreshed successfully
+ *         description: New access token issued successfully
  *         content:
  *           application/json:
  *             schema:
@@ -276,8 +329,25 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
  *               properties:
  *                 token:
  *                   type: string
+ *                   description: New JWT access token (valid for 15 minutes)
  *       401:
- *         description: Unauthorized (Invalid or missing refresh token)
+ *         description: No refresh token cookie found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Refresh token is invalid or expired
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/refresh-token', async (req, res) => {
     try {
@@ -287,9 +357,9 @@ router.post('/refresh-token', async (req, res) => {
         jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'dev_refresh_secret_key', (err, decoded) => {
             if (err) return res.status(403).json({ message: 'Invalid refresh token' });
 
-            // Issue new Access Token
+            // Issue new Access Token — preserve location (type) from the refresh token
             const accessToken = jwt.sign(
-                { id: decoded.id, role: decoded.role, type: 'E3' }, // Defaulting type
+                { id: decoded.id, role: decoded.role, type: decoded.type || 'E3' },
                 process.env.JWT_SECRET,
                 { expiresIn: '15m' }
             );
@@ -330,11 +400,22 @@ router.post('/refresh-token', async (req, res) => {
  * /api/auth/logout:
  *   post:
  *     summary: Logout user
- *     description: Clears the refreshToken cookie.
+ *     description: |
+ *       Clears the `refreshToken` HTTP-Only cookie, effectively ending the session.
+ *       The client should also discard the access token stored in memory or localStorage.
+ *       No request body or Authorization header required.
  *     tags: [Auth]
  *     responses:
  *       200:
  *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logged out successfully
  */
 router.post('/logout', (req, res) => {
     res.clearCookie('refreshToken', {

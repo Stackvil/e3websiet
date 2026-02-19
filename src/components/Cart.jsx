@@ -19,16 +19,30 @@ const Cart = () => {
         const currentUser = overrideUser || user;
         const token = localStorage.getItem('token');
 
+        // Decode location from JWT token (set during verify-otp)
+        let location = 'E3';
         try {
-            const response = await fetch(`${API_URL}/orders/e3/checkout`, {
+            if (token) {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                location = (payload.type || 'E3').toUpperCase();
+            }
+        } catch (_) { /* use default E3 */ }
+
+        try {
+            const response = await fetch(`${API_URL}/orders/${location.toLowerCase()}/checkout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-auth-token': token
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    items: cart,
-                    location: 'E3' // Hardcoded for E3 site
+                    items: cart.map(item => ({
+                        id: item._id || item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity || 1,
+                        details: item.details
+                    }))
                 }),
             });
 
@@ -37,7 +51,7 @@ const Cart = () => {
                 localStorage.removeItem('user');
                 setUser(null);
                 setShowAuthModal(true);
-                alert('Session expired or invalid token. Please log in again.');
+                alert('Session expired. Please log in again.');
                 setIsProcessing(false);
                 return;
             }

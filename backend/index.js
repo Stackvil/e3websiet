@@ -176,6 +176,9 @@ const eventRoutes = require('./routes/events');
 const orderRoutes = require('./routes/orders');
 const bookingRoutes = require('./routes/bookings');
 const paymentRoutes = require('./routes/payment');
+const analyticsRoutes = require('./routes/analytics');
+const sponsorRoutes = require('./routes/sponsors');
+const poaRoutes = require('./routes/poa');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/e3', e3Routes);
@@ -184,6 +187,9 @@ app.use('/api/events', eventRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/sponsors', sponsorRoutes);
+app.use('/api/poa', poaRoutes);
 app.use('/api/profile', require('./routes/profile'));
 
 
