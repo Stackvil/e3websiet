@@ -12,7 +12,7 @@ import YourTickets from './pages/YourTickets';
 import Success from './pages/Success';
 import Failed from './pages/Failed';
 import Profile from './pages/Profile';
-import CookieConsent from './components/CookieConsent';
+import ConsentBanner from './components/ConsentBanner';
 import { API_URL } from './config/api';
 import useStore from './store/useStore';
 
@@ -69,7 +69,7 @@ function App() {
                     <Route path="/profile" element={<Profile />} />
                 </Routes>
             </Layout>
-            <CookieConsent />
+            <ConsentBanner />
         </Router>
     );
 }

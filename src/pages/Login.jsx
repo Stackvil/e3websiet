@@ -181,7 +181,7 @@ const Login = ({ location = 'E3' }) => {
             >
 
 
-                <AuthComponent onSuccess={handleLoginSuccess} />
+                <AuthComponent onSuccess={handleLoginSuccess} initialLocation={location} />
             </motion.div>
         </div>
     );

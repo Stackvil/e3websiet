@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '../../config/api';
 
 const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
-    // Mode: 'mobile' -> 'otp'
+    // Mode: 'mobile' -> 'otp' -> 'profile'
     const [step, setStep] = useState('mobile');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -12,6 +12,8 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
     // Data
     const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
 
     // Step 1: Request OTP
     const handleSendOtp = async (e) => {
@@ -58,7 +60,6 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                 body: JSON.stringify({
                     mobile,
                     otp,
-                    name: 'Guest', // Default name, user can update profile later
                     location: initialLocation
                 })
             });
@@ -71,9 +72,57 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
 
-                // Callback
-                if (onSuccess) onSuccess(data.user);
+                if (data.isNewUser) {
+                    setStep('profile');
+                    // onSuccess will be called after profile completion
+                } else {
+                    // Existing user - done
+                    if (onSuccess) onSuccess(data.user);
+                }
             }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Step 3: Complete Profile (New Users Only)
+    const handleCompleteProfile = async (e) => {
+        e.preventDefault();
+        setError('');
+        setIsLoading(true);
+
+        try {
+            const token = localStorage.getItem('token');
+            const locationPath = initialLocation.toLowerCase(); // e3 or e4
+
+            const res = await fetch(`${API_URL}/profile/${locationPath}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name,
+                    email
+                })
+            });
+
+            const updatedUser = await res.json();
+            if (!res.ok) throw new Error(updatedUser.message || 'Failed to update profile');
+
+            // Update local storage with new details (token remains same)
+            // But we might want to merge with existing user data to keep ID/role etc if backend didn't return everything
+            // Backend returns profile without password, so it should be fine.
+            // Let's ensure we merge just in case backend response is partial, though typically it returns full profile.
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const finalUser = { ...currentUser, ...updatedUser };
+
+            localStorage.setItem('user', JSON.stringify(finalUser));
+
+            if (onSuccess) onSuccess(finalUser);
+
         } catch (err) {
             setError(err.message);
         } finally {
@@ -87,10 +136,10 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <h2 className="text-2xl font-heading font-bold text-charcoal-grey mb-1">
-                        {step === 'mobile' ? 'Login / Signup' : 'Verify OTP'}
+                        {step === 'mobile' ? 'Login / Signup' : step === 'otp' ? 'Verify OTP' : 'Complete Profile'}
                     </h2>
                     <p className="text-gray-400 text-xs font-medium">
-                        {step === 'mobile' ? 'Enter mobile number' : `Code sent to +91 ${mobile}`}
+                        {step === 'mobile' ? 'Enter mobile number' : step === 'otp' ? `Code sent to +91 ${mobile}` : 'Tell us a bit about yourself'}
                     </p>
                 </div>
                 {onClose && (
@@ -117,7 +166,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
 
             {/* Forms */}
             <AnimatePresence mode="wait">
-                {step === 'mobile' ? (
+                {step === 'mobile' && (
                     <motion.form
                         key="step-mobile"
                         initial={{ opacity: 0, x: -20 }}
@@ -152,7 +201,9 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                             {isLoading ? 'Sending...' : 'Get OTP'} <ArrowRight size={18} />
                         </button>
                     </motion.form>
-                ) : (
+                )}
+
+                {step === 'otp' && (
                     <motion.form
                         key="step-otp"
                         initial={{ opacity: 0, x: 20 }}
@@ -195,6 +246,49 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                                 {isLoading ? 'Verifying...' : 'Verify'} <CheckCircle size={18} />
                             </button>
                         </div>
+                    </motion.form>
+                )}
+
+                {step === 'profile' && (
+                    <motion.form
+                        key="step-profile"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        onSubmit={handleCompleteProfile}
+                        className="space-y-4"
+                    >
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Full Name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="John Doe"
+                                className="w-full px-3 py-3 bg-gray-50 rounded-lg font-bold text-charcoal-grey outline-none focus:bg-white focus:ring-2 focus:ring-sunset-orange/20 transition-all border border-transparent focus:border-sunset-orange"
+                                required
+                                minLength="2"
+                                autoFocus
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Email Address (Optional)</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="john@example.com"
+                                className="w-full px-3 py-3 bg-gray-50 rounded-lg font-bold text-charcoal-grey outline-none focus:bg-white focus:ring-2 focus:ring-sunset-orange/20 transition-all border border-transparent focus:border-sunset-orange"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading || !name.trim()}
+                            className="w-full btn-orange py-3 rounded-lg font-bold text-base shadow-lg shadow-sunset-orange/20 mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {isLoading ? 'Saving...' : 'Complete Profile'} <ArrowRight size={18} />
+                        </button>
                     </motion.form>
                 )}
             </AnimatePresence>

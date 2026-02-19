@@ -148,9 +148,6 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
  *                 type: string
  *               otp:
  *                 type: string
- *               name:
- *                 type: string
- *                 description: Optional name for new registration
  *               location:
  *                 type: string
  *                 enum: [E3, E4]
@@ -171,7 +168,7 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
  */
 router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
     try {
-        const { mobile, otp, name, location } = req.body;
+        const { mobile, otp, location } = req.body;
         const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
         const userTable = getUserTable(location);
 
@@ -198,6 +195,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 
         // 2. Find or Create User
         // Check if user exists
+        let isNewUser = false;
         let { data: user, error: userError } = await supabase
             .from(userTable)
             .select('*')
@@ -206,9 +204,10 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 
         if (!user) {
             // Register New User
+            isNewUser = true;
             const newUserObj = {
                 _id: crypto.randomUUID(),
-                name: name || 'User',
+                name: 'User',
                 mobilenumber: cleanMobile,
                 role: 'customer', // Default role customer for everyone
                 "createdAt": new Date()
@@ -225,7 +224,6 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
         }
         // Logic to promote admins removed - everyone stays as their assigned role (or defaults to customer on creation)
 
-        // 3. Generate Token
         // 3. Generate Tokens
         // Access Token (Short-lived: 15m)
         const accessToken = jwt.sign(
@@ -251,6 +249,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 
         res.json({
             token: accessToken,
+            isNewUser,
             user: mapAuthData(user)
         });
 
