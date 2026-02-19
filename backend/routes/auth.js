@@ -159,9 +159,12 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
         const role = adminNumbers.includes(mobile) ? 'admin' : 'customer';
 
         let user = await Model.findOne({ mobile });
+        let isNewUser = false;
+
         if (!user) {
+            isNewUser = true;
             user = await Model.create({
-                name: name || 'User',
+                name: name || '',
                 mobile,
                 role,
                 email: '',
@@ -179,6 +182,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 
         res.json({
             token,
+            isNewUser,
             user: {
                 id: user._id,
                 name: user.name,
