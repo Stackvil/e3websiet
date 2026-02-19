@@ -19,12 +19,16 @@ const AdminDashboard = () => {
     // Initialize products with cached data from store
     const [products, setProducts] = useState([...(rideItems || []), ...(dineItems || [])]);
 
+    // E4 state
+    const [e4Products, setE4Products] = useState([]);
+
     const [sponsors, setSponsors] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [formData, setFormData] = useState({ name: '', category: 'dine', price: '', description: '', image: '', menuImages: [], status: 'open' });
     const [transactions, setTransactions] = useState([]);
     const [platformStats, setPlatformStats] = useState({ web: 0, mobile: 0 });
+    const [dailySales, setDailySales] = useState({ today: { total: 0, count: 0, allOrdersCount: 0, orders: [] }, history: [] });
     const [visibleCount, setVisibleCount] = useState(10);
     // const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events', 'other'
     const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events'
@@ -48,7 +52,7 @@ const AdminDashboard = () => {
         try {
             console.log("Fetching admin data with token...");
 
-            // 1. Fetch Products from E3 endpoints only
+            // 1. Fetch Products from E3 endpoints
             try {
                 // If we have cached data, ensure it is set (though useState init handles this on mount)
                 if (products.length === 0 && (rideItems?.length > 0 || dineItems?.length > 0)) {
@@ -89,6 +93,20 @@ const AdminDashboard = () => {
                 // Do NOT clear products on error, keep cached version
             }
 
+            // 1b. Fetch E4 Rides
+            try {
+                const e4RidesRes = await fetch(`${API_URL}/e4/rides`);
+                if (e4RidesRes.ok) {
+                    const e4Rides = await e4RidesRes.json();
+                    if (Array.isArray(e4Rides)) {
+                        setE4Products(e4Rides);
+                        console.log("Fetched E4 Rides:", e4Rides.length);
+                    }
+                }
+            } catch (e4Err) {
+                console.error("E4 Rides fetch failed", e4Err);
+            }
+
             // 2. Fetch Bookings (Safely)
             try {
                 const bookingsRes = await fetch(`${API_URL}/bookings`, { headers });
@@ -113,6 +131,17 @@ const AdminDashboard = () => {
                 setTransactions(transactionsData);
             }
 
+            // 3b. Fetch Daily Sales
+            try {
+                const dailyRes = await fetch(`${API_URL}/orders/daily`, { headers });
+                if (dailyRes.ok) {
+                    const dailyData = await dailyRes.json();
+                    setDailySales(dailyData);
+                }
+            } catch (dailyErr) {
+                console.error('Daily sales fetch error:', dailyErr);
+            }
+
             // 4. Fetch Sponsors
             const sponsorsRes = await fetch(`${API_URL}/sponsors`);
             if (sponsorsRes.ok) {
@@ -120,15 +149,15 @@ const AdminDashboard = () => {
                 setSponsors(sponsorsData);
             }
 
-            // 5. Fetch Platform Analytics
+            // 5. Fetch E3 Platform Analytics
             try {
-                const statsRes = await fetch(`${API_URL}/analytics/stats`, { headers });
+                const statsRes = await fetch(`${API_URL}/analytics/e3/stats`, { headers });
                 if (statsRes.ok) {
                     const statsData = await statsRes.json();
                     setPlatformStats(statsData);
                 }
             } catch (statsErr) {
-                console.error("Analytics fetch error:", statsErr);
+                console.error("E3 Analytics fetch error:", statsErr);
             }
 
         } catch (err) {
@@ -216,15 +245,44 @@ const AdminDashboard = () => {
             if (res.ok) {
                 const updatedRide = await res.json();
                 setProducts(products.map(p => p._id === ride._id ? updatedRide : p));
-                // Also update the global store
                 setRideItems(rideItems.map(r => r._id === ride._id ? updatedRide : r));
             } else {
                 const errorData = await res.json();
                 throw new Error(errorData.message || 'Failed to update status');
             }
         } catch (err) {
-            console.error('Toggle status error:', err);
+            console.error('Toggle E3 ride status error:', err);
             alert(`Error updating ride status: ${err.message}`);
+        }
+    };
+
+    const handleToggleE4RideStatus = async (ride) => {
+        const token = localStorage.getItem('token');
+        const newStatus = (ride.status === 'closed' || ride.status === 'off') ? 'on' : 'off';
+
+        try {
+            const res = await fetch(`${API_URL}/e4/rides/${ride._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({
+                    ...ride,
+                    status: newStatus
+                })
+            });
+
+            if (res.ok) {
+                const updatedRide = await res.json();
+                setE4Products(e4Products.map(p => p._id === ride._id ? updatedRide : p));
+            } else {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Failed to update status');
+            }
+        } catch (err) {
+            console.error('Toggle E4 ride status error:', err);
+            alert(`Error updating E4 ride status: ${err.message}`);
         }
     };
 
@@ -455,7 +513,8 @@ const AdminDashboard = () => {
     const tabs = [
         { id: 'analytics', label: 'Analytics', icon: LayoutDashboard },
         { id: 'dine', label: 'Dine', icon: Utensils },
-        { id: 'rides', label: 'Rides', icon: Gamepad2 },
+        { id: 'rides', label: 'E3 Rides', icon: Gamepad2 },
+        { id: 'e4rides', label: 'E4 Rides', icon: Gamepad2 },
         { id: 'bookings', label: 'Event Bookings', icon: Calendar },
     ];
 
@@ -654,7 +713,7 @@ const AdminDashboard = () => {
                                             <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg text-sm font-bold text-sunset-orange border border-sunset-orange/50 shadow-lg">
                                                 ₹{ride.price}
                                             </div>
-                                            {ride.status === 'closed' && (
+                                            {(ride.status === 'closed' || ride.status === 'off') && (
                                                 <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
                                                     <p className="text-white font-bold bg-red-500/80 px-4 py-2 rounded-lg text-sm border border-red-400">CLOSED</p>
                                                 </div>
@@ -673,35 +732,160 @@ const AdminDashboard = () => {
                                                 )}
                                             </div>
 
-
-                                            <div className="grid grid-cols-3 gap-1 mt-1">
+                                            {/* ON/OFF Toggle + Actions */}
+                                            <div className="flex flex-col gap-1 mt-1">
+                                                {/* Status Toggle Row */}
                                                 <button
                                                     onClick={() => handleToggleRideStatus(ride)}
-                                                    className={`${ride.status === 'closed' || ride.status === 'off'
-                                                        ? 'bg-red-500/20 hover:bg-green-500/30 text-red-400 hover:text-green-500'
-                                                        : 'bg-green-500/20 hover:bg-red-500/30 text-green-500 hover:text-red-400'
-                                                        } py-1 rounded-md text-[10px] font-bold transition-colors border ${ride.status === 'closed' || ride.status === 'off' ? 'border-red-500/50' : 'border-green-500/50'}`}
-                                                    title={ride.status === 'closed' || ride.status === 'off' ? 'Open Ride' : 'Close Ride'}
+                                                    title={ride.status === 'off' || ride.status === 'closed' ? 'Turn Ride ON' : 'Turn Ride OFF'}
+                                                    className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-black transition-all border ${ride.status === 'off' || ride.status === 'closed'
+                                                        ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30'
+                                                        : 'bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30'
+                                                        }`}
                                                 >
-                                                    {ride.status === 'closed' || ride.status === 'off' ? 'Open' : 'Close'}
+                                                    <span className="uppercase tracking-widest">
+                                                        {ride.status === 'off' || ride.status === 'closed' ? 'OFF' : 'ON'}
+                                                    </span>
+                                                    {/* Visual pill toggle */}
+                                                    <span className={`relative inline-flex w-7 h-3.5 rounded-full transition-colors ${ride.status === 'off' || ride.status === 'closed' ? 'bg-red-500/40' : 'bg-green-500/60'
+                                                        }`}>
+                                                        <span className={`absolute top-0.5 h-2.5 w-2.5 rounded-full shadow transition-all ${ride.status === 'off' || ride.status === 'closed'
+                                                            ? 'left-0.5 bg-red-400'
+                                                            : 'left-4 bg-green-400'
+                                                            }`} />
+                                                    </span>
                                                 </button>
-                                                <button
-                                                    onClick={() => handleEditItem(ride)}
-                                                    className="bg-riverside-teal/20 hover:bg-riverside-teal/30 text-riverside-teal py-1 rounded-md text-[10px] font-bold transition-colors border border-riverside-teal/50"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteItem(ride._id)}
-                                                    className="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-1 rounded-md text-[10px] font-bold transition-colors border border-red-500/50"
-                                                >
-                                                    Delete
-                                                </button>
+
+                                                {/* Edit / Delete Row */}
+                                                <div className="grid grid-cols-2 gap-1">
+                                                    <button
+                                                        onClick={() => handleEditItem(ride)}
+                                                        className="bg-riverside-teal/20 hover:bg-riverside-teal/30 text-riverside-teal py-1 rounded-md text-[10px] font-bold transition-colors border border-riverside-teal/50"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteItem(ride._id)}
+                                                        className="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-1 rounded-md text-[10px] font-bold transition-colors border border-red-500/50"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'e4rides' && (
+                        <div>
+                            <div className="mb-6 flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-xl font-bold text-charcoal-grey">E4 Rides</h2>
+                                    <p className="text-sm text-gray-400 mt-1">Toggle ride availability for E4 park</p>
+                                </div>
+                                <button
+                                    onClick={fetchData}
+                                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-riverside-teal font-bold transition-colors bg-white px-4 py-2 rounded-lg border border-gray-100 shadow-sm"
+                                >
+                                    <RefreshCw size={16} />
+                                    Refresh
+                                </button>
+                            </div>
+
+                            {e4Products.filter(p => p.category === 'play').length === 0 ? (
+                                <div className="text-center py-20 text-gray-400">
+                                    <Gamepad2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                    <p className="font-bold">No E4 rides found</p>
+                                    <p className="text-sm mt-1">Add rides via the E4 backend or check your connection.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    {e4Products
+                                        .filter(p => p.category === 'play')
+                                        .sort((a, b) => (b.isCombo ? 1 : 0) - (a.isCombo ? 1 : 0))
+                                        .map((ride) => (
+                                            <div key={ride._id} className="bg-white backdrop-blur-md rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all group flex flex-col aspect-square w-full shadow-sm relative">
+                                                <div className="h-[65%] overflow-hidden relative">
+                                                    <img
+                                                        src={ride.image}
+                                                        alt={ride.name}
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                    />
+                                                    <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg text-sm font-bold text-sunset-orange border border-sunset-orange/50 shadow-lg">
+                                                        ₹{ride.price}
+                                                    </div>
+                                                    {(ride.status === 'closed' || ride.status === 'off') && (
+                                                        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+                                                            <p className="text-white font-bold bg-red-500/80 px-4 py-2 rounded-lg text-sm border border-red-400">CLOSED</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="p-2 flex flex-col h-[35%] justify-between bg-charcoal-grey">
+                                                    <div className="flex flex-col items-center justify-center flex-grow">
+                                                        <h3 className="text-white font-bold text-xs leading-tight text-center line-clamp-2">{ride.name}</h3>
+                                                        {ride.isCombo && (
+                                                            <div className="mt-1 px-2 py-0.5 bg-sunset-orange/90 border-2 border-white/80 rounded-md shadow-lg">
+                                                                <p className="text-[9px] text-white font-black text-center whitespace-nowrap uppercase tracking-wide">
+                                                                    Any {ride.rideCount || 5} Rides
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* ON/OFF Toggle */}
+                                                    <div className="flex flex-col gap-1 mt-1">
+                                                        <button
+                                                            onClick={() => handleToggleE4RideStatus(ride)}
+                                                            title={ride.status === 'off' || ride.status === 'closed' ? 'Turn Ride ON' : 'Turn Ride OFF'}
+                                                            className={`w-full flex items-center justify-between px-2 py-1 rounded-md text-[10px] font-black transition-all border ${ride.status === 'off' || ride.status === 'closed'
+                                                                ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30'
+                                                                : 'bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30'
+                                                                }`}
+                                                        >
+                                                            <span className="uppercase tracking-widest">
+                                                                {ride.status === 'off' || ride.status === 'closed' ? 'OFF' : 'ON'}
+                                                            </span>
+                                                            <span className={`relative inline-flex w-7 h-3.5 rounded-full transition-colors ${ride.status === 'off' || ride.status === 'closed' ? 'bg-red-500/40' : 'bg-green-500/60'
+                                                                }`}>
+                                                                <span className={`absolute top-0.5 h-2.5 w-2.5 rounded-full shadow transition-all ${ride.status === 'off' || ride.status === 'closed'
+                                                                    ? 'left-0.5 bg-red-400'
+                                                                    : 'left-4 bg-green-400'
+                                                                    }`} />
+                                                            </span>
+                                                        </button>
+                                                        <div className="grid grid-cols-2 gap-1">
+                                                            <button
+                                                                onClick={() => handleEditItem(ride)}
+                                                                className="bg-riverside-teal/20 hover:bg-riverside-teal/30 text-riverside-teal py-1 rounded-md text-[10px] font-bold transition-colors border border-riverside-teal/50"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!window.confirm('Delete this E4 ride?')) return;
+                                                                    const token = localStorage.getItem('token');
+                                                                    const res = await fetch(`${API_URL}/e4/rides/${ride._id}`, {
+                                                                        method: 'DELETE',
+                                                                        headers: { 'x-auth-token': token }
+                                                                    });
+                                                                    if (res.ok) setE4Products(e4Products.filter(p => p._id !== ride._id));
+                                                                    else alert('Failed to delete E4 ride');
+                                                                }}
+                                                                className="bg-red-500/20 hover:bg-red-500/30 text-red-400 py-1 rounded-md text-[10px] font-bold transition-colors border border-red-500/50"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -790,12 +974,273 @@ const AdminDashboard = () => {
 
                         return (
                             <>
+                                {/* ══════════════════════════════════════ */}
+                                {/* ── Daily Sales Section ── */}
+                                {/* ══════════════════════════════════════ */}
+                                <div className="mb-8">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h2 className="text-lg font-bold font-heading text-charcoal-grey">📅 Daily Sales</h2>
+                                            <p className="text-xs text-gray-400 mt-0.5">Today's performance &amp; 14-day history</p>
+                                        </div>
+                                        <button
+                                            onClick={fetchData}
+                                            className="flex items-center gap-2 text-xs text-gray-500 hover:text-riverside-teal font-bold transition-colors bg-white px-3 py-2 rounded-lg border border-gray-100 shadow-sm"
+                                        >
+                                            <RefreshCw size={13} /> Refresh
+                                        </button>
+                                    </div>
+
+                                    {/* Today Hero Row */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                                        {/* Today Revenue */}
+                                        <div className="md:col-span-1 bg-gradient-to-br from-riverside-teal to-teal-600 rounded-2xl p-6 text-white shadow-md">
+                                            <p className="text-xs uppercase tracking-widest font-bold opacity-75">Today's Revenue</p>
+                                            <p className="text-4xl font-black mt-1">₹{(dailySales.today?.total || 0).toLocaleString('en-IN')}</p>
+                                            <div className="flex gap-4 mt-3 text-sm font-bold opacity-90">
+                                                <span>✅ {dailySales.today?.count || 0} paid</span>
+                                                <span>📋 {dailySales.today?.allOrdersCount || 0} total orders</span>
+                                            </div>
+                                            <p className="text-xs mt-2 opacity-60">
+                                                {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                            </p>
+                                        </div>
+
+                                        {/* 14-Day Bar Chart */}
+                                        <div className="md:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                                            <p className="text-xs text-gray-400 uppercase font-bold tracking-widest mb-3">Last 14 Days</p>
+                                            {(() => {
+                                                const hist = dailySales.history || [];
+                                                const maxVal = Math.max(...hist.map(d => d.total), 1);
+                                                return (
+                                                    <div className="flex items-end gap-1 h-24">
+                                                        {hist.map((day, i) => {
+                                                            const isToday = day.date === new Date().toLocaleDateString('en-CA');
+                                                            const heightPct = Math.max((day.total / maxVal) * 100, day.total > 0 ? 8 : 2);
+                                                            const label = new Date(day.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                                                            return (
+                                                                <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                                                                    {/* Tooltip */}
+                                                                    <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
+                                                                        <div className="bg-charcoal-grey text-white text-[10px] font-bold rounded-md px-2 py-1 whitespace-nowrap shadow-lg">
+                                                                            ₹{day.total.toLocaleString('en-IN')}<br />{day.count} orders
+                                                                        </div>
+                                                                        <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-charcoal-grey" />
+                                                                    </div>
+                                                                    <div
+                                                                        className={`w-full rounded-t-sm transition-all ${isToday
+                                                                                ? 'bg-riverside-teal'
+                                                                                : day.total > 0
+                                                                                    ? 'bg-sunset-orange/70 group-hover:bg-sunset-orange'
+                                                                                    : 'bg-gray-100'
+                                                                            }`}
+                                                                        style={{ height: `${heightPct}%` }}
+                                                                    />
+                                                                    <p className={`text-[8px] font-bold rotate-0 leading-none ${isToday ? 'text-riverside-teal' : 'text-gray-400'
+                                                                        }`}>
+                                                                        {isToday ? 'Today' : label.split(' ')[0]}
+                                                                    </p>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            })()}
+                                            <div className="flex justify-between text-[9px] text-gray-300 mt-2 font-bold">
+                                                <span>{dailySales.history?.[0]?.date ? new Date(dailySales.history[0].date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : ''}</span>
+                                                <span>Today</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Today's Orders Table */}
+                                    {(dailySales.today?.orders?.length > 0) && (
+                                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                            <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                                                <h3 className="text-sm font-bold text-charcoal-grey">Today's Orders</h3>
+                                                <span className="text-xs text-gray-400">{dailySales.today.orders.length} orders</span>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left">
+                                                    <thead className="border-b border-gray-100">
+                                                        <tr>
+                                                            <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Order ID</th>
+                                                            <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Time</th>
+                                                            <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Items</th>
+                                                            <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
+                                                            <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-50">
+                                                        {dailySales.today.orders.map((o) => {
+                                                            const s = (o.status || '').toLowerCase();
+                                                            const isPaidOrder = s === 'confirmed' || s === 'success' || s === 'completed' || s === 'placed';
+                                                            return (
+                                                                <tr key={o._id} className="hover:bg-gray-50 transition-colors">
+                                                                    <td className="px-5 py-3 text-xs font-mono text-gray-900 font-medium">#{(o._id || '').slice(-6).toUpperCase()}</td>
+                                                                    <td className="px-5 py-3 text-xs text-gray-500">
+                                                                        {new Date(o.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                                                    </td>
+                                                                    <td className="px-5 py-3 text-xs text-gray-700">
+                                                                        {o.items ? o.items.map(i => `${i.quantity || 1}x ${i.name}`).join(', ').substring(0, 50) : 'N/A'}
+                                                                    </td>
+                                                                    <td className="px-5 py-3 text-xs font-bold text-riverside-teal">₹{o.amount || o.totalAmount || 0}</td>
+                                                                    <td className="px-5 py-3">
+                                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${isPaidOrder
+                                                                                ? 'bg-green-50 text-green-600 border-green-200'
+                                                                                : 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                                                                            }`}>
+                                                                            {o.status || 'pending'}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {(dailySales.today?.orders?.length === 0) && (
+                                        <div className="text-center py-8 text-gray-400 bg-white rounded-xl border border-gray-200">
+                                            <p className="font-bold text-sm">No orders yet today</p>
+                                            <p className="text-xs mt-1">Orders will appear here as they come in</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* ── E3 Summary Stat Cards ── */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                                    {/* Total Rides */}
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-sunset-orange/10 flex items-center justify-center flex-shrink-0">
+                                            <Gamepad2 className="w-6 h-6 text-sunset-orange" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Total Rides</p>
+                                            <p className="text-2xl font-bold text-charcoal-grey">{products.filter(p => p.category === 'play').length}</p>
+                                        </div>
+                                    </div>
+                                    {/* Active Rides */}
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                                            <Power className="w-6 h-6 text-green-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Rides Active</p>
+                                            <p className="text-2xl font-bold text-green-600">
+                                                {products.filter(p => p.category === 'play' && p.status !== 'off' && p.status !== 'closed').length}
+                                                <span className="text-sm text-gray-400 font-normal ml-1">/ {products.filter(p => p.category === 'play').length}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {/* Active Dine Items */}
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-riverside-teal/10 flex items-center justify-center flex-shrink-0">
+                                            <Utensils className="w-6 h-6 text-riverside-teal" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">Dine Items</p>
+                                            <p className="text-2xl font-bold text-charcoal-grey">{products.filter(p => p.category === 'dine' || !p.category).length}</p>
+                                        </div>
+                                    </div>
+                                    {/* Total Revenue */}
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                                            <Ticket className="w-6 h-6 text-blue-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">E3 Revenue</p>
+                                            <p className="text-2xl font-bold text-charcoal-grey">₹{totalAmount.toLocaleString('en-IN')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ── Platform Stats from /analytics/e3/stats ── */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                    <div className="md:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-base font-bold font-heading text-charcoal-grey">E3 Platform Usage</h3>
+                                            <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">via /analytics/e3/stats</span>
+                                        </div>
+                                        <div className="flex items-center justify-around mb-5">
+                                            <div className="text-center">
+                                                <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2">
+                                                    <LayoutDashboard className="w-7 h-7 text-blue-500" />
+                                                </div>
+                                                <p className="text-2xl font-bold text-charcoal-grey">{platformStats.web || 0}</p>
+                                                <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Web</p>
+                                            </div>
+                                            <div className="h-12 w-px bg-gray-200" />
+                                            <div className="text-center">
+                                                <div className="w-14 h-14 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-2">
+                                                    <Users className="w-7 h-7 text-purple-500" />
+                                                </div>
+                                                <p className="text-2xl font-bold text-charcoal-grey">{platformStats.mobile || 0}</p>
+                                                <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Mobile</p>
+                                            </div>
+                                            <div className="h-12 w-px bg-gray-200" />
+                                            <div className="text-center">
+                                                <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-2">
+                                                    <LayoutDashboard className="w-7 h-7 text-gray-400" />
+                                                </div>
+                                                <p className="text-2xl font-bold text-charcoal-grey">{platformStats.total || 0}</p>
+                                                <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Total</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden flex">
+                                            <div className="bg-blue-500 h-full transition-all" style={{ width: `${webPercent}%` }} />
+                                            <div className="bg-purple-500 h-full transition-all" style={{ width: `${mobilePercent}%` }} />
+                                        </div>
+                                        <div className="flex justify-between text-xs text-gray-400 mt-2 font-bold">
+                                            <span>🌐 Web: {webPercent}%</span>
+                                            <span>📱 Mobile: {mobilePercent}%</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Ride Status Breakdown */}
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                                        <h3 className="text-base font-bold font-heading text-charcoal-grey mb-4">Ride Status</h3>
+                                        {(() => {
+                                            const allRides = products.filter(p => p.category === 'play');
+                                            const onCount = allRides.filter(r => r.status !== 'off' && r.status !== 'closed').length;
+                                            const offCount = allRides.length - onCount;
+                                            const onPct = allRides.length ? Math.round((onCount / allRides.length) * 100) : 0;
+                                            return (
+                                                <>
+                                                    <div className="flex flex-col gap-3">
+                                                        <div>
+                                                            <div className="flex justify-between text-xs font-bold mb-1">
+                                                                <span className="text-green-600">🟢 Online ({onCount})</span>
+                                                                <span>{onPct}%</span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                                                <div className="bg-green-500 h-2.5 rounded-full transition-all" style={{ width: `${onPct}%` }} />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex justify-between text-xs font-bold mb-1">
+                                                                <span className="text-red-500">🔴 Offline ({offCount})</span>
+                                                                <span>{100 - onPct}%</span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                                                <div className="bg-red-400 h-2.5 rounded-full transition-all" style={{ width: `${100 - onPct}%` }} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 mt-4 text-center">{allRides.length} E3 rides total</p>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                {/* ── Transactions Table ── */}
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                     <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-wrap gap-4">
                                         <div className="flex items-center gap-4">
-                                            <h2 className="text-lg font-bold font-heading text-charcoal-grey">Ride & Event Bookings</h2>
+                                            <h2 className="text-lg font-bold font-heading text-charcoal-grey">Ride &amp; Event Bookings</h2>
                                             <div className="flex bg-white rounded-lg border border-gray-200 p-1">
-                                                {/* {['all', 'rides', 'events', 'other'].map(type => ( */}
                                                 {['all', 'rides', 'events'].map(type => (
                                                     <button
                                                         key={type}
@@ -853,50 +1298,6 @@ const AdminDashboard = () => {
                                             </button>
                                         </div>
                                     )}
-                                </div>
-
-                                {/* Platform Analytics Card */}
-                                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                        <h3 className="text-lg font-bold font-heading text-charcoal-grey mb-4">Platform Usage</h3>
-                                        <div className="flex items-center justify-center gap-8 mb-6">
-                                            <div className="text-center">
-                                                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2 text-blue-500">
-                                                    <LayoutDashboard size={32} />
-                                                </div>
-                                                <p className="font-bold text-2xl text-charcoal-grey">{platformStats.web || 0}</p>
-                                                <p className="text-xs text-gray-500 uppercase tracking-wide">Web</p>
-                                            </div>
-                                            <div className="h-12 w-px bg-gray-200"></div>
-                                            <div className="text-center">
-                                                <div className="w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-2 text-purple-500">
-                                                    <Users size={32} />
-                                                </div>
-                                                <p className="font-bold text-2xl text-charcoal-grey">{platformStats.mobile || 0}</p>
-                                                <p className="text-xs text-gray-500 uppercase tracking-wide">Mobile</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Progress Bar */}
-                                        <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden flex">
-                                            <div className="bg-blue-500 h-full" style={{ width: `${webPercent}%` }}></div>
-                                            <div className="bg-purple-500 h-full" style={{ width: `${mobilePercent}%` }}></div>
-                                        </div>
-                                        <div className="flex justify-between text-xs text-gray-500 mt-2">
-                                            <span>Web: {webPercent}%</span>
-                                            <span>Mobile: {mobilePercent}%</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Placeholder for Ticket Stats or other metrics */}
-                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-center items-center text-center">
-                                        <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4 text-green-500">
-                                            <Ticket size={32} />
-                                        </div>
-                                        <h3 className="text-lg font-bold font-heading text-charcoal-grey">Total Tickets Sold</h3>
-                                        <p className="text-4xl font-bold text-riverside-teal mt-2">{bookings.length + filteredTransactions.length}</p>
-                                        <p className="text-sm text-gray-500 mt-1">Across all platforms</p>
-                                    </div>
                                 </div>
                             </>
                         );

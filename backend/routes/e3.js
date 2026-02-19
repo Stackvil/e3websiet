@@ -158,6 +158,32 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
     }
 });
 
+/**
+ * @swagger
+ * /api/e3/dine:
+ *   post:
+ *     summary: Add a new dine item (Admin only)
+ *     tags: [E3]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DineItem'
+ *     responses:
+ *       201:
+ *         description: Dine item created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DineItem'
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Admin access required
+ */
 // POST /dine
 router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) => {
     try {
@@ -195,6 +221,41 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
     }
 });
 
+/**
+ * @swagger
+ * /api/e3/rides/{id}:
+ *   put:
+ *     summary: Update a ride (Admin only)
+ *     tags: [E3]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Ride ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Ride'
+ *     responses:
+ *       200:
+ *         description: Ride updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Ride'
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Ride not found
+ *       403:
+ *         description: Admin access required
+ */
 // PUT /rides/:id
 router.put('/rides/:id', [auth, admin], async (req, res) => {
     try {
@@ -262,6 +323,41 @@ router.delete('/rides/:id', [auth, admin], async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/e3/dine/{id}:
+ *   put:
+ *     summary: Update a dine item (Admin only)
+ *     tags: [E3]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Dine item ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DineItem'
+ *     responses:
+ *       200:
+ *         description: Dine item updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DineItem'
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Dine item not found
+ *       403:
+ *         description: Admin access required
+ */
 // PUT /dine/:id
 router.put('/dine/:id', [auth, admin], async (req, res) => {
     try {

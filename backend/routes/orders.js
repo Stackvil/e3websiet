@@ -303,4 +303,115 @@ router.get('/e4', auth, getUserOrders('e4'));
 router.post('/e4/checkout', [auth, validate(checkoutSchema)], checkoutHandler('e4'));
 
 
+
+/**
+ * @swagger
+ * /api/orders/all:
+ *   get:
+ *     summary: Get all E3 orders combined (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All E3 orders
+ */
+router.get('/all', [auth, admin], getAllOrders('e3'));
+
+/**
+ * @swagger
+ * /api/orders/daily:
+ *   get:
+ *     summary: Get today's sales and last 14 days history (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Daily sales breakdown
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 today:
+ *                   type: object
+ *                   properties:
+ *                     total: { type: number }
+ *                     count: { type: integer }
+ *                     orders: { type: array }
+ *                 history:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       date: { type: string }
+ *                       total: { type: number }
+ *                       count: { type: integer }
+ */
+router.get('/daily', [auth, admin], async (req, res) => {
+    try {
+        // Fetch all E3 orders sorted newest first
+        const { data, error } = await supabase
+            .from('e3orders')
+            .select('*')
+            .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+
+        const allOrders = (data || []).map(mapRecord);
+
+        // Only count "paid" / "confirmed" orders for revenue
+        const isPaid = (o) => {
+            const s = (o.status || '').toLowerCase();
+            const ps = (o.paymentStatus || '').toLowerCase();
+            return ps === 'paid' || ps === 'success' || ps === 'completed'
+                || s === 'confirmed' || s === 'success' || s === 'completed' || s === 'placed';
+        };
+
+        // --- Today ---
+        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local tz
+        const todayOrders = allOrders.filter(o => {
+            const d = new Date(o.createdAt).toLocaleDateString('en-CA');
+            return d === todayStr;
+        });
+        const todayPaid = todayOrders.filter(isPaid);
+        const todayTotal = todayPaid.reduce((s, o) => s + (Number(o.amount) || Number(o.totalAmount) || 0), 0);
+
+        // --- Last 14 days history (grouped by date) ---
+        const history = {};
+        for (let i = 0; i < 14; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toLocaleDateString('en-CA');
+            history[key] = { date: key, total: 0, count: 0 };
+        }
+
+        allOrders.filter(isPaid).forEach(o => {
+            const key = new Date(o.createdAt).toLocaleDateString('en-CA');
+            if (history[key]) {
+                history[key].total += Number(o.amount) || Number(o.totalAmount) || 0;
+                history[key].count += 1;
+            }
+        });
+
+        // Sort history oldest → newest for charting
+        const historyArr = Object.values(history).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        res.json({
+            today: {
+                total: todayTotal,
+                count: todayPaid.length,
+                allOrdersCount: todayOrders.length,
+                orders: todayOrders.slice(0, 20) // latest 20 today
+            },
+            history: historyArr
+        });
+    } catch (err) {
+        console.error('Daily Stats Error:', err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;
+

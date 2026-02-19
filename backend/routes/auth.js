@@ -290,7 +290,7 @@ router.post('/refresh-token', async (req, res) => {
             // Issue new Access Token
             const accessToken = jwt.sign(
                 { id: decoded.id, role: decoded.role, type: 'E3' }, // Defaulting type
-                process.env.JWT_SECRET || 'dev_secret_key',
+                process.env.JWT_SECRET,
                 { expiresIn: '15m' }
             );
 
