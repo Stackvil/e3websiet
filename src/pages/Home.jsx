@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Play, Zap, Utensils, Star, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Play, Zap, Utensils, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useStore from '../store/useStore';
 import { API_URL } from '../config/api';
@@ -100,10 +100,7 @@ const Home = () => {
                                 {React.cloneElement(item.icon, { size: 28 })}
                             </div>
                             <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                            <p className="text-gray-600 text-sm mb-6 leading-relaxed bg-gray-50 p-2 rounded-lg w-full">{item.desc}</p>
-                            <Link to={item.title === 'Eat' ? '/dine' : item.title === 'Enjoy' ? '/contact' : '/play'} className="text-charcoal-grey font-bold text-sm flex items-center gap-2 hover:text-sunset-orange transition-colors border-b-2 border-transparent hover:border-sunset-orange pb-0.5">
-                                Learn More <ArrowRight size={16} />
-                            </Link>
+                            <p className="text-gray-600 text-sm leading-relaxed bg-gray-50 p-2 rounded-lg w-full">{item.desc}</p>
                         </motion.div>
                     ))}
                 </div>

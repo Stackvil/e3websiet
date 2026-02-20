@@ -174,6 +174,20 @@ const Layout = ({ children }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Copyright Bar */}
+                <div className="container mx-auto mt-10 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <p className="text-gray-400 text-xs">
+                        © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Ethree Lifestyle Hub</span>. All Rights Reserved.
+                    </p>
+                    <div className="flex items-center gap-4 text-xs text-gray-400">
+                        <a href="#" className="hover:text-sunset-orange transition-colors">Privacy Policy</a>
+                        <span className="text-gray-200">|</span>
+                        <a href="#" className="hover:text-sunset-orange transition-colors">Terms &amp; Conditions</a>
+                        <span className="text-gray-200">|</span>
+                        <a href="#" className="hover:text-sunset-orange transition-colors">Cookie Policy</a>
+                    </div>
+                </div>
             </footer>
             <Cart />
             <div className="hidden md:block">

@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { CheckCircle, ArrowRight, User } from 'lucide-react';
-import { Link, useSearchParams, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    CheckCircle, ArrowRight, Download, Printer, X,
+    Ticket, MapPin, Calendar, Hash, ShieldCheck
+} from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import useStore from '../store/useStore';
-
 import { API_URL } from '../config/api';
 
 const Success = () => {
@@ -12,28 +14,20 @@ const Success = () => {
     const { clearCart, addTicket, tickets, closeCart } = useStore();
     const [orderData, setOrderData] = useState(null);
     const [bookedItems, setBookedItems] = useState([]);
+    const [showInvoice, setShowInvoice] = useState(false);
     const processedRef = useRef(false);
 
     useEffect(() => {
         const fetchOrder = async () => {
             if (!orderId || processedRef.current) return;
-
             try {
-                // Fetch Order Details from Backend
                 const response = await fetch(`${API_URL}/payment/status/${orderId}`);
                 const result = await response.json();
-
                 if (result.success) {
                     const order = result.order;
                     setOrderData(order);
-
-                    // Reconstruct Items
                     const items = order.items || [];
-
-                    // Generate Tickets (Explode Logic) if not already added
-                    // Check if we already have tickets for this order ID (prefix check)
                     const existingTickets = tickets.filter(t => t.id.startsWith(orderId) || t.id.includes(orderId));
-
                     if (existingTickets.length === 0) {
                         const generatedTickets = [];
                         items.forEach(item => {
@@ -50,12 +44,10 @@ const Success = () => {
                                 generatedTickets.push(newTicket);
                             }
                         });
-                        setBookedItems(generatedTickets.flatMap(t => t.items)); // Just for display
+                        setBookedItems(generatedTickets.flatMap(t => t.items));
                     } else {
-                        // Already processed, just display
                         setBookedItems(existingTickets.flatMap(t => t.items));
                     }
-
                     processedRef.current = true;
                     clearCart();
                 }
@@ -63,75 +55,315 @@ const Success = () => {
                 console.error('Error fetching order:', error);
             }
         };
-
         fetchOrder();
-        closeCart(); // Ensure cart is closed on success page
+        closeCart();
     }, [orderId, clearCart, addTicket, closeCart]);
 
     if (!orderId) return null;
 
+    const orderDate = orderData?.createdAt
+        ? new Date(orderData.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+        : new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+    const totalAmount = orderData?.amount ||
+        bookedItems.reduce((acc, item) => acc + item.price * (item.quantity || 1), 0);
+
     return (
         <div className="min-h-screen bg-creamy-white flex items-center justify-center p-6 pt-24">
             <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white p-12 rounded-[3rem] shadow-2xl shadow-riverside-teal/10 max-w-lg w-full text-center border border-riverside-teal/5"
+                className="bg-white rounded-[3rem] shadow-2xl shadow-riverside-teal/10 max-w-lg w-full border border-riverside-teal/5 overflow-hidden"
             >
-                <div className="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-8">
-                    <CheckCircle size={48} />
+                {/* ── Green Banner ── */}
+                <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-10 text-center text-white">
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', delay: 0.2 }}
+                        className="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4"
+                    >
+                        <CheckCircle size={44} className="text-white" />
+                    </motion.div>
+                    <h1 className="text-3xl font-heading font-bold tracking-tight">Payment Successful!</h1>
+                    <p className="text-green-100 mt-1 text-sm">Your booking is confirmed</p>
+                    <div className="mt-4 bg-white/20 rounded-xl px-4 py-2 inline-block">
+                        <span className="font-mono font-bold text-sm tracking-widest">{orderId}</span>
+                    </div>
                 </div>
 
-                <h1 className="text-4xl font-heading font-bold text-charcoal-grey mb-6 tracking-tighter">Order Confirmed!</h1>
-                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-8">Order ID: {orderId}</p>
+                <div className="p-8 space-y-6">
+                    {/* ── Order QR ── */}
+                    <div className="flex flex-col items-center">
+                        <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${orderId}&margin=10&color=1a1a2e`}
+                            alt="Order QR"
+                            className="rounded-2xl border-4 border-gray-50 shadow-lg"
+                        />
+                        <p className="text-xs text-gray-400 mt-2 font-medium">Show this QR at the entry</p>
+                    </div>
 
-                <div className="flex justify-center mb-8">
-                    <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${orderId}`}
-                        alt="Order QR Code"
-                        className="rounded-xl border-4 border-white shadow-lg"
-                    />
-                </div>
+                    {/* ── Tickets with per-ticket QR ── */}
+                    <div>
+                        <h2 className="text-lg font-bold text-charcoal-grey mb-3 flex items-center gap-2">
+                            <Ticket size={18} className="text-sunset-orange" /> Your Tickets
+                        </h2>
+                        <div className="space-y-3">
+                            {bookedItems.map((item, index) => {
+                                const ticketId = `${orderId}-${index + 1}`;
+                                return (
+                                    <div
+                                        key={`${item.id}-${index}`}
+                                        className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-start gap-4 relative overflow-hidden"
+                                    >
+                                        {/* Orange left stripe */}
+                                        <div className="absolute left-0 top-0 h-full w-1.5 bg-sunset-orange rounded-l-2xl" />
 
-                {/* Tickets Section */}
-                <div className="space-y-6 mb-8 text-left">
-                    <h2 className="text-xl font-bold text-charcoal-grey text-center">Your Tickets</h2>
-                    {bookedItems.map((item, index) => (
-                        <div key={`${item.id}-${index}`} className="bg-white border rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-2 h-full bg-sunset-orange" />
-                            <div className="flex items-center gap-4">
-                                <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover" />
-                                <div>
-                                    <h3 className="font-bold text-lg">{item.name}</h3>
-                                    <p className="text-sm text-gray-500">Qty: 1 • ₹{item.price}</p>
-                                    <p className="text-[10px] uppercase font-bold text-riverside-teal tracking-widest mt-1">Valid for Today</p>
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-center border-l border-dashed border-gray-300 pl-4">
-                                <span className="text-[10px] font-bold text-gray-400 mt-1">Ticket {index + 1}</span>
-                            </div>
+                                        {/* Item Avatar */}
+                                        <div className="w-14 h-14 rounded-xl shrink-0 bg-gradient-to-br from-sunset-orange to-orange-400 flex items-center justify-center text-white font-black text-2xl uppercase shadow-sm">
+                                            {item.name?.charAt(0) || '?'}
+                                        </div>
+
+                                        {/* Item Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-charcoal-grey truncate">{item.name}</p>
+                                            <p className="text-xs text-gray-400 mt-0.5">Qty: 1 &bull; ₹{item.price}</p>
+                                            <span className="inline-block mt-1 text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                                                Valid Today
+                                            </span>
+                                            <p className="text-[10px] text-gray-400 font-mono mt-1 truncate">{ticketId}</p>
+                                        </div>
+
+                                        {/* Per-Ticket QR */}
+                                        <div className="shrink-0 flex flex-col items-center border-l border-dashed border-gray-300 pl-4">
+                                            <img
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${ticketId}&margin=4`}
+                                                alt={`QR Ticket ${index + 1}`}
+                                                className="rounded-lg border-2 border-white shadow"
+                                            />
+                                            <span className="text-[10px] text-gray-400 font-bold mt-1">#{index + 1}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {bookedItems.length === 0 && (
+                                <p className="text-center text-gray-400 text-sm py-4">Loading tickets...</p>
+                            )}
                         </div>
-                    ))}
-                    {bookedItems.length === 0 && <p className="text-center text-gray-400">Loading tickets...</p>}
-                </div>
+                    </div>
 
-                <div className="space-y-4">
-                    <Link to="/tickets" className="w-full btn-orange py-4 rounded-2xl flex items-center justify-center gap-3 text-lg font-bold">
-                        View All Tickets <User size={20} />
-                    </Link>
-                    <Link to="/dine" className="w-full text-riverside-teal font-bold hover:underline flex items-center justify-center gap-2">
-                        Browse More Food <ArrowRight size={18} />
-                    </Link>
-                </div>
+                    {/* ── Total ── */}
+                    <div className="bg-charcoal-grey text-white rounded-2xl p-4 flex justify-between items-center">
+                        <span className="text-sm font-bold uppercase tracking-widest text-gray-400">Total Paid</span>
+                        <span className="text-2xl font-black font-heading">₹{totalAmount}</span>
+                    </div>
 
-                <div className="mt-12 p-6 bg-gray-50 rounded-2xl text-left border border-gray-100">
-                    <h3 className="font-bold text-charcoal-grey mb-2">Next Steps</h3>
-                    <ul className="text-sm text-gray-500 space-y-2">
-                        <li>• Show your order ID at the respective stall.</li>
-                        <li>• Real-time updates will be sent to your profile.</li>
-                        <li>• Enjoy your meal on the river bank!</li>
-                    </ul>
+                    {/* ── Action Buttons ── */}
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => setShowInvoice(true)}
+                            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-sunset-orange text-white font-bold text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-200"
+                        >
+                            <Download size={18} /> View & Download Invoice
+                        </button>
+                        <Link
+                            to="/"
+                            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-gray-100 text-charcoal-grey font-bold text-sm hover:border-riverside-teal hover:text-riverside-teal transition-all"
+                        >
+                            Back to Home <ArrowRight size={16} />
+                        </Link>
+                    </div>
                 </div>
             </motion.div>
+
+            {/* ══════════════════════════════════
+                INVOICE MODAL
+            ══════════════════════════════════ */}
+            <AnimatePresence>
+                {showInvoice && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+                        onClick={() => setShowInvoice(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl max-h-[95vh] flex flex-col"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Invoice Header */}
+                            <div className="bg-[#1D2B44] text-white p-8 flex justify-between items-start">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 bg-sunset-orange rounded-xl flex items-center justify-center font-black text-lg">E3</div>
+                                        <div>
+                                            <p className="font-bold text-lg leading-none">ETHREE</p>
+                                            <p className="text-blue-300 text-xs">Lifestyle Hub</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-gray-400 text-xs">Opp. APSRTC Bus Stand, Padmavathi Ghat,</p>
+                                    <p className="text-gray-400 text-xs">Vijayawada, AP – 520013</p>
+                                    <p className="text-gray-400 text-xs mt-1">📞 +91 70369 23456</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-3xl font-black text-white tracking-tight">INVOICE</p>
+                                    <p className="text-blue-300 text-xs mt-1">Tax Invoice / Receipt</p>
+                                    <button
+                                        onClick={() => setShowInvoice(false)}
+                                        className="mt-4 p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Invoice Body */}
+                            <div className="overflow-y-auto flex-1 p-8 space-y-6">
+
+                                {/* Order Meta */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 rounded-2xl p-4">
+                                        <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                                            <Hash size={12} /> Invoice No.
+                                        </p>
+                                        <p className="font-mono font-bold text-charcoal-grey text-sm break-all">{orderId}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-2xl p-4">
+                                        <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                                            <Calendar size={12} /> Date & Time
+                                        </p>
+                                        <p className="font-bold text-charcoal-grey text-sm">{orderDate}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-2xl p-4">
+                                        <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                                            <MapPin size={12} /> Venue
+                                        </p>
+                                        <p className="font-bold text-charcoal-grey text-sm">Ethree, Vijayawada</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-2xl p-4">
+                                        <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                                            <ShieldCheck size={12} /> Status
+                                        </p>
+                                        <span className="inline-block bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full uppercase">
+                                            Paid ✓
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Items Table */}
+                                <div>
+                                    <h3 className="font-bold text-charcoal-grey uppercase text-xs tracking-widest mb-3">Booking Details</h3>
+                                    <div className="border border-gray-100 rounded-2xl overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-50 text-gray-400 text-xs uppercase tracking-widest">
+                                                <tr>
+                                                    <th className="text-left p-4 font-bold">#</th>
+                                                    <th className="text-left p-4 font-bold">Item</th>
+                                                    <th className="text-center p-4 font-bold">Qty</th>
+                                                    <th className="text-right p-4 font-bold">Price</th>
+                                                    <th className="text-right p-4 font-bold">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {(orderData?.items || bookedItems).map((item, i) => (
+                                                    <tr key={i} className="hover:bg-gray-50">
+                                                        <td className="p-4 text-gray-400">{i + 1}</td>
+                                                        <td className="p-4">
+                                                            <p className="font-bold text-charcoal-grey">{item.name}</p>
+                                                            {item.stall && <p className="text-xs text-gray-400">{item.stall}</p>}
+                                                        </td>
+                                                        <td className="p-4 text-center text-gray-600">{item.quantity || 1}</td>
+                                                        <td className="p-4 text-right text-gray-600">₹{item.price}</td>
+                                                        <td className="p-4 text-right font-bold text-charcoal-grey">₹{item.price * (item.quantity || 1)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Total */}
+                                <div className="bg-[#1D2B44] text-white rounded-2xl p-5 flex justify-between items-center">
+                                    <div>
+                                        <p className="text-xs text-gray-400 uppercase tracking-widest">Total Amount Paid</p>
+                                        <p className="text-3xl font-black mt-1">₹{totalAmount}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-gray-400">Payment via</p>
+                                        <p className="font-bold text-sm mt-0.5">Easebuzz</p>
+                                        <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full mt-1 inline-block">Verified</span>
+                                    </div>
+                                </div>
+
+                                {/* Per-ticket QR Grid inside invoice */}
+                                {bookedItems.length > 0 && (
+                                    <div>
+                                        <h3 className="font-bold text-charcoal-grey uppercase text-xs tracking-widest mb-3">
+                                            Ticket QR Codes — Show at Entry
+                                        </h3>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {bookedItems.map((item, index) => {
+                                                const ticketId = `${orderId}-${index + 1}`;
+                                                return (
+                                                    <div key={index} className="bg-gray-50 rounded-2xl p-3 flex flex-col items-center border border-gray-100">
+                                                        <img
+                                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${ticketId}&margin=4`}
+                                                            alt={`QR ${index + 1}`}
+                                                            className="rounded-xl border-2 border-white shadow"
+                                                        />
+                                                        <p className="text-[10px] font-bold text-charcoal-grey mt-2 text-center truncate w-full">{item.name}</p>
+                                                        <p className="text-[10px] text-gray-400 font-mono">#{index + 1}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Main Order QR */}
+                                <div className="flex items-center gap-6 bg-gray-50 rounded-2xl p-5">
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${orderId}&margin=5`}
+                                        alt="Order QR"
+                                        className="rounded-xl border-2 border-white shadow"
+                                    />
+                                    <div>
+                                        <p className="font-bold text-charcoal-grey text-sm">Master Order QR</p>
+                                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">Scan at the main entry gate. Valid only for the date of purchase. Non-transferable.</p>
+                                        <p className="text-[10px] font-mono text-gray-400 mt-1">{orderId}</p>
+                                    </div>
+                                </div>
+
+                                {/* Footer */}
+                                <p className="text-center text-xs text-gray-400 leading-relaxed border-t border-gray-100 pt-4">
+                                    Thank you for visiting Ethree! 🎉 This is a computer-generated invoice and does not require a signature.<br />
+                                    © {new Date().getFullYear()} Ethree Lifestyle Hub. All Rights Reserved.
+                                </p>
+                            </div>
+
+                            {/* Print / Close */}
+                            <div className="p-5 border-t border-gray-100 flex gap-3">
+                                <button
+                                    onClick={() => window.print()}
+                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-charcoal-grey text-white rounded-2xl font-bold text-sm hover:bg-gray-800 transition"
+                                >
+                                    <Printer size={16} /> Print Invoice
+                                </button>
+                                <button
+                                    onClick={() => setShowInvoice(false)}
+                                    className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-gray-100 text-charcoal-grey rounded-2xl font-bold text-sm hover:border-gray-300 transition"
+                                >
+                                    <X size={16} /> Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

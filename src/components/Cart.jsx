@@ -9,6 +9,7 @@ const Cart = () => {
     const { cart, isCartOpen, toggleCart, removeFromCart, updateQuantity, clearCart, user, setUser } = useStore();
     const [isPaymentOpen, setIsPaymentOpen] = useState(false); // Kept for logic compatibility but unused for modal
     const [showAuthModal, setShowAuthModal] = useState(false);
+    const [payError, setPayError] = useState('');
 
 
     const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -16,6 +17,7 @@ const Cart = () => {
 
     const initiatePayment = async (overrideUser = null) => {
         setIsProcessing(true);
+        setPayError('');
         const currentUser = overrideUser || user;
         const token = localStorage.getItem('token');
 
@@ -36,8 +38,9 @@ const Cart = () => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
+                    location,
                     items: cart.map(item => ({
-                        id: item._id || item.id,
+                        id: String(item._id || item.id),
                         name: item.name,
                         price: item.price,
                         quantity: item.quantity || 1,
@@ -51,22 +54,29 @@ const Cart = () => {
                 localStorage.removeItem('user');
                 setUser(null);
                 setShowAuthModal(true);
-                alert('Session expired. Please log in again.');
+                setPayError('Session expired. Please log in again.');
                 setIsProcessing(false);
                 return;
             }
 
-            const result = await response.json();
+            let result;
+            try {
+                result = await response.json();
+            } catch {
+                setPayError('Server error. Please try again.');
+                setIsProcessing(false);
+                return;
+            }
 
             if (result.success || result.payment_url) {
                 window.location.href = result.payment_url;
             } else {
-                alert('Payment Initiation Failed: ' + (result.message || 'Unknown Error'));
+                setPayError(result.message || 'Payment initiation failed. Please try again.');
                 setIsProcessing(false);
             }
         } catch (error) {
             console.error('Payment Error:', error);
-            alert(`Payment Error: ${error.message}`);
+            setPayError('Network error. Please check your connection.');
             setIsProcessing(false);
         }
     };
@@ -180,6 +190,12 @@ const Cart = () => {
                                                 <span className="text-gray-400 font-bold uppercase tracking-widest text-xs">Subtotal</span>
                                                 <span className="text-3xl font-heading font-bold text-charcoal-grey">₹{totalPrice}</span>
                                             </div>
+
+                                            {payError && (
+                                                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium">
+                                                    ⚠️ {payError}
+                                                </div>
+                                            )}
 
                                             <button
                                                 onClick={handlePayClick}
