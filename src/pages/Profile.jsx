@@ -1,58 +1,63 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import useStore from '../store/useStore';
-import { motion } from 'framer-motion';
-import { User, Mail, Phone, Award, Gift, LogOut, Edit2, Save, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { User, Mail, Phone, Award, Gift, LogOut, Edit2, Save, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config/api';
 
 const Profile = () => {
-    const { user, setUser, logout } = useStore();
+    const { user, setUser } = useStore();          // ← removed non-existent 'logout'
     const navigate = useNavigate();
 
-    // Edit State
+    // ── Edit state ────────────────────────────────────────────────────────────
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState('');
     const [editEmail, setEditEmail] = useState('');
-    const [editMobile, setEditMobile] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [toast, setToast] = useState(null); // { type: 'success'|'error', msg }
 
-    // Fetch latest profile on mount
-    useEffect(() => {
-        if (!user) {
-            navigate('/login');
-            return;
-        }
-
-        const fetchProfile = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/profile`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    setUser(data);
-                    localStorage.setItem('user', JSON.stringify(data));
-                }
-            } catch (err) {
-                console.error("Failed to fetch profile", err);
+    // ── Fetch fresh profile once on mount ────────────────────────────────────
+    // NOTE: user is intentionally NOT in the deps array — prevents infinite loop
+    // (fetchProfile calls setUser which would re-trigger the effect otherwise)
+    const fetchProfile = useCallback(async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_URL}/profile`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setUser(data);
+                localStorage.setItem('user', JSON.stringify(data));
             }
-        };
+        } catch (err) {
+            console.error('Failed to fetch profile', err);
+        }
+    }, [setUser]);
 
+    useEffect(() => {
+        if (!user) { navigate('/login'); return; }
         fetchProfile();
-    }, [user, navigate, setUser]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // empty deps = runs once on mount
+
+    // ── Dismiss toast after 3 s ───────────────────────────────────────────────
+    useEffect(() => {
+        if (!toast) return;
+        const t = setTimeout(() => setToast(null), 3000);
+        return () => clearTimeout(t);
+    }, [toast]);
 
     const handleStartEdit = () => {
-        setEditName(user.name || '');
-        setEditEmail(user.email || '');
-        setEditMobile(user.mobile || '');
+        setEditName(user?.name || '');
+        setEditEmail(user?.email || '');
         setIsEditing(true);
     };
 
-    const handleSaveProfile = async (e) => {
+    const handleSave = async (e) => {
         e.preventDefault();
+        setSaving(true);
         try {
             const token = localStorage.getItem('token');
             const res = await fetch(`${API_URL}/profile`, {
@@ -61,220 +66,271 @@ const Profile = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    name: editName,
-                    email: editEmail
-                    // Mobile is typically not editable directly or needs OTP, checking schema...
-                    // Schema allows name, email, mobile. Let's send what user edited.
-                })
+                body: JSON.stringify({ name: editName, email: editEmail })
             });
 
             if (res.ok) {
-                const updatedUser = await res.json();
-                setUser(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser)); // Persist locally
+                const updated = await res.json();
+                setUser(updated);
+                localStorage.setItem('user', JSON.stringify(updated));
                 setIsEditing(false);
+                setToast({ type: 'success', msg: 'Profile updated successfully!' });
             } else {
-                console.error("Failed to update profile");
-                // Optionally handle error UI
+                const err = await res.json();
+                setToast({ type: 'error', msg: err.message || 'Failed to update profile.' });
             }
         } catch (err) {
-            console.error("Error updating profile", err);
+            setToast({ type: 'error', msg: 'Network error. Please try again.' });
+        } finally {
+            setSaving(false);
         }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+        } catch (e) { /* silent */ }
+        setUser(null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
     };
 
     if (!user) return null;
 
+    const initials = user.name
+        ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+        : (user.mobile?.slice(-2) || 'U');
+
     return (
-        <div className="min-h-screen bg-creamy-white pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-creamy-white pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+
+            {/* ── Toast notification ──────────────────────────────────────── */}
+            <AnimatePresence>
+                {toast && (
+                    <motion.div
+                        key="toast"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className={`fixed top-6 right-6 z-[999] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl font-bold text-sm
+                            ${toast.type === 'success'
+                                ? 'bg-green-50 border border-green-200 text-green-700'
+                                : 'bg-red-50 border border-red-200 text-red-600'}`}
+                    >
+                        {toast.type === 'success'
+                            ? <CheckCircle2 size={18} />
+                            : <AlertCircle size={18} />}
+                        {toast.msg}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-riverside-teal to-dark-teal p-8 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <User size={120} />
-                        </div>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100"
+                >
+                    {/* ── Header banner ─────────────────────────────────────── */}
+                    <div className="bg-gradient-to-r from-riverside-teal to-teal-700 p-8 text-white relative overflow-hidden">
+                        <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full" />
+                        <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full" />
+
                         <div className="relative z-10 flex items-center justify-between">
-                            <div className="flex items-center gap-6">
-                                <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-3xl font-bold border-2 border-white/30">
-                                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                            <div className="flex items-center gap-5">
+                                {/* Avatar */}
+                                <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-3xl font-black border-2 border-white/40 shrink-0">
+                                    {initials}
                                 </div>
                                 <div>
-                                    <h1 className="text-3xl font-bold mb-1">{user.name}</h1>
-                                    <p className="text-teal-100 flex items-center gap-2">
-                                        <span className="bg-accent-gold text-bg-deep text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider">
-                                            Member
+                                    <h1 className="text-2xl font-black mb-0.5">{user.name || 'Guest User'}</h1>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="bg-white/20 text-white text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/30">
+                                            {user.role || 'Member'}
                                         </span>
-                                    </p>
+                                        {user.location && (
+                                            <span className="bg-white/20 text-white text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/30">
+                                                {user.location}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
                             {!isEditing && (
                                 <button
                                     onClick={handleStartEdit}
-                                    className="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/40 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all"
+                                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/40 text-white px-4 py-2.5 rounded-xl font-bold transition-all text-sm shrink-0"
                                 >
-                                    <Edit2 size={16} /> Edit Profile
+                                    <Edit2 size={15} /> Edit Profile
                                 </button>
                             )}
                         </div>
                     </div>
 
-                    {/* Content */}
+                    {/* ── Body ──────────────────────────────────────────────── */}
                     <div className="p-8">
-                        {isEditing ? (
-                            <form onSubmit={handleSaveProfile} className="space-y-6 max-w-lg">
-                                <h2 className="text-xl font-bold text-charcoal-grey border-b border-gray-100 pb-2">
-                                    Edit Information
-                                </h2>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Name</label>
-                                    <input
-                                        type="text"
-                                        value={editName}
-                                        onChange={(e) => setEditName(e.target.value)}
-                                        className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-gray-100 focus:border-riverside-teal"
-                                        placeholder="Your Name"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                                    <input
-                                        type="email"
-                                        value={editEmail}
-                                        onChange={(e) => setEditEmail(e.target.value)}
-                                        className="w-full p-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-gray-100 focus:border-riverside-teal"
-                                        placeholder="email@example.com"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mobile</label>
-                                    <input
-                                        type="tel"
-                                        value={editMobile}
-                                        disabled
-                                        className="w-full p-3 bg-gray-200 rounded-xl font-medium outline-none border-2 border-gray-100 text-gray-500 cursor-not-allowed"
-                                        placeholder="Mobile Number"
-                                    />
-                                </div>
+                        <div className="grid md:grid-cols-2 gap-10">
 
-                                <div className="flex gap-4 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditing(false)}
-                                        className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center gap-2 border border-gray-200"
-                                    >
-                                        <X size={18} /> Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="flex-1 py-3 bg-riverside-teal text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Save size={18} /> Save Changes
-                                    </button>
-                                </div>
-                            </form>
-                        ) : (
-                            <div className="grid md:grid-cols-2 gap-8">
-                                {/* Personal Info */}
-                                <div className="space-y-6">
-                                    <h3 className="text-xl font-bold text-charcoal-grey border-b border-gray-100 pb-2">
-                                        Personal Information
-                                    </h3>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-4 text-gray-600">
-                                            <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-riverside-teal">
-                                                <Mail size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-400">Email</p>
-                                                <p className="font-medium text-charcoal-grey">{user.email || 'N/A'}</p>
+                            {/* ── Left: Personal info / edit form ─────────── */}
+                            <div>
+                                {isEditing ? (
+                                    <form onSubmit={handleSave} className="space-y-5">
+                                        <h2 className="text-lg font-black text-charcoal-grey border-b border-gray-100 pb-3 mb-5">
+                                            Edit Information
+                                        </h2>
+
+                                        {/* Name */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                                Full Name
+                                            </label>
+                                            <div className="relative">
+                                                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={e => setEditName(e.target.value)}
+                                                    required
+                                                    placeholder="Your full name"
+                                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-gray-100 focus:border-riverside-teal transition-colors text-charcoal-grey"
+                                                />
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4 text-gray-600">
-                                            <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-riverside-teal">
-                                                <Phone size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-400">Mobile</p>
-                                                <p className="font-medium text-charcoal-grey">{user.mobile || 'N/A'}</p>
+
+                                        {/* Email */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                                Email Address
+                                            </label>
+                                            <div className="relative">
+                                                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="email"
+                                                    value={editEmail}
+                                                    onChange={e => setEditEmail(e.target.value)}
+                                                    placeholder="email@example.com"
+                                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl font-medium outline-none border-2 border-gray-100 focus:border-riverside-teal transition-colors text-charcoal-grey"
+                                                />
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
 
-                                {/* Rewards Section */}
-                                <div className="space-y-6">
-                                    <h3 className="text-xl font-bold text-charcoal-grey border-b border-gray-100 pb-2 flex items-center gap-2">
-                                        <Award className="text-accent-gold" /> Rewards & Points
-                                    </h3>
-
-                                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100 relative overflow-hidden group hover:shadow-md transition-shadow">
-                                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-bl-full opacity-20 transform translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform duration-500" />
-
-                                        <div className="relative z-10">
-                                            <p className="text-indigo-600 font-bold text-sm uppercase tracking-wider mb-1">Current Balance</p>
-                                            <div className="flex items-baseline gap-2 mb-4">
-                                                <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                                                    {user.reward_points || 0}
-                                                </span>
-                                                <span className="text-gray-500 font-medium">Points</span>
+                                        {/* Mobile (read-only) */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                                Mobile Number <span className="normal-case font-normal text-gray-400">(cannot be changed)</span>
+                                            </label>
+                                            <div className="relative">
+                                                <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
+                                                <input
+                                                    type="tel"
+                                                    value={user.mobile || ''}
+                                                    disabled
+                                                    className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl font-medium border-2 border-gray-100 text-gray-400 cursor-not-allowed"
+                                                />
                                             </div>
+                                        </div>
 
-                                            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-indigo-100 flex items-start gap-3">
-                                                <Gift className="text-purple-500 shrink-0 mt-1" size={18} />
+                                        {/* Actions */}
+                                        <div className="flex gap-3 pt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditing(false)}
+                                                className="flex-1 py-3 text-gray-600 font-bold hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center gap-2 border border-gray-200"
+                                            >
+                                                <X size={16} /> Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={saving}
+                                                className="flex-1 py-3 bg-riverside-teal text-white font-bold rounded-xl hover:bg-teal-700 hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                                            >
+                                                {saving
+                                                    ? <><Loader2 size={16} className="animate-spin" /> Saving…</>
+                                                    : <><Save size={16} /> Save Changes</>}
+                                            </button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <div className="space-y-6">
+                                        <h3 className="text-lg font-black text-charcoal-grey border-b border-gray-100 pb-3">
+                                            Personal Information
+                                        </h3>
+
+                                        {[
+                                            { icon: <User size={18} />, label: 'Full Name', value: user.name || '—' },
+                                            { icon: <Mail size={18} />, label: 'Email', value: user.email || '—' },
+                                            { icon: <Phone size={18} />, label: 'Mobile', value: user.mobile ? `+91 ${user.mobile}` : '—' },
+                                        ].map(({ icon, label, value }) => (
+                                            <div key={label} className="flex items-center gap-4">
+                                                <div className="w-11 h-11 bg-teal-50 rounded-full flex items-center justify-center text-riverside-teal shrink-0">
+                                                    {icon}
+                                                </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-gray-800">Special Offer!</p>
-                                                    <p className="text-xs text-gray-600 leading-snug">
-                                                        Get <span className="font-bold text-indigo-600">500 Reward Points</span> to unlock a <span className="font-bold text-purple-600">Free Ride Ticket!</span> 🎟️
-                                                    </p>
+                                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{label}</p>
+                                                    <p className="font-semibold text-charcoal-grey">{value}</p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
+                                        ))}
 
-                                    <div className="bg-orange-50 rounded-xl p-4 border border-orange-100 flex gap-3 items-center">
-                                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 font-bold text-sm shrink-0">
-                                            💡
+                                        <button
+                                            onClick={handleStartEdit}
+                                            className="mt-2 flex items-center gap-2 text-sm text-riverside-teal font-bold hover:underline"
+                                        >
+                                            <Edit2 size={14} /> Edit name or email
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Right: Rewards ──────────────────────────── */}
+                            <div className="space-y-5">
+                                <h3 className="text-lg font-black text-charcoal-grey border-b border-gray-100 pb-3 flex items-center gap-2">
+                                    <Award className="text-amber-400" size={20} /> Rewards & Points
+                                </h3>
+
+                                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-bl-full opacity-20 -mr-6 -mt-6" />
+                                    <div className="relative z-10">
+                                        <p className="text-indigo-500 font-bold text-xs uppercase tracking-widest mb-1">Current Balance</p>
+                                        <div className="flex items-baseline gap-2 mb-4">
+                                            <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                                                {user.reward_points || 0}
+                                            </span>
+                                            <span className="text-gray-500 font-medium">Points</span>
                                         </div>
-                                        <p className="text-xs text-gray-600">
-                                            Earn <strong className="text-orange-600">10 Points</strong> for every transaction above <strong className="text-orange-600">₹300</strong>.
-                                        </p>
+                                        <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-indigo-100 flex items-start gap-2">
+                                            <Gift className="text-purple-500 shrink-0 mt-0.5" size={16} />
+                                            <p className="text-xs text-gray-600 leading-snug">
+                                                Earn <strong className="text-indigo-600">500 Points</strong> to unlock a <strong className="text-purple-600">Free Ride Ticket</strong> 🎟️
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* Logout Button */}
-                        <div className="mt-8 pt-8 border-t border-gray-100 flex justify-end">
+                                <div className="bg-orange-50 rounded-xl p-4 border border-orange-100 flex gap-3 items-center">
+                                    <span className="text-xl shrink-0">💡</span>
+                                    <p className="text-xs text-gray-600">
+                                        Earn <strong className="text-orange-600">10 Points</strong> for every transaction above <strong className="text-orange-600">₹300</strong>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ── Footer: Logout ───────────────────────────────── */}
+                        <div className="mt-10 pt-6 border-t border-gray-100 flex justify-end">
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={async () => {
-                                    // Logout logic
-                                    try {
-                                        await fetch(`${API_URL}/auth/logout`, {
-                                            method: 'POST',
-                                            credentials: 'include'
-                                        });
-                                    } catch (e) {
-                                        console.error("Logout failed", e);
-                                    }
-                                    setUser(null);
-                                    localStorage.removeItem('token');
-                                    localStorage.removeItem('user');
-                                    navigate('/login');
-                                }}
-                                className="flex items-center gap-2 px-6 py-2 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-100 transition-colors border border-red-100"
+                                whileTap={{ scale: 0.97 }}
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 transition-colors border border-red-100 text-sm"
                             >
-                                <LogOut size={18} />
-                                Logout
+                                <LogOut size={16} /> Logout
                             </motion.button>
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
         </div>
     );

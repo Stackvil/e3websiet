@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw, Download, Trash2 } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw, Download, Trash2, User, LogOut } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { formatTime12h } from '../utils/timeUtils';
 import autoTable from 'jspdf-autotable';
@@ -14,7 +14,7 @@ const AdminDashboard = () => {
     const [bookings, setBookings] = useState([]);
 
     // Access global store
-    const { setUser, dineItems, rideItems, setDineItems, setRideItems } = useStore();
+    const { setUser, user, dineItems, rideItems, setDineItems, setRideItems } = useStore();
 
     // Initialize products with cached data from store
     const [products, setProducts] = useState([...(rideItems || []), ...(dineItems || [])]);
@@ -551,6 +551,40 @@ const AdminDashboard = () => {
                         </button>
                     ))}
                 </nav>
+
+                {/* Profile + Logout — pinned to sidebar bottom */}
+                <div className="absolute bottom-0 left-0 w-64 border-t border-gray-100 bg-white">
+                    {/* User info */}
+                    <div className="flex items-center gap-3 px-5 py-4">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-riverside-teal to-teal-700 flex items-center justify-center text-white font-black text-sm shrink-0">
+                            {user?.name
+                                ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+                                : (user?.mobile?.slice(-2) || 'A')}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="font-bold text-sm text-charcoal-grey truncate">{user?.name || 'Admin'}</p>
+                            <p className="text-[11px] text-gray-400 truncate">+91 {user?.mobile || ''}</p>
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="px-3 pb-4 flex flex-col gap-1">
+                        <button
+                            onClick={() => navigate('/profile')}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                        >
+                            <User size={16} className="text-gray-400" />
+                            My Profile
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
+                        >
+                            <LogOut size={16} />
+                            Logout
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Main Content */}

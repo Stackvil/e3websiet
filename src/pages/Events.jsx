@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Clock, MapPin, CheckCircle2, ArrowRight, User, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Calendar, Clock, MapPin, CheckCircle2, ArrowRight, User, Info, XCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useStore from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
@@ -9,18 +9,54 @@ import { formatTime12h } from '../utils/timeUtils';
 const EVENT_SPACE = {
     id: 1,
     name: 'Celebration Zone',
-    capacity: '20-50 People',
-    price: 1000, // Per Hour
+    capacity: '20–50 People',
+    price: 1000,
     image: '/event%20place.webp',
     description: 'A versatile open space perfect for birthdays and casual parties.'
 };
 
+// ── Slot Cell ─────────────────────────────────────────────────────────────────
+const SlotCell = ({ slot, selected, onSelect }) => {
+    const isAvailable = slot.status === 'available';
+    const isBooked = slot.status === 'booked';
+    const isPast = slot.status === 'past';
+    const isSelected = selected;
+
+    let cls = 'relative rounded-xl border-2 px-3 py-2.5 text-center text-xs font-bold transition-all duration-200 select-none ';
+    if (isSelected) cls += 'bg-riverside-teal border-riverside-teal text-white scale-105 shadow-lg shadow-riverside-teal/30 ';
+    else if (isBooked) cls += 'bg-red-50 border-red-200 text-red-400 cursor-not-allowed ';
+    else if (isPast) cls += 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed ';
+    else cls += 'bg-green-50 border-green-200 text-green-700 hover:bg-green-500 hover:text-white hover:border-green-500 cursor-pointer hover:scale-105 ';
+
+    const label12 = (t) => {
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        return `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${ampm}`;
+    };
+
+    return (
+        <motion.button
+            type="button"
+            whileTap={isAvailable ? { scale: 0.95 } : {}}
+            onClick={() => isAvailable && onSelect(slot)}
+            className={cls}
+            title={isBooked ? 'Already booked' : isPast ? 'Slot passed' : `Book ${slot.label}`}
+        >
+            <span className="block leading-tight">{label12(slot.startTime)}</span>
+            {isBooked && <span className="block text-[9px] font-normal mt-0.5 opacity-70">Booked</span>}
+            {isPast && <span className="block text-[9px] font-normal mt-0.5 opacity-50">Past</span>}
+            {isAvailable && !isSelected && <span className="block text-[9px] font-normal mt-0.5 opacity-70">₹1,000</span>}
+            {isSelected && <span className="block text-[9px] font-normal mt-0.5">Selected ✓</span>}
+        </motion.button>
+    );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const Events = ({ location = 'E3' }) => {
-    const { addToCart, toggleCart, user, tickets } = useStore();
+    const { user, tickets } = useStore();
     const navigate = useNavigate();
 
-    const [events, setEvents] = useState([]);
-    const [selectedRoom, setSelectedRoom] = useState(null);
+    const [selectedRoom, setSelectedRoom] = useState(EVENT_SPACE);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -29,469 +65,399 @@ const Events = ({ location = 'E3' }) => {
                 const res = await fetch(`${API_URL}/events?location=${location}`);
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && data.length > 0) {
-                        setEvents(data);
-                        setSelectedRoom(data[0]);
-                    } else {
-                        // Fallback to local data if API returns empty
-                        setEvents([EVENT_SPACE]);
-                        setSelectedRoom(EVENT_SPACE);
-                    }
-                } else {
-                    throw new Error('API request failed');
+                    if (data && data.length > 0) setSelectedRoom(data[0]);
                 }
-            } catch (err) {
-                console.warn("Failed to fetch events, using local data", err);
-                setEvents([EVENT_SPACE]);
-                setSelectedRoom(EVENT_SPACE);
-            } finally {
-                setLoading(false);
-            }
+            } catch { /* use fallback */ } finally { setLoading(false); }
         };
         fetchEvents();
     }, [location]);
 
-    const [selectedDate, setSelectedDate] = useState('');
-    const [inputValue, setInputValue] = useState('');
+    // ── Date & Slot state ─────────────────────────────────────────────────────
+    const today = new Date().toISOString().split('T')[0];
+    const [selectedDate, setSelectedDate] = useState(today);
+    const [inputValue, setInputValue] = useState(today.split('-').reverse().join('/'));
     const dateInputRef = useRef(null);
 
-    // Sync input value when selectedDate changes (e.g. from picker)
+    const [slots, setSlots] = useState([]);
+    const [slotsLoading, setSlotsLoading] = useState(false);
+    const [selectedSlot, setSelectedSlot] = useState(null);
+
+    // ── Booking form state ────────────────────────────────────────────────────
+    const [name, setName] = useState(user?.name || '');
+    const [guestCount, setGuestCount] = useState('');
+    const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+    const [bookingError, setBookingError] = useState('');
+
+    useEffect(() => { if (user?.name) setName(user.name); }, [user]);
+
+    // Sync text input display
     useEffect(() => {
-        if (selectedDate) {
-            setInputValue(selectedDate.split('-').reverse().join('/'));
-        }
+        if (selectedDate) setInputValue(selectedDate.split('-').reverse().join('/'));
+        setSelectedSlot(null); // reset slot on date change
     }, [selectedDate]);
 
-    // Handle manual text input
     const handleDateInputChange = (e) => {
         const val = e.target.value;
         setInputValue(val);
-
-        // Simple validation for dd/mm/yyyy
-        const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-        const match = val.match(dateRegex);
-
+        const match = val.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
         if (match) {
-            const [_, day, month, year] = match;
-            const isoDate = `${year}-${month}-${day}`;
-            // Validate logical date (e.g. not 31/02)
-            const dateObj = new Date(isoDate);
-            if (!isNaN(dateObj.getTime())) {
-                setSelectedDate(isoDate);
-            }
+            const [_, d, m, y] = match;
+            const iso = `${y}-${m}-${d}`;
+            if (!isNaN(new Date(iso).getTime())) setSelectedDate(iso);
         }
     };
 
-    const [startTime, setStartTime] = useState('');
-    const [guestCount, setGuestCount] = useState('');
-    const [name, setName] = useState('');
-
-    // Pre-fill name if user is logged in
-    useEffect(() => {
-        if (user?.name) {
-            setName(user.name);
-        }
-    }, [user]);
-    const [booked, setBooked] = useState(false);
-    const [calculatedPrice, setCalculatedPrice] = useState(0);
-    const [durationHours, setDurationHours] = useState(1);
-
-    const [availabilityStatus, setAvailabilityStatus] = useState(null); // 'checking', 'available', 'unavailable'
-
-    // Calculate price whenever duration or selectedRoom changes
-    useEffect(() => {
-        if (selectedRoom) {
-            setCalculatedPrice(durationHours > 0 ? durationHours * selectedRoom.price : 0);
-        }
-    }, [durationHours, selectedRoom]);
-
-    const calculateEndTime = (start, duration) => {
-        if (!start || !duration) return '';
-        const [h, m] = start.split(':').map(Number);
-        const endH = (h + parseInt(duration)) % 24;
-        return `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-    };
-
-    const checkAvailability = async (e) => {
-        if (e) e.preventDefault();
-
-        if (!user) {
-            alert('Please login to check availability and book events.');
-            navigate(location === 'E4' ? '/e4/login' : '/login');
-            return;
-        }
-
-        const endTime = calculateEndTime(startTime, durationHours);
-
-        if (!selectedDate || !startTime || !endTime) {
-            alert('Please select date, start time and duration');
-            return;
-        }
-
-        setAvailabilityStatus('checking');
+    // ── Fetch slots whenever date or location changes ─────────────────────────
+    const fetchSlots = useCallback(async (date) => {
+        if (!date) return;
+        setSlotsLoading(true);
+        setSlots([]);
         try {
-            // Using logic similar to defined structure, ensure consistent API usage
-            const res = await fetch(`${API_URL}/bookings/check-availability`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    date: selectedDate,
-                    startTime,
-                    endTime,
-                    roomName: selectedRoom.name
-                })
-            });
-            // Handle mock/real response
+            const res = await fetch(`${API_URL}/bookings/slots?location=${location.toLowerCase()}&date=${date}`);
             if (res.ok) {
                 const data = await res.json();
-                if (data.available) {
-                    setAvailabilityStatus('available');
-                } else {
-                    setAvailabilityStatus('unavailable');
-                }
-            } else {
-                // If API endpoint barely exists/mocks, assume available for prototype
-                setAvailabilityStatus('available');
+                setSlots(data.slots || []);
             }
-        } catch (err) {
-            console.error(err);
-            // Fallback for prototype
-            setAvailabilityStatus('available');
-        }
-    };
+        } catch {
+            // fallback: generate client-side dummy
+            const dummy = [];
+            for (let h = 9; h < 22; h++) {
+                const pad = n => String(n).padStart(2, '0');
+                dummy.push({
+                    hour: h, startTime: `${pad(h)}:00`, endTime: `${pad(h + 1)}:00`,
+                    label: `${pad(h)}:00 – ${pad(h + 1)}:00`,
+                    status: [10, 13, 17].includes(h) ? 'booked' : 'available', price: 1000
+                });
+            }
+            setSlots(dummy);
+        } finally { setSlotsLoading(false); }
+    }, [location]);
 
-    const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+    useEffect(() => { fetchSlots(selectedDate); }, [selectedDate, fetchSlots]);
 
-    // Filter tickets for current user events
-    const myEvents = user ? tickets.filter(t =>
-        (!t.userMobile || t.userMobile === user.mobile) &&
-        t.items.some(item =>
-            (item.product && item.product.toString().startsWith('event-')) ||
-            (item.id && item.id.toString().startsWith('event-')) ||
-            item.stall === 'Events'
-        )
-    ) : [];
+    // ── Legend counts ─────────────────────────────────────────────────────────
+    const available = slots.filter(s => s.status === 'available').length;
+    const booked = slots.filter(s => s.status === 'booked').length;
 
+    // ── Payment ───────────────────────────────────────────────────────────────
     const initiatePayment = async () => {
         setIsPaymentProcessing(true);
-        const endTime = calculateEndTime(startTime, durationHours);
+        setBookingError('');
         const token = localStorage.getItem('token');
-
         try {
-            // Use the main order checkout endpoint for consistency
             const response = await fetch(`${API_URL}/orders/${location.toLowerCase()}/checkout`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
-                    location: location, // Pass location (E3/E4)
+                    location,
                     items: [{
                         id: selectedRoom?._id || `event-${Date.now()}`,
                         product: selectedRoom?._id,
                         name: `${selectedRoom?.name} Booking`,
-                        price: selectedRoom?.price, // Hourly price
-                        quantity: durationHours, // Duration as quantity? Or logic needs adjustment. 
-                        // Actually, backend calc is price * quantity. So price=hourly, quantity=hours works.
+                        price: 1000,
+                        quantity: 1,
                         image: selectedRoom?.image,
-                        details: {
-                            date: selectedDate,
-                            startTime,
-                            endTime,
-                            guests: guestCount,
-                            hours: durationHours
-                        }
+                        details: { date: selectedDate, startTime: selectedSlot.startTime, endTime: selectedSlot.endTime, guests: guestCount, hours: 1 }
                     }]
                 }),
             });
-
             const result = await response.json();
-
             if (result.success && result.access_key) {
-                // If Iframe mode is enabled and library is loaded
                 if (result.mode === 'iframe' && window.EasebuzzCheckout) {
-                    const easebuzzCheckout = new window.EasebuzzCheckout(result.key, result.env);
-                    const options = {
-                        access_key: result.access_key,
-                        onResponse: (response) => {
-                            if (response.status === 'success') {
-                                window.location.href = `/success?orderId=${result.txnid}&location=${location}`;
-                            } else {
-                                window.location.href = `/failed?orderId=${result.txnid}&location=${location}`;
-                            }
+                    const eb = new window.EasebuzzCheckout(result.key, result.env);
+                    eb.initiatePayment({
+                        access_key: result.access_key, onResponse: (r) => {
+                            window.location.href = r.status === 'success'
+                                ? `/success?orderId=${result.txnid}&location=${location}`
+                                : `/failed?orderId=${result.txnid}&location=${location}`;
                         }
-                    };
-                    easebuzzCheckout.initiatePayment(options);
-                    setIsPaymentProcessing(false);
-                } else {
-                    // Default to Hosted Checkout (Redirect)
-                    window.location.href = result.payment_url;
-                }
+                    });
+                } else { window.location.href = result.payment_url; }
             } else {
-                alert('Payment Initiation Failed: ' + (result.message || 'Unknown Error'));
+                setBookingError(result.message || 'Payment initiation failed. Try again.');
                 setIsPaymentProcessing(false);
             }
-        } catch (error) {
-            console.error('Payment Error:', error);
-            alert(`Payment Error: ${error.message}`);
+        } catch (err) {
+            setBookingError(err.message);
             setIsPaymentProcessing(false);
         }
     };
 
     const handleBook = (e) => {
         e.preventDefault();
-        if (availabilityStatus !== 'available') {
-            checkAvailability();
-            return;
-        }
-
-        if (calculatedPrice <= 0) {
-            alert("Invalid duration");
-            return;
-        }
-
+        setBookingError('');
+        if (!user) { navigate(location === 'E4' ? '/e4/login' : '/login'); return; }
+        if (!selectedSlot) { setBookingError('Please select a time slot first.'); return; }
+        if (!guestCount) { setBookingError('Please enter expected guest count.'); return; }
         initiatePayment();
     };
 
+    // ── My past bookings ──────────────────────────────────────────────────────
+    const myEvents = user ? tickets.filter(t =>
+        (!t.userMobile || t.userMobile === user.mobile) &&
+        t.items?.some(i => (i.id || '').toString().startsWith('event-') || i.stall === 'Events')
+    ) : [];
+
     return (
-        <div className="bg-creamy-white min-h-screen pt-24 pb-12">
-            <div className="container mx-auto px-6">
-                <div className="grid lg:grid-cols-2 gap-16 items-start">
-                    {/* Left: Info & Listing */}
+        <div className="bg-creamy-white min-h-screen pt-24 pb-16">
+            <div className="container mx-auto px-6 max-w-7xl">
+                <div className="grid lg:grid-cols-2 gap-14 items-start">
+
+                    {/* ── Left: Info + Slot Picker ─────────────────────────── */}
                     <div>
-                        <div className="mb-12">
-                            <span className="text-sunset-orange font-bold uppercase tracking-[0.3em] text-xs mb-4 block">Event Management</span>
-                            <h1 className="text-5xl font-heading font-bold mb-6">Host Your Special<br /><span className="text-riverside-teal">Moments.</span></h1>
-                            <p className="text-gray-500 text-lg">
-                                <strong className="block mt-4 text-charcoal-grey">Note: Decoration and arrangements to be managed by the customer only.</strong>
-                                <span className="text-sm rounded-md bg-yellow-100 px-2 py-1 text-yellow-800 font-bold mt-2 inline-block">
-                                    Fixed Rate: ₹{selectedRoom ? selectedRoom.price : '1000'} / Hour
-                                </span>
+                        {/* Header */}
+                        <div className="mb-10">
+                            <span className="text-sunset-orange font-bold uppercase tracking-[0.3em] text-xs mb-4 block">
+                                {location} · Event Space
+                            </span>
+                            <h1 className="text-5xl font-heading font-bold mb-4">
+                                Host Your Special<br />
+                                <span className="text-riverside-teal">Moments.</span>
+                            </h1>
+                            <p className="text-gray-500">
+                                Book the venue by the hour. Decoration & arrangements must be handled by the customer.
                             </p>
+                            <span className="mt-4 inline-block bg-yellow-100 text-yellow-800 font-bold text-sm px-3 py-1.5 rounded-lg border border-yellow-200">
+                                ₹1,000 / Hour · Fixed Rate
+                            </span>
                         </div>
 
-                        {loading && <p>Loading events...</p>}
-                        {!loading && !selectedRoom && <p>No events found for this location.</p>}
-
+                        {/* Space card */}
                         {selectedRoom && (
-                            <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden mb-12">
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.4 }}
-                                >
-                                    <div className="relative h-[400px] rounded-[2rem] overflow-hidden mb-8 group">
-                                        <img src={selectedRoom?.image || '/event%20place.webp'} alt={selectedRoom?.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl font-bold text-sunset-orange shadow-lg">
-                                            ₹{selectedRoom?.price}<span className="text-xs text-gray-500 font-normal">/hr</span>
+                            <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden mb-10">
+                                <div className="relative h-64 rounded-[2rem] overflow-hidden mb-6 group">
+                                    <img
+                                        src={selectedRoom.image || '/event%20place.webp'}
+                                        alt={selectedRoom.name}
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl font-bold text-sunset-orange shadow-lg">
+                                        ₹1,000<span className="text-xs text-gray-500 font-normal">/hr</span>
+                                    </div>
+                                </div>
+                                <div className="px-3 pb-2 space-y-3">
+                                    <h3 className="font-heading font-bold text-2xl text-charcoal-grey">{selectedRoom.name}</h3>
+                                    <div className="flex gap-3">
+                                        <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 text-sm">
+                                            <User className="text-sunset-orange" size={16} />
+                                            <span className="font-bold text-charcoal-grey">{selectedRoom.capacity || '20–50 People'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 bg-teal-50 px-4 py-2 rounded-xl border border-teal-100 text-riverside-teal text-sm">
+                                            <CheckCircle2 size={16} />
+                                            <span className="font-bold">Parties & Birthdays</span>
                                         </div>
                                     </div>
-
-                                    <div className="px-4 pb-4 space-y-4">
-                                        <div className="flex justify-between items-end">
-                                            <div>
-                                                <span className="text-riverside-teal font-bold uppercase tracking-widest text-xs mb-1 block">Selected Space</span>
-                                                <h3 className="font-heading font-bold text-3xl text-charcoal-grey">{selectedRoom.name}</h3>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-4 border-t border-gray-100 pt-6">
-                                            <div className="flex items-center gap-3 bg-gray-50 px-5 py-3 rounded-xl border border-gray-100">
-                                                <User className="text-sunset-orange" size={20} />
-                                                <div>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Capacity</p>
-                                                    <p className="font-bold text-charcoal-grey">{selectedRoom.capacity}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3 bg-teal-50 px-5 py-3 rounded-xl border border-teal-100 text-riverside-teal">
-                                                <CheckCircle2 size={20} />
-                                                <span className="font-bold text-sm">Hourly Parties & Birthdays</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex gap-3 text-orange-800 text-sm">
-                                            <Info className="shrink-0" size={20} />
-                                            <p>
-                                                <strong>Customer Policy:</strong> We provide only the space.
-                                                Tables, chairs, decorations, cake, and specific arrangements must be handled by the customer.
-                                            </p>
-                                        </div>
+                                    <div className="p-3 bg-orange-50 rounded-xl border border-orange-100 flex gap-2 text-orange-800 text-xs">
+                                        <Info className="shrink-0 mt-0.5" size={14} />
+                                        <p><strong>Customer Policy:</strong> We provide the space only. Tables, chairs, decor & cake must be managed by you.</p>
                                     </div>
-                                </motion.div>
+                                </div>
                             </div>
                         )}
 
-                        {/* My Scheduled Events Section */}
+                        {/* ── Slot Availability Grid ─── */}
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+                            {/* Date picker row */}
+                            <div className="flex items-center justify-between mb-5">
+                                <h2 className="font-heading font-bold text-lg text-charcoal-grey">Available Slots</h2>
+                                <div className="relative flex items-center gap-2">
+                                    <Calendar className="absolute left-3 text-sunset-orange z-10" size={16} onClick={() => dateInputRef.current?.showPicker()} />
+                                    <input
+                                        type="text"
+                                        placeholder="dd/mm/yyyy"
+                                        value={inputValue}
+                                        onChange={handleDateInputChange}
+                                        className="pl-9 pr-3 py-2 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-riverside-teal/30 w-34"
+                                    />
+                                    <input
+                                        ref={dateInputRef}
+                                        type="date"
+                                        min={today}
+                                        value={selectedDate}
+                                        onChange={e => setSelectedDate(e.target.value)}
+                                        className="absolute opacity-0 pointer-events-none w-0 h-0"
+                                        tabIndex={-1}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Legend */}
+                            <div className="flex items-center gap-4 mb-4 text-xs font-bold">
+                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-200 border border-green-400 inline-block" /> Available ({available})</span>
+                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-100 border border-red-300 inline-block" /> Booked ({booked})</span>
+                                <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-riverside-teal inline-block" /> Selected</span>
+                            </div>
+
+                            {/* Grid */}
+                            {slotsLoading ? (
+                                <div className="flex items-center justify-center py-10 text-gray-400 gap-2">
+                                    <Loader2 size={20} className="animate-spin" />
+                                    <span className="text-sm font-medium">Loading slots…</span>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                                    {slots.map(slot => (
+                                        <SlotCell
+                                            key={slot.hour}
+                                            slot={slot}
+                                            selected={selectedSlot?.hour === slot.hour}
+                                            onSelect={setSelectedSlot}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {selectedSlot && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-between"
+                                >
+                                    <div className="text-sm font-bold text-riverside-teal">
+                                        ✓ Selected: {selectedSlot.label}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedSlot(null)}
+                                        className="text-gray-400 hover:text-red-400 transition-colors"
+                                    >
+                                        <XCircle size={16} />
+                                    </button>
+                                </motion.div>
+                            )}
+                        </div>
+
+                        {/* My scheduled events */}
                         {myEvents.length > 0 && (
-                            <div className="mt-12">
-                                <h2 className="text-2xl font-heading font-bold text-charcoal-grey mb-6">My Scheduled Events</h2>
-                                <div className="space-y-4">
-                                    {myEvents.map(ticket => (
-                                        ticket.items.map((item, idx) => (
-                                            <div key={`${ticket.id}-${idx}`} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-6">
-                                                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                            <div className="mt-10">
+                                <h2 className="text-2xl font-heading font-bold text-charcoal-grey mb-4">My Bookings</h2>
+                                <div className="space-y-3">
+                                    {myEvents.map(ticket =>
+                                        ticket.items?.map((item, idx) => (
+                                            <div key={`${ticket.id}-${idx}`} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5">
+                                                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
                                                     <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="flex-grow">
-                                                    <h3 className="font-bold text-lg text-charcoal-grey">{item.name}</h3>
+                                                    <h3 className="font-bold text-charcoal-grey">{item.name}</h3>
                                                     {item.details && (
                                                         <div className="flex gap-4 text-sm text-gray-500 mt-1">
-                                                            <div className="flex items-center gap-1">
-                                                                <Calendar size={14} className="text-sunset-orange" />
-                                                                <span>{item.details.date.split('-').reverse().join('/')}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock size={14} className="text-riverside-teal" />
-                                                                <span>
-                                                                    {`${formatTime12h(item.details.startTime)} - ${formatTime12h(item.details.endTime)}`}
-                                                                </span>
-                                                            </div>
+                                                            <span className="flex items-center gap-1"><Calendar size={13} className="text-sunset-orange" />{item.details.date?.split('-').reverse().join('/')}</span>
+                                                            <span className="flex items-center gap-1"><Clock size={13} className="text-riverside-teal" />{formatTime12h(item.details.startTime)} – {formatTime12h(item.details.endTime)}</span>
                                                         </div>
                                                     )}
-                                                    <div className="mt-2 flex items-center gap-2">
-                                                        <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Confirmed</span>
-                                                        <span className="text-xs text-gray-400">Order ID: {ticket.id}</span>
-                                                    </div>
+                                                    <span className="mt-2 inline-block bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Confirmed</span>
                                                 </div>
                                             </div>
                                         ))
-                                    ))}
+                                    )}
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Right: Booking Form Container */}
+                    {/* ── Right: Booking Form ──────────────────────────────── */}
                     <div className="sticky top-32">
-                        <div className="bg-charcoal-grey text-white p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden transition-transform hover:scale-[1.01] duration-700">
+                        <div className="bg-charcoal-grey text-white p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-riverside-teal/20 blur-3xl rounded-full -mr-16 -mt-16" />
 
-                            <h2 className="text-3xl font-heading font-bold mb-2">Booking Engine</h2>
-                            <p className="text-gray-400 text-sm mb-8">Book spaces for your limited-hour events.</p>
+                            <h2 className="text-3xl font-heading font-bold mb-1">Booking Engine</h2>
+                            <p className="text-gray-400 text-sm mb-8">Select a slot on the left, fill in your details, and confirm.</p>
 
-                            <form onSubmit={handleBook} className="space-y-6">
-                                <div>
-                                    <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Name</label>
-                                    <div className="relative">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange" size={18} />
-                                        <input
-                                            type="text"
-                                            placeholder="Your Name"
-                                            required
-                                            className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Date</label>
-                                        <div className="relative">
-                                            <Calendar
-                                                className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange z-20 cursor-pointer hover:text-orange-600 transition-colors"
-                                                size={18}
-                                                onClick={() => dateInputRef.current?.showPicker()}
-                                            />
-                                            {/* Visual Input (Editable) */}
-                                            <input
-                                                type="text"
-                                                placeholder="dd/mm/yyyy"
-                                                className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
-                                                value={inputValue}
-                                                onChange={handleDateInputChange}
-                                            />
-                                            {/* Hidden Date Input for Picker */}
-                                            <input
-                                                ref={dateInputRef}
-                                                type="date"
-                                                tabIndex={-1}
-                                                min={new Date().toISOString().split('T')[0]}
-                                                className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
-                                                value={selectedDate}
-                                                onChange={(e) => setSelectedDate(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Expected Guests</label>
-                                        <div className="relative">
-                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange" size={18} />
-                                            <input
-                                                type="number"
-                                                placeholder="Qty"
-                                                required
-                                                min="1"
-                                                className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
-                                                value={guestCount}
-                                                onChange={(e) => setGuestCount(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div>
-                                        <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Start Time</label>
-                                        <div className="relative">
-                                            <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange" size={18} />
-                                            <input
-                                                type="time"
-                                                required
-                                                className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none transition-all hover:bg-white/20"
-                                                value={startTime}
-                                                onChange={(e) => setStartTime(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="py-4 border-t border-white/10">
-                                    <div className="flex justify-between items-center text-xl text-riverside-teal font-heading font-bold">
-                                        <span>Price</span>
-                                        <span>₹{calculatedPrice}</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {availabilityStatus === 'unavailable' && (
-                                        <p className="text-red-500 font-bold text-center">Slot Not Available. Please choose another time.</p>
-                                    )}
-                                    {availabilityStatus === 'available' && (
-                                        <p className="text-green-500 font-bold text-center">Slot Available! Proceed to Book.</p>
-                                    )}
-
-                                    <button
-                                        type="submit"
-                                        onClick={availabilityStatus === 'available' ? handleBook : checkAvailability}
-                                        disabled={availabilityStatus === 'checking' || isPaymentProcessing}
-                                        className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg ${availabilityStatus === 'available'
-                                            ? 'bg-green-500 hover:bg-green-600 text-white'
-                                            : 'bg-sunset-orange hover:bg-opacity-90 text-white'
-                                            }`}
-                                    >
-                                        {availabilityStatus === 'checking' ? 'Checking...' : (isPaymentProcessing ? 'Processing Payment...' : (availabilityStatus === 'available' ? 'Confirm & Book' : 'Check Availability'))} <ArrowRight size={20} />
-                                    </button>
-                                </div>
-                            </form>
-
+                            {/* Selected slot summary */}
                             <AnimatePresence>
-                                {booked && (
+                                {selectedSlot ? (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 20 }}
+                                        key="slot-selected"
+                                        initial={{ opacity: 0, y: -8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0 }}
-                                        className="mt-6 p-4 bg-green-500/20 border border-green-500/40 rounded-xl text-center"
+                                        exit={{ opacity: 0, y: -8 }}
+                                        className="mb-6 p-4 bg-riverside-teal/20 border border-riverside-teal/40 rounded-2xl"
                                     >
-                                        <p className="font-bold text-green-400">Request Sent Successfully!</p>
-                                        <p className="text-xs text-gray-400 mt-1">Our manager will call you within 24 hours.</p>
+                                        <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">Selected Slot</p>
+                                        <div className="flex items-center gap-3">
+                                            <Clock size={20} className="text-riverside-teal" />
+                                            <div>
+                                                <p className="font-black text-lg text-white">{selectedSlot.label}</p>
+                                                <p className="text-xs text-gray-400">{selectedDate.split('-').reverse().join('/')} · 1 hour</p>
+                                            </div>
+                                            <span className="ml-auto font-black text-riverside-teal text-xl">₹1,000</span>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="slot-empty"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="mb-6 p-4 bg-white/5 border border-white/10 rounded-2xl text-center text-gray-400 text-sm"
+                                    >
+                                        ← Pick a green slot from the calendar
                                     </motion.div>
                                 )}
                             </AnimatePresence>
 
-                            <div className="mt-12 flex items-center gap-6 border-t border-white/10 pt-8">
+                            <form onSubmit={handleBook} className="space-y-5">
+                                {/* Name */}
+                                <div>
+                                    <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Your Name</label>
+                                    <div className="relative">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange" size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="Full name"
+                                            required
+                                            className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none hover:bg-white/20 transition-all"
+                                            value={name}
+                                            onChange={e => setName(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Guest count */}
+                                <div>
+                                    <label className="text-xs uppercase tracking-widest font-bold text-gray-400 mb-2 block">Expected Guests</label>
+                                    <div className="relative">
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-sunset-orange" size={18} />
+                                        <input
+                                            type="number"
+                                            placeholder="e.g. 25"
+                                            required
+                                            min="1"
+                                            max="50"
+                                            className="w-full bg-white/10 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-sunset-orange outline-none hover:bg-white/20 transition-all"
+                                            value={guestCount}
+                                            onChange={e => setGuestCount(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Price summary */}
+                                <div className="py-4 border-t border-white/10 flex justify-between items-center">
+                                    <span className="text-gray-400 font-medium">Total</span>
+                                    <span className="text-2xl font-black text-riverside-teal">
+                                        {selectedSlot ? '₹1,000' : '—'}
+                                    </span>
+                                </div>
+
+                                {bookingError && (
+                                    <p className="text-red-400 text-sm font-bold text-center">{bookingError}</p>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={!selectedSlot || isPaymentProcessing}
+                                    className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-lg
+                                        ${selectedSlot && !isPaymentProcessing
+                                            ? 'bg-sunset-orange hover:bg-orange-500 text-white hover:scale-105 active:scale-95'
+                                            : 'bg-white/10 text-gray-500 cursor-not-allowed'}`}
+                                >
+                                    {isPaymentProcessing
+                                        ? <><Loader2 size={20} className="animate-spin" /> Processing…</>
+                                        : <>{selectedSlot ? 'Confirm & Pay ₹1,000' : 'Select a Slot First'} <ArrowRight size={20} /></>}
+                                </button>
+                            </form>
+
+                            <div className="mt-10 flex items-center gap-6 border-t border-white/10 pt-8">
                                 <div className="flex flex-col">
                                     <span className="text-[10px] uppercase text-gray-500 font-bold">Inquiries</span>
                                     <span className="text-sm font-bold tracking-widest">+91 70369 23456</span>
@@ -503,6 +469,7 @@ const Events = ({ location = 'E3' }) => {
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>

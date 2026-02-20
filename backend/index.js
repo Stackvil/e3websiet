@@ -36,19 +36,34 @@ const swaggerOptions = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'Ethree API',
-            version: '1.0.0',
-            description: 'API for Ethree - Eat, Enjoy, Entertainment platform (Supabase PostgreSQL Version)',
+            title: 'Ethree & Efour API',
+            version: '2.0.0',
+            description: `
+## Overview
+REST API backend for **Ethree (E3)** and **Efour (E4)** — a multi-location entertainment, dining, and rides platform.
+            `,
         },
         servers: [
             {
                 url: 'https://e3-e4-backend.vercel.app',
-                description: 'Production Server'
+                description: '🚀 Production'
             },
             {
                 url: `http://localhost:${PORT}`,
-                description: 'Local Server'
+                description: '🛠 Local Dev'
             },
+        ],
+        tags: [
+            { name: 'Auth', description: 'OTP-based mobile authentication for E3 and E4 users' },
+            { name: 'E3', description: 'E3 location — Rides (GET/POST/PUT/DELETE) and Dine items' },
+            { name: 'E4', description: 'E4 location — Rides (GET/POST/PUT/DELETE) and Dine items' },
+            { name: 'Events', description: 'Event spaces — listing and admin management' },
+            { name: 'Bookings', description: 'Event slot availability, slot booking, and booking history' },
+            { name: 'Orders', description: 'Cart checkout, payment initiation (Easebuzz), and order history for E3 & E4' },
+            { name: 'POA', description: 'Plan of Action — operational dashboard data for E3 (summary, rides, stalls, alerts)' },
+            { name: 'Analytics', description: 'Platform usage statistics — web vs mobile breakdown per location' },
+            { name: 'Profile', description: 'User profile read and update' },
+            { name: 'Sponsors', description: 'Sponsor registration and profile management' },
         ],
         components: {
             securitySchemes: {
@@ -56,93 +71,234 @@ const swaggerOptions = {
                     type: 'http',
                     scheme: 'bearer',
                     bearerFormat: 'JWT',
+                    description: 'JWT obtained from `/api/auth/verify-otp`',
                 },
             },
             schemas: {
+                // ── Auth ──────────────────────────────────────────────────────
                 User: {
                     type: 'object',
+                    description: 'Authenticated user record',
                     properties: {
-                        id: { type: 'string', description: 'User ID' },
-                        name: { type: 'string', description: 'User Name' },
-                        mobile: { type: 'string', description: 'Mobile Number' },
-                        role: { type: 'string', enum: ['user', 'admin', 'customer'], description: 'User Role' },
+                        id: { type: 'string', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
+                        name: { type: 'string', example: 'Karthik Kumar' },
+                        mobile: { type: 'string', example: '9876543210' },
+                        role: { type: 'string', enum: ['user', 'admin'], example: 'user' },
+                        location: { type: 'string', enum: ['E3', 'E4'], example: 'E3' },
                         createdAt: { type: 'string', format: 'date-time' }
                     }
                 },
+                // ── Products ──────────────────────────────────────────────────
                 Ride: {
                     type: 'object',
+                    description: 'A ride available at E3 or E4',
+                    required: ['name', 'price', 'category'],
                     properties: {
                         id: { type: 'string' },
-                        name: { type: 'string' },
-                        price: { type: 'number' },
-                        image: { type: 'string' },
-                        desc: { type: 'string' },
-                        status: { type: 'string', enum: ['on', 'off'] },
-                        category: { type: 'string' },
-                        ageGroup: { type: 'string' }
+                        name: { type: 'string', example: 'Roller Coaster' },
+                        price: { type: 'number', example: 150 },
+                        image: { type: 'string', description: 'Base64 or URL', example: 'https://...' },
+                        images: { type: 'array', items: { type: 'string' }, description: 'Gallery images' },
+                        desc: { type: 'string', example: 'High-speed thrilling ride' },
+                        status: { type: 'string', enum: ['on', 'off'], example: 'on' },
+                        category: { type: 'string', enum: ['play', 'splash'], example: 'play' },
+                        ageGroup: { type: 'string', example: '8+' },
+                        type: { type: 'string', example: 'thrill' }
                     }
                 },
                 DineItem: {
                     type: 'object',
+                    description: 'A food or beverage item at E3 or E4 dining',
+                    required: ['name', 'price', 'stall'],
                     properties: {
                         id: { type: 'string' },
-                        name: { type: 'string' },
-                        price: { type: 'number' },
+                        name: { type: 'string', example: 'Chicken Burger' },
+                        price: { type: 'number', example: 120 },
                         image: { type: 'string' },
-                        category: { type: 'string' },
-                        cuisine: { type: 'string' },
-                        stall: { type: 'string' },
-                        open: { type: 'boolean' }
+                        menuImages: { type: 'array', items: { type: 'string' } },
+                        category: { type: 'string', example: 'main course' },
+                        cuisine: { type: 'string', example: 'Continental' },
+                        stall: { type: 'string', example: 'Stall A' },
+                        open: { type: 'boolean', example: true },
+                        status: { type: 'string', enum: ['active', 'inactive'], example: 'active' }
                     }
                 },
+                // ── Events ───────────────────────────────────────────────────
                 Event: {
+                    type: 'object',
+                    description: 'An event space entity (admin-managed)',
+                    properties: {
+                        id: { type: 'string' },
+                        name: { type: 'string', example: 'Celebration Zone' },
+                        price: { type: 'number', example: 1000, description: '₹ per hour' },
+                        image: { type: 'string' },
+                        capacity: { type: 'string', example: '20-50 People' },
+                        start_time: { type: 'string', format: 'date-time' },
+                        end_time: { type: 'string', format: 'date-time' },
+                        location: { type: 'string', enum: ['E3', 'E4'] },
+                        status: { type: 'string', example: 'active' }
+                    }
+                },
+                // ── Bookings / Slots ─────────────────────────────────────────
+                Slot: {
+                    type: 'object',
+                    description: 'A single 1-hour bookable time slot',
+                    properties: {
+                        hour: { type: 'integer', example: 11, description: 'Hour in 24h (9–21)' },
+                        startTime: { type: 'string', example: '11:00' },
+                        endTime: { type: 'string', example: '12:00' },
+                        label: { type: 'string', example: '11:00 – 12:00' },
+                        status: { type: 'string', enum: ['available', 'booked', 'past'], example: 'available' },
+                        price: { type: 'number', example: 1000, description: '₹ per hour (fixed)' }
+                    }
+                },
+                BookingSlotsResponse: {
+                    type: 'object',
+                    description: 'Response from GET /api/bookings/slots',
+                    properties: {
+                        date: { type: 'string', example: '2026-02-20' },
+                        location: { type: 'string', enum: ['E3', 'E4'] },
+                        pricePerHour: { type: 'number', example: 1000 },
+                        slots: {
+                            type: 'array',
+                            items: { '$ref': '#/components/schemas/Slot' }
+                        }
+                    }
+                },
+                // ── Orders ───────────────────────────────────────────────────
+                OrderItem: {
                     type: 'object',
                     properties: {
                         id: { type: 'string' },
                         name: { type: 'string' },
                         price: { type: 'number' },
+                        quantity: { type: 'integer' },
                         image: { type: 'string' },
-                        start_time: { type: 'string', format: 'date-time' },
-                        end_time: { type: 'string', format: 'date-time' },
-                        location: { type: 'string', enum: ['E3', 'E4'] },
-                        status: { type: 'string' }
+                        details: {
+                            type: 'object',
+                            description: 'Used for event bookings',
+                            properties: {
+                                date: { type: 'string', example: '2026-02-20' },
+                                startTime: { type: 'string', example: '11:00' },
+                                endTime: { type: 'string', example: '12:00' },
+                                guests: { type: 'integer', example: 25 }
+                            }
+                        }
                     }
                 },
                 Order: {
                     type: 'object',
+                    description: 'An order record (E3 or E4)',
                     properties: {
-                        _id: { type: 'string', description: 'Transaction ID' },
+                        _id: { type: 'string', description: 'Transaction ID (ETH-XXXXXX)', example: 'ETH-123456' },
                         userId: { type: 'string' },
-                        amount: { type: 'number' },
-                        status: { type: 'string' },
-                        items: {
+                        amount: { type: 'number', example: 1000 },
+                        status: { type: 'string', enum: ['placed', 'confirmed', 'failed'], example: 'placed' },
+                        location: { type: 'string', enum: ['E3', 'E4'] },
+                        items: { type: 'array', items: { '$ref': '#/components/schemas/OrderItem' } },
+                        createdAt: { type: 'string', format: 'date-time' }
+                    }
+                },
+                CheckoutResponse: {
+                    type: 'object',
+                    description: 'Response from checkout endpoint — use payment_url or access_key for payment',
+                    properties: {
+                        success: { type: 'boolean', example: true },
+                        payment_url: { type: 'string', example: 'https://pay.easebuzz.in/pay/abc123' },
+                        access_key: { type: 'string', example: 'abc123xyz' },
+                        txnid: { type: 'string', example: 'ETH-789012' },
+                        mode: { type: 'string', enum: ['hosted', 'iframe'], example: 'hosted' },
+                        key: { type: 'string' },
+                        env: { type: 'string', enum: ['test', 'prod'] }
+                    }
+                },
+                // ── POA ──────────────────────────────────────────────────────
+                POASummary: {
+                    type: 'object',
+                    description: 'Plan of Action operational summary for one location',
+                    properties: {
+                        location: { type: 'string', enum: ['E3', 'E4'] },
+                        date: { type: 'string', example: '2026-02-19' },
+                        summary: {
+                            type: 'object',
+                            properties: {
+                                totalRevenue: { type: 'number', example: 24500 },
+                                totalOrders: { type: 'integer', example: 38 },
+                                activeRides: { type: 'integer', example: 6 },
+                                openStalls: { type: 'integer', example: 4 },
+                                pendingAlerts: { type: 'integer', example: 2 }
+                            }
+                        },
+                        recentOrders: {
                             type: 'array',
                             items: {
                                 type: 'object',
                                 properties: {
                                     id: { type: 'string' },
                                     name: { type: 'string' },
-                                    price: { type: 'number' },
-                                    quantity: { type: 'integer' }
+                                    amount: { type: 'number' },
+                                    status: { type: 'string' },
+                                    time: { type: 'string' }
                                 }
                             }
                         },
-                        createdAt: { type: 'string', format: 'date-time' }
+                        rideStatus: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    name: { type: 'string' },
+                                    status: { type: 'string', enum: ['running', 'maintenance', 'offline'] },
+                                    count: { type: 'integer' }
+                                }
+                            }
+                        },
+                        stallStatus: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    name: { type: 'string' },
+                                    status: { type: 'string', enum: ['open', 'closed'] },
+                                    revenue: { type: 'number' }
+                                }
+                            }
+                        },
+                        alerts: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    type: { type: 'string' },
+                                    message: { type: 'string' },
+                                    level: { type: 'string', enum: ['info', 'warning', 'critical'] }
+                                }
+                            }
+                        }
                     }
                 },
+                // ── Analytics ────────────────────────────────────────────────
+                AnalyticsStats: {
+                    type: 'object',
+                    description: 'Platform usage stats for a location',
+                    properties: {
+                        web: { type: 'integer', example: 142 },
+                        mobile: { type: 'integer', example: 87 },
+                        android: { type: 'integer', example: 53 },
+                        ios: { type: 'integer', example: 34 },
+                        total: { type: 'integer', example: 229 }
+                    }
+                },
+                // ── Error ────────────────────────────────────────────────────
                 Error: {
                     type: 'object',
                     properties: {
-                        message: { type: 'string' }
+                        message: { type: 'string', example: 'Unauthorized' }
                     }
                 }
             }
         },
-        security: [
-            {
-                bearerAuth: [],
-            },
-        ],
+        security: [{ bearerAuth: [] }],
     },
     apis: [path.join(__dirname, 'routes/*.js')],
 };
