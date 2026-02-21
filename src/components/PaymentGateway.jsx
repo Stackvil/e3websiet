@@ -121,7 +121,7 @@ const PaymentGateway = ({ amount, isOpen, onClose }) => {
                 {/* Header */}
                 <div className="bg-[#1D2B44] text-white p-6 flex justify-between items-start">
                     <div>
-                        <h2 className="text-xl font-bold tracking-tight">Ethree Entertainment</h2>
+                        <h2 className="text-xl font-bold tracking-tight">Jaan Entertainment Pvt Ltd</h2>
                         <p className="text-blue-300 text-xs mt-0.5">Secure Checkout · {getLocation()}</p>
                     </div>
                     <div className="text-right">
@@ -158,8 +158,8 @@ const PaymentGateway = ({ amount, isOpen, onClose }) => {
                                         key={id}
                                         onClick={() => setMethod(id)}
                                         className={`flex-1 p-3 rounded-2xl flex flex-col items-center gap-1.5 border-2 transition-all text-sm font-bold ${method === id
-                                                ? 'border-riverside-teal bg-teal-50 text-riverside-teal shadow-sm'
-                                                : 'border-gray-100 text-gray-400 hover:border-gray-200'
+                                            ? 'border-riverside-teal bg-teal-50 text-riverside-teal shadow-sm'
+                                            : 'border-gray-100 text-gray-400 hover:border-gray-200'
                                             }`}
                                     >
                                         <Icon size={22} />

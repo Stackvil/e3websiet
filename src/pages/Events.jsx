@@ -227,7 +227,7 @@ const Events = ({ location = 'E3' }) => {
                             <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden mb-10">
                                 <div className="relative h-64 rounded-[2rem] overflow-hidden mb-6 group">
                                     <img
-                                        src={selectedRoom.image || '/event%20place.webp'}
+                                        src="/event place.webp"
                                         alt={selectedRoom.name}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
@@ -464,7 +464,7 @@ const Events = ({ location = 'E3' }) => {
                                 </div>
                                 <div className="flex flex-col border-l border-white/10 pl-6">
                                     <span className="text-[10px] uppercase text-gray-500 font-bold">Support</span>
-                                    <span className="text-sm font-bold tracking-widest">events@ethree.in</span>
+                                    <span className="text-sm font-bold tracking-widest">events@jaanentertainment.in</span>
                                 </div>
                             </div>
                         </div>

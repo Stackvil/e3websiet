@@ -73,16 +73,107 @@ const Navbar = () => {
 
                 {/* Logo */}
                 <motion.div
-                    className="flex items-center gap-3 cursor-pointer"
-                    whileHover={{ scale: 1.05 }}
+                    className="flex items-center gap-3 cursor-pointer select-none"
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => navigate('/')}
                 >
-                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center font-black text-bg-deep text-2xl shadow-lg shadow-primary/20">
-                        E3
+                    {/* Icon badge */}
+                    <div className="relative w-12 h-12 shrink-0">
+                        {/* Spinning gradient ring */}
+                        <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                            className="absolute inset-0 rounded-xl"
+                            style={{
+                                background: 'conic-gradient(from 0deg, #f97316, #fbbf24, #10b981, #0d9488, #f97316)',
+                                padding: '2px',
+                                borderRadius: '14px',
+                            }}
+                        >
+                            <div className="w-full h-full rounded-[12px] bg-gray-900" />
+                        </motion.div>
+
+                        {/* Inner badge */}
+                        <div
+                            className="absolute inset-[2px] rounded-[12px] flex items-center justify-center overflow-hidden"
+                            style={{
+                                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f2027 100%)',
+                            }}
+                        >
+                            {/* Shimmer sweep */}
+                            <motion.div
+                                animate={{ x: ['-120%', '220%'] }}
+                                transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1.5, ease: 'easeInOut' }}
+                                className="absolute inset-0 w-1/2"
+                                style={{
+                                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)',
+                                    transform: 'skewX(-15deg)',
+                                }}
+                            />
+                            <span
+                                className="font-black text-lg relative z-10 tracking-tight"
+                                style={{
+                                    background: 'linear-gradient(135deg, #fbbf24, #f97316)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    textShadow: 'none',
+                                    lineHeight: 1,
+                                }}
+                            >
+                                E3
+                            </span>
+                        </div>
+
+                        {/* Glow underneath */}
+                        <div
+                            className="absolute inset-0 rounded-xl opacity-40 blur-md -z-10"
+                            style={{ background: 'linear-gradient(135deg, #f97316, #10b981)' }}
+                        />
                     </div>
-                    <div className="flex flex-col leading-none">
-                        <span className="font-bold text-xl tracking-tighter">ETHREE</span>
-                        <span className="text-[8px] tracking-[0.4em] text-primary">ENJOYMENT</span>
+
+                    {/* Wordmark */}
+                    <div className="flex flex-col leading-none gap-[3px]">
+                        <div className="flex items-baseline gap-[1px]">
+                            <span
+                                className="font-black text-[1.15rem] tracking-[-0.02em]"
+                                style={{
+                                    background: 'linear-gradient(90deg, #ffffff 0%, #e2e8f0 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}
+                            >
+                                J
+                            </span>
+                            <span
+                                className="font-black text-[1.15rem] tracking-[-0.02em]"
+                                style={{
+                                    background: 'linear-gradient(135deg, #f97316, #fbbf24)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}
+                            >
+                                A
+                            </span>
+                            <span
+                                className="font-black text-[1.15rem] tracking-[-0.02em]"
+                                style={{
+                                    background: 'linear-gradient(90deg, #ffffff 0%, #e2e8f0 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}
+                            >
+                                AN
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span
+                                className="text-[6.5px] font-bold tracking-[0.15em] uppercase"
+                                style={{ color: '#94a3b8' }}
+                            >
+                                ENTERTAINMENT PVT LTD
+                            </span>
+                        </div>
                     </div>
                 </motion.div>
 

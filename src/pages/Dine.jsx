@@ -152,7 +152,7 @@ const Dine = () => {
                             Dine & Delight
                             {loading && <div className="w-5 h-5 border-2 border-sunset-orange border-t-transparent rounded-full animate-spin"></div>}
                         </h1>
-                        <p className="text-gray-500">Explore the best food stalls at Ethree</p>
+                        <p className="text-gray-500">Explore the best food stalls at Jaan Entertainment</p>
                     </div>
 
                     <div className="relative w-full md:w-64">
@@ -304,7 +304,7 @@ const Dine = () => {
                         </a>
                     </div>
                     <div className="text-gray-400 text-sm font-medium">
-                        <p>© {new Date().getFullYear()} Ethree. All rights reserved.</p>
+                        <p>© {new Date().getFullYear()} Jaan Entertainment Pvt Ltd. All rights reserved.</p>
                         <p className="mt-1">Terms 7 Conditions Apply</p>
                     </div>
                 </div>

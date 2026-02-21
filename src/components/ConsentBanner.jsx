@@ -24,7 +24,7 @@ const ConsentBanner = () => {
                     className="fixed bottom-0 left-0 right-0 z-[9999] bg-gray-900 text-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl"
                 >
                     <p className="text-sm text-gray-300 text-center sm:text-left">
-                        🍪 By using Ethree, you agree to our{' '}
+                        🍪 By using Jaan Entertainment, you agree to our{' '}
                         <span className="text-sunset-orange font-semibold">Terms & Privacy Policy</span>.
                         We use cookies to improve your experience.
                     </p>

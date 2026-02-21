@@ -291,12 +291,12 @@ const AdminDashboard = () => {
         // Company Header
         doc.setFontSize(22);
         doc.setTextColor(255, 107, 107); // Sunset Orange
-        doc.text('Ethree Adventure Park', 105, 20, { align: 'center' });
+        doc.text('Jaan Entertainment Pvt Ltd', 105, 20, { align: 'center' });
 
         doc.setFontSize(10);
         doc.setTextColor(100);
         doc.text('123 Adventure Lane, Fun City, India', 105, 26, { align: 'center' });
-        doc.text('support@ethree.com | +91 98765 43210', 105, 31, { align: 'center' });
+        doc.text('support@jaanentertainment.in | +91 98765 43210', 105, 31, { align: 'center' });
 
         doc.setLineWidth(0.5);
         doc.line(20, 35, 190, 35);
@@ -361,7 +361,7 @@ const AdminDashboard = () => {
         // Footer
         doc.setFontSize(9);
         doc.setTextColor(150);
-        doc.text('Thank you for choosing Ethree!', 105, 145, { align: 'center' });
+        doc.text('Thank you for choosing Jaan Entertainment!', 105, 145, { align: 'center' });
         doc.text('Please present this receipt at the venue entry.', 105, 150, { align: 'center' });
 
         doc.save(`Receipt_${(booking.facility || 'Event').replace(/\s+/g, '_')}_${(booking.bookingId || 'ID').slice(-4)}.pdf`);
@@ -599,7 +599,7 @@ const AdminDashboard = () => {
                             <h1 className="text-3xl font-heading font-bold text-charcoal-grey">
                                 {tabs.find(t => t.id === activeTab).label}
                             </h1>
-                            <p className="text-gray-500 mt-2">Manage your Ethree operations seamlessly.</p>
+                            <p className="text-gray-500 mt-2">Manage your Jaan Entertainment operations seamlessly.</p>
                         </div>
                         <button
                             onClick={handleLogout}
@@ -1009,7 +1009,7 @@ const AdminDashboard = () => {
                             try {
                                 const doc = new jsPDF();
                                 doc.setFontSize(18);
-                                doc.text('Ethree - Transaction Report', 14, 22);
+                                doc.text('Jaan Entertainment - Transaction Report', 14, 22);
                                 doc.setFontSize(11);
                                 doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
 
@@ -1053,7 +1053,7 @@ const AdminDashboard = () => {
                                 doc.setFontSize(16);
                                 doc.setTextColor(255, 69, 0);
                                 doc.text(`Grand Total Revenue: Rs. ${totalAmount}`, 14, yPos);
-                                doc.save('ethree_transactions.pdf');
+                                doc.save('jaan_entertainment_transactions.pdf');
                             } catch (err) {
                                 console.error("PDF Generation Error:", err);
                                 alert("Failed to generate PDF.");

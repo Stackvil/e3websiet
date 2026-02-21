@@ -9,10 +9,10 @@ const Contact = () => {
 
                 {/* Contact Header */}
                 <div className="mb-20 text-center max-w-3xl mx-auto">
-                    <span className="text-riverside-teal font-bold uppercase tracking-[0.4em] text-xs mb-4 block underline decoration-sunset-orange decoration-4 underline-offset-8">Visit Ethree</span>
+                    <span className="text-riverside-teal font-bold uppercase tracking-[0.4em] text-xs mb-4 block underline decoration-sunset-orange decoration-4 underline-offset-8">Visit Jaan Entertainment</span>
                     <h1 className="text-5xl md:text-7xl font-heading font-bold mb-8 text-charcoal-grey">Get in Touch With <br /><span className="text-sunset-orange">The River.</span></h1>
                     <p className="text-lg text-gray-500 font-body">
-                        Located at the heart of Vijayawada's riverfront, Ethree is easily accessible from any part of the city. We're right opposite the APSRTC Bus Stand.
+                        Located at the heart of Vijayawada's riverfront, Jaan Entertainment Pvt Ltd is easily accessible from any part of the city. We're right opposite the APSRTC Bus Stand.
                     </p>
                 </div>
 
@@ -71,7 +71,7 @@ const Contact = () => {
                                 <div className="bg-white p-6 rounded-3xl shadow-2xl flex items-center gap-6 max-w-sm">
                                     <img src="/e3logo.png" alt="E3 Logo" className="w-16 h-16 object-contain rounded-2xl" />
                                     <div>
-                                        <h4 className="font-bold text-lg">Ethree Vijayawada</h4>
+                                        <h4 className="font-bold text-lg">Jaan Entertainment Vijayawada</h4>
                                         <p className="text-xs text-gray-500 mb-4 font-body">Opp. APSRTC Bus Stand</p>
                                         <a
                                             href="https://maps.app.goo.gl/hFphRTCW5GM6ttLF9"
@@ -120,7 +120,7 @@ const Contact = () => {
                             </p>
                             <div className="space-y-4">
                                 <div className="flex items-center gap-4 text-xl font-bold group cursor-pointer">
-                                    <Mail className="text-white/60 group-hover:text-white transition-colors" /> hello@ethree.in
+                                    <Mail className="text-white/60 group-hover:text-white transition-colors" /> hello@jaanentertainment.in
                                 </div>
                             </div>
                         </div>
