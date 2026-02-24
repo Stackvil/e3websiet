@@ -280,9 +280,9 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
         // 3. Generate Tokens
         // Access Token (Short-lived: 15m) — type carries E3/E4 location
         const accessToken = jwt.sign(
-            { id: user._id, role: user.role, type: location },
-            process.env.JWT_SECRET || 'dev_secret_key',
-            { expiresIn: '15m' }
+            { id: user.id, mobile: user.mobile, role: user.role, location: user.location },
+            process.env.JWT_SECRET || 'super_secure_secret_key_12345',
+            { expiresIn: '24h' }
         );
 
         // Refresh Token (Long-lived: 30d) — also carries location

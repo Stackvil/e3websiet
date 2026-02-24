@@ -162,15 +162,18 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
         }
 
         const payload = {
+            _id: crypto.randomUUID(),
             name: req.body.name,
-            price: req.body.price,
-            ageGroup: req.body.ageGroup,
-            category: req.body.category,
-            type: req.body.type,
-            status: req.body.status,
-            image: imageUrl, // Use the uploaded URL
-            images: imagesUrls, // Gallery URLs
-            desc: req.body.desc,
+            price: Number(req.body.price),
+            ageGroup: req.body.ageGroup || 'All',
+            category: req.body.category || 'play',
+            type: req.body.type || 'Ride',
+            status: req.body.status || 'on',
+            image: imageUrl,
+            images: imagesUrls || [],
+            desc: req.body.desc || '',
+            isCombo: req.body.isCombo || false,
+            rideCount: req.body.rideCount ? Number(req.body.rideCount) : undefined,
             createdAt: new Date().toISOString()
         };
 
@@ -228,15 +231,17 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
         }
 
         const payload = {
+            _id: crypto.randomUUID(),
             name: req.body.name,
-            price: req.body.price,
-            category: req.body.category,
-            cuisine: req.body.cuisine,
-            stall: req.body.stall,
-            image: imageUrl, // Use the uploaded URL
-            menuImages: menuImagesUrls,
-            status: req.body.status,
-            open: req.body.open,
+            price: Number(req.body.price),
+            category: req.body.category || 'dine',
+            cuisine: req.body.cuisine || 'General',
+            stall: req.body.stall || 'General',
+            image: imageUrl,
+            menuImages: menuImagesUrls || [],
+            status: req.body.status || 'on',
+            open: req.body.open !== undefined ? req.body.open : true,
+            contactNumber: req.body.contactNumber || '',
             createdAt: new Date().toISOString()
         };
 
