@@ -74,8 +74,8 @@ const RideCard = ({ ride }) => {
                     </div>
                 )}
                 {ride.status === 'off' && (
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
-                        <p className="text-white font-bold bg-gray-600/90 px-4 py-2 rounded-lg text-sm border border-gray-400 shadow-xl">OFFLINE</p>
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px] flex items-center justify-center z-10 pointer-events-none">
+                        {/* <p className="text-white font-bold bg-gray-600/90 px-4 py-2 rounded-lg text-sm border border-gray-400 shadow-xl">OFFLINE</p> */}
                     </div>
                 )}
             </div>
