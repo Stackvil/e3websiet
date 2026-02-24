@@ -77,14 +77,37 @@ const checkoutHandler = (type) => async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        const totalAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        // Fetch canonical prices from the database for security overrides
+        const prefix = (type || 'e3').toLowerCase();
+        const [ridesRes, dinesRes, eventsRes] = await Promise.all([
+            supabase.from(`${prefix}rides`).select('_id, id, price'),
+            supabase.from(`${prefix}dines`).select('_id, id, price'),
+            supabase.from(`${prefix}events`).select('_id, id, price')
+        ]);
+
+        const validPrices = {};
+        [...(ridesRes.data || []), ...(dinesRes.data || []), ...(eventsRes.data || [])].forEach(item => {
+            if (item._id) validPrices[String(item._id)] = Number(item.price) || 0;
+            if (item.id) validPrices[String(item.id)] = Number(item.price) || 0;
+        });
+
+        let totalAmount = 0;
+        for (const item of items) {
+            const dbPrice = validPrices[String(item.id)];
+            if (dbPrice === undefined) {
+                return res.status(400).json({ success: false, message: `Item validation failed: pricing not found for ${item.name}` });
+            }
+            totalAmount += (dbPrice * item.quantity);
+            item.price = dbPrice; // Stomp frontend price with authentic pricing
+        }
+
         const txnid = 'ETH-' + Math.floor(100000 + Math.random() * 900000);
 
         // Prepare Order Payload
         const orderPayload = {
             _id: txnid,
             userId: req.user.id,
-            items: items, // JSONB in Postgres
+            items: items, // JSONB in Postgres (now reflects secure prices)
             amount: totalAmount,
             status: 'placed', // initial status
             // payment details updated later
