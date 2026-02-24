@@ -94,7 +94,7 @@ REST API backend for **Ethree (E3)** and **Efour (E4)** — a multi-location ent
                     description: 'A ride available at E3 or E4',
                     required: ['name', 'price', 'category'],
                     properties: {
-                        id: { type: 'string' },
+                        id: { type: 'integer', example: 1 },
                         name: { type: 'string', example: 'Roller Coaster' },
                         price: { type: 'number', example: 150 },
                         image: { type: 'string', description: 'Base64 or URL', example: 'https://...' },
@@ -111,7 +111,7 @@ REST API backend for **Ethree (E3)** and **Efour (E4)** — a multi-location ent
                     description: 'A food or beverage item at E3 or E4 dining',
                     required: ['name', 'price', 'stall'],
                     properties: {
-                        id: { type: 'string' },
+                        id: { type: 'integer', example: 1 },
                         name: { type: 'string', example: 'Chicken Burger' },
                         price: { type: 'number', example: 120 },
                         image: { type: 'string' },
@@ -128,7 +128,7 @@ REST API backend for **Ethree (E3)** and **Efour (E4)** — a multi-location ent
                     type: 'object',
                     description: 'An event space entity (admin-managed)',
                     properties: {
-                        id: { type: 'string' },
+                        id: { type: 'integer', example: 1 },
                         name: { type: 'string', example: 'Celebration Zone' },
                         price: { type: 'number', example: 1000, description: '₹ per hour' },
                         image: { type: 'string' },
@@ -169,7 +169,7 @@ REST API backend for **Ethree (E3)** and **Efour (E4)** — a multi-location ent
                 OrderItem: {
                     type: 'object',
                     properties: {
-                        id: { type: 'string' },
+                        id: { type: 'integer' },
                         name: { type: 'string' },
                         price: { type: 'number' },
                         quantity: { type: 'integer' },
@@ -190,7 +190,7 @@ REST API backend for **Ethree (E3)** and **Efour (E4)** — a multi-location ent
                     type: 'object',
                     description: 'An order record (E3 or E4)',
                     properties: {
-                        _id: { type: 'string', description: 'Transaction ID (ETH-XXXXXX)', example: 'ETH-123456' },
+                        _id: { type: 'integer', description: 'Transaction ID', example: 1 },
                         userId: { type: 'string' },
                         amount: { type: 'number', example: 1000 },
                         status: { type: 'string', enum: ['placed', 'confirmed', 'failed'], example: 'placed' },

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Phone, MapPin, Instagram, Facebook, Twitter, Mail, ArrowUp, Youtube } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 
 const Footer = () => {
     const scrollToTop = () => {
@@ -38,13 +39,18 @@ const Footer = () => {
                     <div>
                         <h4 className="font-bold text-xs uppercase tracking-[0.4em] text-primary mb-10">Navigation</h4>
                         <ul className="space-y-6">
-                            {['Home', 'Philosophy', 'Cuisine', 'Recreation'].map((link) => (
-                                <li key={link}>
-                                    <a href={`#${link.toLowerCase()}`} className="text-text-secondary hover:text-white transition-colors text-sm uppercase tracking-widest font-bold">
-                                        {link}
-                                    </a>
-                                </li>
-                            ))}
+                            <li>
+                                <Link to="/" className="text-text-secondary hover:text-white transition-colors text-sm uppercase tracking-widest font-bold">Home</Link>
+                            </li>
+                            <li>
+                                <Link to="/about" className="text-text-secondary hover:text-white transition-colors text-sm uppercase tracking-widest font-bold">About Us</Link>
+                            </li>
+                            <li>
+                                <Link to="/dine" className="text-text-secondary hover:text-white transition-colors text-sm uppercase tracking-widest font-bold">Cuisine</Link>
+                            </li>
+                            <li>
+                                <Link to="/play" className="text-text-secondary hover:text-white transition-colors text-sm uppercase tracking-widest font-bold">Recreation</Link>
+                            </li>
                         </ul>
                     </div>
 
@@ -68,9 +74,14 @@ const Footer = () => {
                 </div>
 
                 <div className="flex flex-col md:flex-row justify-between items-center gap-8 pt-12 border-t border-white/5">
-                    <p className="text-[10px] uppercase tracking-widest text-text-dim">
-                        © {new Date().getFullYear()} E3 Entertainment. All Rights Reserved.
-                    </p>
+                    <div className="flex flex-col gap-2">
+                        <p className="text-[10px] uppercase tracking-widest text-text-dim">
+                            © {new Date().getFullYear()} E3 Entertainment. All Rights Reserved.
+                        </p>
+                        <p className="text-[10px] text-text-dim/80 max-w-2xl">
+                            By using this site, you agree to our <Link to="/terms" className="hover:text-primary underline">Terms & Conditions</Link> and <Link to="/privacy" className="hover:text-primary underline">Privacy Policy</Link>. All payments for dining, rides, and event bookings are strictly non-refundable once the service is availed or consumed.
+                        </p>
+                    </div>
 
                     <button
                         onClick={scrollToTop}

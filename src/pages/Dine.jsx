@@ -308,9 +308,11 @@ const Dine = () => {
                             </a>
                         ))}
                     </div>
-                    <div className="text-gray-400 text-sm font-medium">
+                    <div className="text-gray-400 text-sm font-medium flex flex-col items-center gap-1">
                         <p>© {new Date().getFullYear()} E3 Entertainment. All rights reserved.</p>
-                        <p className="mt-1">Terms 7 Conditions Apply</p>
+                        <p className="text-[11px] text-gray-400/80 mt-1 max-w-lg">
+                            Terms & Conditions Apply. All payments for dining and beverages are non-refundable once the order is placed and consumed.
+                        </p>
                     </div>
                 </div>
             </footer>
