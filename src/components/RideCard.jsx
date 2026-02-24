@@ -73,6 +73,11 @@ const RideCard = ({ ride }) => {
                         <p className="text-white font-bold bg-red-500/80 px-4 py-2 rounded-lg text-sm transform -rotate-12 border border-red-400">CLOSED</p>
                     </div>
                 )}
+                {ride.status === 'off' && (
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-10 pointer-events-none">
+                        <p className="text-white font-bold bg-gray-600/90 px-4 py-2 rounded-lg text-sm border border-gray-400 shadow-xl">OFFLINE</p>
+                    </div>
+                )}
             </div>
 
             <div className="p-1 flex flex-col h-[40%] justify-between bg-white">
@@ -87,20 +92,20 @@ const RideCard = ({ ride }) => {
                     <div className="grid grid-cols-2 gap-1.5">
                         <button
                             onClick={handleAddToCart}
-                            disabled={ride.status === 'closed'}
+                            disabled={ride.status === 'closed' || ride.status === 'off'}
                             className="bg-gray-100 hover:bg-gray-200 text-charcoal-grey py-1.5 rounded-md text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-md flex items-center justify-center gap-1 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <ShoppingCart size={12} /> Add
                         </button>
                         <button
                             onClick={handleBuyNow}
-                            disabled={ride.status === 'closed'}
-                            className={`py-1.5 rounded-md text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-1 ${ride.status === 'closed'
+                            disabled={ride.status === 'closed' || ride.status === 'off'}
+                            className={`py-1.5 rounded-md text-xs font-bold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg flex items-center justify-center gap-1 ${ride.status === 'closed' || ride.status === 'off'
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                                 : 'bg-sunset-orange hover:bg-orange-600 text-white shadow-orange-500/20'
                                 }`}
                         >
-                            {ride.status === 'closed' ? 'Closed' : 'Buy Ticket'} {ride.status !== 'closed' && <ArrowRight size={12} />}
+                            {ride.status === 'closed' || ride.status === 'off' ? (ride.status === 'closed' ? 'Closed' : 'Offline') : 'Buy Ticket'} {ride.status !== 'closed' && ride.status !== 'off' && <ArrowRight size={12} />}
                         </button>
                     </div>
                 </div>

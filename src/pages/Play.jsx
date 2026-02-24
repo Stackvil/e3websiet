@@ -49,7 +49,7 @@ const Play = () => {
         }
         setError(null);
         try {
-            const res = await fetch(`${API_URL}/e3/rides`);
+            const res = await fetch(`${API_URL}/e3/rides?all=true`);
             if (res.ok) {
                 const apiData = await res.json();
                 if (Array.isArray(apiData)) {
@@ -75,7 +75,7 @@ const Play = () => {
         ? (rideItems || [])
         : (rideItems || []).filter(a => (a.ageGroup && a.ageGroup.includes(filter)) || a.stall === filter || a.type === filter || a.category === filter)
     )
-        .filter(a => a.status !== 'closed' && a.status !== 'off') // Hide closed rides
+        .filter(a => a.status !== 'closed') // Hide closed rides, but show offline ones
         .slice().sort((a, b) => (b.isCombo ? 1 : 0) - (a.isCombo ? 1 : 0));
 
 

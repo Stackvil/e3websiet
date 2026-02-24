@@ -19,7 +19,7 @@ const Home = () => {
         const fetchActivities = async () => {
             let data = [];
             try {
-                const res = await fetch(`${API_URL}/e3/rides`);
+                const res = await fetch(`${API_URL}/e3/rides?all=true`);
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();
             } catch (err) {
