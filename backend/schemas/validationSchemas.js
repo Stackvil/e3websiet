@@ -150,8 +150,8 @@ const initiatePaymentSchema = z.object({
 const addSponsorSchema = z.object({
     body: z.object({
         name: z.string().min(1),
-        image: z.string(), // Allow Base64 or URL
-        website: z.string().url().optional(),
+        image: z.string().optional(), // Now optional since it can come as a file
+        website: z.string().optional(),
         tier: z.string().optional()
     })
 });

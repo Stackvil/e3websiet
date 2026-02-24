@@ -259,7 +259,6 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
             // Register New User
             isNewUser = true;
             const newUserObj = {
-                _id: crypto.randomUUID(),
                 name: 'User',
                 mobilenumber: cleanMobile,
                 role: 'customer', // Default role customer for everyone

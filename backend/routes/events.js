@@ -116,7 +116,6 @@ router.post('/', [auth, admin], async (req, res) => {
             type: req.body.type,
             status: req.body.status,
             image: imageUrl, // Use uploaded URL
-            _id: crypto.randomUUID(),
             createdAt: new Date().toISOString()
         };
 

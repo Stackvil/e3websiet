@@ -55,12 +55,6 @@ router.get('/rides', async (req, res) => {
 
         const rides = data.map(mapRecord);
         rides.sort((a, b) => {
-            const isMegaA = a.name && a.name.toLowerCase().includes('mega combo pack');
-            const isMegaB = b.name && b.name.toLowerCase().includes('mega combo pack');
-
-            if (isMegaA && !isMegaB) return -1;
-            if (!isMegaA && isMegaB) return 1;
-
             const numA = parseInt(a._id, 10);
             const numB = parseInt(b._id, 10);
             if (!isNaN(numA) && !isNaN(numB)) return numA - numB;

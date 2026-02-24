@@ -93,12 +93,51 @@ router.get('/', async (req, res) => {
  *       403:
  *         description: Admin access required
  */
-router.post('/', [auth, admin, validate(addSponsorSchema)], async (req, res) => {
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+router.post('/', [auth, admin, upload.single('image'), validate(addSponsorSchema)], async (req, res) => {
     try {
-        const { name, image, website, tier } = req.body;
+        const { name, website, tier } = req.body;
+        let imageUrl = req.body.image || null;
+
+        // If a file is uploaded, push it to Cloudinary
+        if (req.file) {
+            const uploadResult = await new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: 'sponsors',
+                        resource_type: 'auto',
+                    },
+                    (error, result) => {
+                        if (error) {
+                            console.error('Cloudinary Upload Error:', error);
+                            reject(new Error('Image upload failed'));
+                        } else {
+                            resolve(result);
+                        }
+                    }
+                );
+                stream.end(req.file.buffer);
+            });
+            imageUrl = uploadResult.secure_url;
+        }
+
+        if (!imageUrl) {
+            return res.status(400).json({ message: 'Sponsor image is required.' });
+        }
+
         const newSponsor = await Sponsor.create({
             name,
-            image,
+            image: imageUrl,
             website,
             tier
         });

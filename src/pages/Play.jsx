@@ -75,8 +75,7 @@ const Play = () => {
         ? (rideItems || [])
         : (rideItems || []).filter(a => (a.ageGroup && a.ageGroup.includes(filter)) || a.stall === filter || a.type === filter || a.category === filter)
     )
-        .filter(a => a.status !== 'closed') // Hide closed rides, but show offline ones
-        .slice().sort((a, b) => (b.isCombo ? 1 : 0) - (a.isCombo ? 1 : 0));
+        .filter(a => a.status !== 'closed'); // Hide closed rides, but show offline ones
 
 
     // Removed full-page loading state
