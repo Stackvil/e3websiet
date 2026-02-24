@@ -4,47 +4,17 @@ import { motion } from 'framer-motion';
 const Logo = ({ className }) => {
     return (
         <div className={`flex items-center gap-3 select-none ${className}`}>
-            {/* Logo Graphic Part */}
+            {/* Logo Image Part */}
             <motion.div
-                className="relative w-20 h-20 md:w-24 md:h-24 flex items-center justify-center -mb-2"
+                className="relative w-16 h-16 md:w-20 md:h-20 flex items-center justify-center translate-y-2 md:translate-y-4"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
-                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
-                    {/* Tilted Yellow Square Background */}
-                    <motion.rect
-                        x="18" y="18" width="64" height="64" rx="12"
-                        fill="#FFD700"
-                        transform="rotate(-15 50 50)"
-                    />
-
-                    {/* The White "E3" Graphic - Thicker, stylized paths like the reference */}
-                    <g transform="rotate(-15 50 50) translate(20, 22) scale(0.6)">
-                        {/* Left 'E' Shape */}
-                        <path
-                            d="M10,10 L45,10 C48,10 50,12 50,15 L50,15 L50,15 L18,15 L18,38 L45,38 C48,38 50,40 50,43 L50,43 L50,43 L18,43 L18,75 L45,75 C48,75 50,77 50,80 L50,80 L50,80 L10,80 C7,80 5,78 5,75 L5,15 C5,12 7,10 10,10 Z"
-                            fill="white"
-                        />
-
-                        {/* Right '3' Shape (Mirrored E) */}
-                        <path
-                            d="M90,10 L55,10 C52,10 50,12 50,15 L50,15 L50,15 L82,15 L82,38 L55,38 C52,38 50,40 50,43 L50,43 L50,43 L82,43 L82,75 L55,75 C52,75 50,77 50,80 L50,80 L50,80 L90,80 C93,80 95,78 95,75 L95,15 C95,12 93,10 90,10 Z"
-                            fill="white"
-                        />
-                        {/* Vertical separator line to define the split cleanly if needed, or rely on the gap */}
-                    </g>
-
-                    {/* Orbiting bits */}
-                    <motion.path
-                        d="M8,80 Q5,85 12,90"
-                        stroke="#FFD700" strokeWidth="4" fill="none" strokeLinecap="round"
-                    />
-                    <motion.path
-                        d="M92,20 Q95,15 88,10"
-                        stroke="#FFD700" strokeWidth="4" fill="none" strokeLinecap="round"
-                    />
-
-                </svg>
+                <img
+                    src="/e3logo (2).png"
+                    alt="E3 Logo"
+                    className="w-full h-full object-contain drop-shadow-md"
+                />
             </motion.div>
 
             {/* Text Part */}
@@ -77,10 +47,20 @@ const Logo = ({ className }) => {
                 <motion.div
                     className="h-[2px] bg-[#FFD700] mt-1 -ml-4 w-[115%]"
                     initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
+                    animate={{ scaleX: 0.95 }}
                     style={{ originX: 0 }}
                     transition={{ delay: 0.6 }}
                 />
+
+                {/* Powered By Line */}
+                <motion.p
+                    className="text-[8px] uppercase tracking-[0.2em] font-bold text-gray-400 mt-1 ml-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                >
+                    powered by <span className="text-gray-500">JAAN ENTERTAINMENT PVT LTD</span>
+                </motion.p>
             </div>
         </div>
     );
