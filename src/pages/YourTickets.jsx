@@ -42,12 +42,12 @@ const YourTickets = () => {
         // Company Header
         doc.setFontSize(22);
         doc.setTextColor(255, 107, 107); // Sunset Orange
-        doc.text('Jaan Entertainment Pvt Ltd', 105, 20, { align: 'center' });
+        doc.text('E3 Entertainment', 105, 20, { align: 'center' });
 
         doc.setFontSize(10);
         doc.setTextColor(100);
         doc.text('123 Adventure Lane, Fun City, India', 105, 26, { align: 'center' });
-        doc.text('support@jaanentertainment.in | +91 98765 43210', 105, 31, { align: 'center' });
+        doc.text('support@e3entertainment.in | +91 70369 23456', 105, 31, { align: 'center' });
 
         doc.setLineWidth(0.5);
         doc.line(20, 35, 190, 35);
@@ -108,7 +108,7 @@ const YourTickets = () => {
         // Footer
         doc.setFontSize(9);
         doc.setTextColor(150);
-        doc.text('Thank you for booking with Jaan Entertainment!', 105, 145, { align: 'center' });
+        doc.text('Thank you for booking with E3 Entertainment!', 105, 145, { align: 'center' });
         doc.text('Please present this receipt at the venue entry.', 105, 150, { align: 'center' });
 
         doc.save(`Receipt_${ticket.name.replace(/\s+/g, '_')}_${ticket.orderId.slice(-4)}.pdf`);

@@ -56,7 +56,7 @@ const Logo = ({ className }) => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
                 >
-                    JAAN ENTERTAINMENT
+                    ETHREE
                 </motion.h1>
 
                 <motion.div

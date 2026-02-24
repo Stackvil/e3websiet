@@ -120,7 +120,7 @@ const Contact = () => {
                             </p>
                             <div className="space-y-4">
                                 <div className="flex items-center gap-4 text-xl font-bold group cursor-pointer">
-                                    <Mail className="text-white/60 group-hover:text-white transition-colors" /> hello@jaanentertainment.in
+                                    <Mail className="text-white/60 group-hover:text-white transition-colors" /> hello@e3entertainment.in
                                 </div>
                             </div>
                         </div>

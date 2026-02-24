@@ -464,7 +464,7 @@ const Events = ({ location = 'E3' }) => {
                                 </div>
                                 <div className="flex flex-col border-l border-white/10 pl-6">
                                     <span className="text-[10px] uppercase text-gray-500 font-bold">Support</span>
-                                    <span className="text-sm font-bold tracking-widest">events@jaanentertainment.in</span>
+                                    <span className="text-sm font-bold tracking-widest">events@e3entertainment.in</span>
                                 </div>
                             </div>
                         </div>

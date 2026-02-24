@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ShoppingCart, MapPin, Clock, Info, Ticket } from 'lucide-react';
+import { Menu, X, ShoppingCart, MapPin, Clock, Info, Ticket, Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cart from '../Cart';
 import Logo from '../Logo';
@@ -166,10 +166,21 @@ const Layout = ({ children }) => {
                     <div>
                         <h3 className="font-bold mb-6 uppercase text-gray-400 text-xs tracking-widest">Follow</h3>
                         <div className="flex gap-4">
-                            {['FB', 'IG', 'TW'].map(s => (
-                                <div key={s} className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center font-bold text-gray-400 hover:border-sunset-orange hover:text-sunset-orange transition-all duration-300 cursor-pointer transform hover:scale-110 hover:-rotate-12 bg-white hover:shadow-lg">
-                                    {s}
-                                </div>
+                            {[
+                                { Icon: Facebook, link: 'https://facebook.com', color: 'hover:text-[#1877F2] hover:border-[#1877F2]' },
+                                { Icon: Instagram, link: 'https://instagram.com', color: 'hover:text-[#E4405F] hover:border-[#E4405F]' },
+                                { Icon: Youtube, link: 'https://youtube.com', color: 'hover:text-[#FF0000] hover:border-[#FF0000]' },
+                                { Icon: Twitter, link: 'https://twitter.com', color: 'hover:text-[#1DA1F2] hover:border-[#1DA1F2]' }
+                            ].map(({ Icon, link, color }, i) => (
+                                <a
+                                    key={i}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 transition-all duration-300 cursor-pointer transform hover:scale-110 hover:-rotate-12 bg-white hover:shadow-lg ${color}`}
+                                >
+                                    <Icon size={18} />
+                                </a>
                             ))}
                         </div>
                     </div>
@@ -178,7 +189,7 @@ const Layout = ({ children }) => {
                 {/* Copyright Bar */}
                 <div className="container mx-auto mt-10 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3">
                     <p className="text-gray-400 text-xs">
-                        © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Jaan Entertainment Pvt Ltd</span>. All Rights Reserved.
+                        © {new Date().getFullYear()} <span className="font-semibold text-gray-500">E3 Entertainment</span>. All Rights Reserved.
                     </p>
                     <div className="flex items-center gap-4 text-xs text-gray-400">
                         <a href="#" className="hover:text-sunset-orange transition-colors">Privacy Policy</a>

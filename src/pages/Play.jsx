@@ -109,7 +109,7 @@ const Play = () => {
                             {loading && <div className="w-8 h-8 border-4 border-sunset-orange border-t-transparent rounded-full animate-spin"></div>}
                         </h1>
                         <p className="text-lg opacity-90 mb-8">
-                            From the adrenaline rush of bumping cars to the focused energy of indoor cricket, Jaan Entertainment offers a state-of-the-art recreation zone for all ages.
+                            From the adrenaline rush of bumping cars to the focused energy of indoor cricket, E3 Entertainment offers a state-of-the-art recreation zone for all ages.
                         </p>
                         <div className="flex gap-4">
                             <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-xl text-sm font-bold backdrop-blur-md">

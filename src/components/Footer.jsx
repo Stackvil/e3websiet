@@ -1,5 +1,5 @@
 import React from 'react'
-import { Phone, MapPin, Instagram, Facebook, Twitter, Mail, ArrowUp } from 'lucide-react'
+import { Phone, MapPin, Instagram, Facebook, Twitter, Mail, ArrowUp, Youtube } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const Footer = () => {
@@ -16,13 +16,13 @@ const Footer = () => {
                             <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center font-black text-bg-deep text-3xl shadow-2xl shadow-primary/20">
                                 E3
                             </div>
-                            <span className="font-bold text-4xl tracking-tighter">JAAN ENTERTAINMENT</span>
+                            <span className="font-bold text-4xl tracking-tighter">ETHREE</span>
                         </div>
                         <p className="text-text-secondary text-xl font-light max-w-lg mb-12 leading-relaxed">
                             Located on the Padmavathi Ghat, Krishnalanka. We are the premier destination for families and youth who seek the best in food and entertainment.
                         </p>
                         <div className="flex gap-6">
-                            {[Instagram, Facebook, Twitter, Mail].map((Icon, i) => (
+                            {[Instagram, Facebook, Youtube, Twitter, Mail].map((Icon, i) => (
                                 <motion.a
                                     key={i}
                                     href="#"
@@ -69,7 +69,7 @@ const Footer = () => {
 
                 <div className="flex flex-col md:flex-row justify-between items-center gap-8 pt-12 border-t border-white/5">
                     <p className="text-[10px] uppercase tracking-widest text-text-dim">
-                        © {new Date().getFullYear()} Jaan Entertainment Pvt Ltd. All Rights Reserved.
+                        © {new Date().getFullYear()} E3 Entertainment. All Rights Reserved.
                     </p>
 
                     <button

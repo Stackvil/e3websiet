@@ -30,7 +30,7 @@ const About = () => {
                             <span className="serif text-primary">Horizon.</span>
                         </h2>
                         <p className="text-text-secondary text-xl font-light leading-relaxed mb-12 max-w-md">
-                            Situated at Padmavathi Ghat, Jaan Entertainment Pvt Ltd is where the urban energy of Vijayawada harmoniously blends with the natural serenity of the Krishna River.
+                            Situated at Padmavathi Ghat, E3 Entertainment is where the urban energy of Vijayawada harmoniously blends with the natural serenity of the Krishna River.
                         </p>
 
                         <div className="space-y-12">
