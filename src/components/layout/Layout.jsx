@@ -176,10 +176,15 @@ const Layout = ({ children }) => {
                 </div>
 
                 {/* Copyright Bar */}
-                <div className="container mx-auto mt-10 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-                    <p className="text-gray-400 text-xs">
-                        © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Jaan Entertainment Pvt Ltd</span>. All Rights Reserved.
-                    </p>
+                <div className="container mx-auto mt-10 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-6">
+                    <div className="flex flex-col gap-1.5">
+                        <p className="text-gray-400 text-xs">
+                            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Jaan Entertainment Pvt Ltd</span>. All Rights Reserved.
+                        </p>
+                        <p className="text-gray-400 text-[10px] font-medium">
+                            * All payments for dining, rides, and event bookings are strictly non-refundable once the service is availed or consumed.
+                        </p>
+                    </div>
                     <div className="flex items-center gap-4 text-xs text-gray-400">
                         <a href="#" className="hover:text-sunset-orange transition-colors">Privacy Policy</a>
                         <span className="text-gray-200">|</span>

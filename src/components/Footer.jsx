@@ -68,9 +68,14 @@ const Footer = () => {
                 </div>
 
                 <div className="flex flex-col md:flex-row justify-between items-center gap-8 pt-12 border-t border-white/5">
-                    <p className="text-[10px] uppercase tracking-widest text-text-dim">
-                        © {new Date().getFullYear()} Jaan Entertainment Pvt Ltd. All Rights Reserved.
-                    </p>
+                    <div className="flex flex-col gap-2">
+                        <p className="text-[10px] uppercase tracking-widest text-text-dim">
+                            © {new Date().getFullYear()} Jaan Entertainment Pvt Ltd. All Rights Reserved.
+                        </p>
+                        <p className="text-[10px] text-text-dim/80 max-w-2xl">
+                            By using this site, you agree to our <a href="#" className="hover:text-primary underline">Terms & Conditions</a>. All payments for dining, rides, and event bookings are strictly non-refundable once the service is availed or consumed.
+                        </p>
+                    </div>
 
                     <button
                         onClick={scrollToTop}

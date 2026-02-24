@@ -303,9 +303,11 @@ const Dine = () => {
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-12.7 12.5 4.5 1.2 8.3-2.3 9-5.1-1-2.2-4.2-2.3-5-1 2.5-5.7 7.9-3.8 10.7-9.8z"></path></svg>
                         </a>
                     </div>
-                    <div className="text-gray-400 text-sm font-medium">
+                    <div className="text-gray-400 text-sm font-medium flex flex-col items-center gap-1">
                         <p>© {new Date().getFullYear()} Jaan Entertainment Pvt Ltd. All rights reserved.</p>
-                        <p className="mt-1">Terms 7 Conditions Apply</p>
+                        <p className="text-[11px] text-gray-400/80 mt-1 max-w-lg">
+                            Terms & Conditions Apply. All payments for dining and beverages are non-refundable once the order is placed and consumed.
+                        </p>
                     </div>
                 </div>
             </footer>

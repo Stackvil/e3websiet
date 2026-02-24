@@ -1,8 +1,13 @@
-const supabase = require('./supabaseHelper');
-const crypto = require('crypto');
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 /**
- * Uploads a base64 image or buffer to Supabase Storage
+ * Uploads a base64 image or buffer to Cloudinary
  * @param {string} imageInput - Base64 string or URL
  * @param {string} folder - Folder name in bucket (default: 'uploads')
  * @returns {Promise<string>} Public URL of the uploaded image
@@ -10,51 +15,18 @@ const crypto = require('crypto');
 const uploadImage = async (imageInput, folder = 'uploads') => {
     if (!imageInput) return null;
 
-    // improved base64 detection: check for data:image prefix
     if (typeof imageInput === 'string' && imageInput.startsWith('data:image')) {
         try {
-            // Extract content type and base64 data
-            const matches = imageInput.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            // Cloudinary's uploader.upload() natively supports base64 data URIs!
+            const result = await cloudinary.uploader.upload(imageInput, {
+                folder: `e3-e4/${folder}`,
+                use_filename: true,
+                unique_filename: true,
+            });
 
-            if (!matches || matches.length !== 3) {
-                console.warn('Invalid base64 string');
-                return imageInput; // Return as is if regex fails (might not be base64)
-            }
-
-            const contentType = matches[1];
-            const base64Data = matches[2];
-            const buffer = Buffer.from(base64Data, 'base64');
-
-            // Generate unique filename
-            const ext = contentType.split('/')[1] || 'png';
-            const filename = `${folder}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
-
-            // Upload to Supabase Storage
-            // Using 'images' bucket. Ensure this bucket exists and is public in Supabase.
-            const { data, error } = await supabase
-                .storage
-                .from('images')
-                .upload(filename, buffer, {
-                    contentType: contentType,
-                    upsert: false
-                });
-
-            if (error) {
-                console.error('Supabase Storage Upload Error:', error);
-                throw new Error('Image upload failed');
-            }
-
-            // Get Public URL
-            const { data: { publicUrl } } = supabase
-                .storage
-                .from('images')
-                .getPublicUrl(filename);
-
-            return publicUrl;
+            return result.secure_url;
         } catch (err) {
-            console.error('Image Upload processing error:', err);
-            // Fallback: return original if upload fails? Or throw?
-            // Throwing restricts proceeding with bad image.
+            console.error('Cloudinary Image Upload error:', err);
             throw err;
         }
     }
