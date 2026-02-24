@@ -19,85 +19,79 @@ import {
 
 const FadeIn = ({ children, delay = 0 }) => (
     <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay, ease: "easeOut" }}
+        transition={{ duration: 0.4, delay, ease: "easeOut" }}
     >
         {children}
     </motion.div>
 );
 
-const SectionCard = ({ icon: Icon, title, children }) => (
-    <div className="bg-white/60 backdrop-blur-xl p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white mb-8 transition-transform hover:-translate-y-1">
-        <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 bg-riverside-teal/10 rounded-2xl flex items-center justify-center text-riverside-teal">
-                <Icon size={24} />
+const SectionCard = ({ icon: Icon, title, children, className = "" }) => (
+    <div className={`bg-white/60 backdrop-blur-xl p-4 md:p-5 rounded-2xl border border-white/50 shadow-sm transition-transform hover:-translate-y-0.5 ${className}`}>
+        <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 bg-riverside-teal/10 rounded-lg flex items-center justify-center text-riverside-teal">
+                <Icon size={18} />
             </div>
-            <h3 className="text-2xl font-bold font-heading text-charcoal-grey">{title}</h3>
+            <h3 className="text-base font-bold font-heading text-charcoal-grey">{title}</h3>
         </div>
-        <div className="text-gray-600 leading-relaxed space-y-4">
+        <div className="text-xs text-gray-600 leading-relaxed space-y-2">
             {children}
         </div>
     </div>
 );
 
 const AboutContent = () => (
-    <div className="space-y-8">
+    <div className="space-y-4">
         <FadeIn delay={0.1}>
-            <div className="text-center mb-16">
-                <span className="text-sunset-orange font-bold uppercase tracking-[0.3em] text-sm mb-4 block">Our Story</span>
-                <h2 className="text-4xl md:text-5xl font-black font-heading text-charcoal-grey mb-6">
+            <div className="text-center mb-6">
+                <span className="text-sunset-orange font-bold uppercase tracking-[0.2em] text-[10px] mb-1 block">Our Story</span>
+                <h2 className="text-2xl md:text-3xl font-black font-heading text-charcoal-grey mb-2">
                     Eat. Enjoy. <span className="text-riverside-teal">Entertain.</span>
                 </h2>
-                <p className="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
-                    Ethree is a premier combination of a Food Court and Play Zone that brings you the best times with your near and dear ones. Experience diverse cuisines, recreational activities, and cultural arenas all under one roof.
+                <p className="text-sm text-gray-500 max-w-xl mx-auto leading-relaxed">
+                    Ethree is a premier Food Court and Play Zone bringing families together through diverse cuisines and recreation under one roof.
                 </p>
             </div>
         </FadeIn>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-4">
             <FadeIn delay={0.2}>
-                <div className="bg-gradient-to-br from-riverside-teal to-teal-700 p-8 rounded-3xl text-white h-full relative overflow-hidden group">
+                <div className="bg-gradient-to-br from-riverside-teal to-teal-700 p-5 rounded-2xl text-white h-full relative overflow-hidden">
                     <div className="relative z-10">
-                        <Store className="w-12 h-12 mb-6 text-teal-200" />
-                        <h3 className="text-2xl font-bold mb-4">For Vendors</h3>
-                        <p className="text-teal-50 leading-relaxed">
-                            Ethree provides you and your business a platform to deal directly with clients. Promote your culinary business and attract thousands of users. Benefit from an enhanced e-Experience where you can receive and view reviews directly from satisfied customers.
+                        <Store className="w-8 h-8 mb-3 text-teal-200" />
+                        <h3 className="text-lg font-bold mb-1">For Vendors</h3>
+                        <p className="text-xs text-teal-50/90 leading-tight">
+                            Promote your culinary business directly to thousands. Benefit from an enhanced e-Experience with direct customer reviews.
                         </p>
                     </div>
-                    <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
                 </div>
             </FadeIn>
 
             <FadeIn delay={0.3}>
-                <div className="bg-gradient-to-br from-sunset-orange to-orange-600 p-8 rounded-3xl text-white h-full relative overflow-hidden group">
+                <div className="bg-gradient-to-br from-sunset-orange to-orange-600 p-5 rounded-2xl text-white h-full relative overflow-hidden">
                     <div className="relative z-10">
-                        <Users className="w-12 h-12 mb-6 text-orange-200" />
-                        <h3 className="text-2xl font-bold mb-4">For Users</h3>
-                        <p className="text-orange-50 leading-relaxed">
-                            We entitle you to a wide range of services suited to your needs. We believe no two stalls are the same, letting you choose exactly what you want—from diverse cuisines to play items and cultural activities. We fit a customized entertainment package designed just for you!
+                        <Users className="w-8 h-8 mb-3 text-orange-200" />
+                        <h3 className="text-lg font-bold mb-1">For Users</h3>
+                        <p className="text-xs text-orange-50/90 leading-tight">
+                            A wide range of services suited to your needs—from diverse cuisines to customized entertainment packages.
                         </p>
                     </div>
-                    <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
                 </div>
             </FadeIn>
         </div>
 
         <FadeIn delay={0.4}>
             <SectionCard icon={Building} title="Founder's Vision">
-                <p className="text-lg italic border-l-4 border-riverside-teal pl-6 py-2 bg-gray-50/50 rounded-r-xl">
-                    "We wanted to have a nice ambience to recreate ourselves from the daily routine workload, for which we have come forward and designed an ample space in which we organized all different cuisines, most varieties of play zone activities which suits all age genders and also a space to promote our local talent."
+                <p className="text-sm italic border-l-3 border-riverside-teal pl-4 py-1 bg-gray-50/50 rounded-r-lg">
+                    "We designed an ample space for all cuisines and play zone activities to suit all ages and promote local talent."
                 </p>
-                <div className="flex items-center gap-3 mt-6 pl-6">
-                    <div className="w-10 h-10 bg-charcoal-grey rounded-full flex items-center justify-center text-white font-bold">JK</div>
+                <div className="flex items-center gap-3 mt-4">
+                    <div className="w-8 h-8 bg-charcoal-grey rounded-full flex items-center justify-center text-white text-[10px] font-bold">JK</div>
                     <div>
-                        <p className="font-bold text-charcoal-grey">Jayanarayana Kureti</p>
-                        <p className="text-sm text-gray-400">Founder & CEO, Jaan Entertainment</p>
+                        <p className="text-xs font-bold text-charcoal-grey">Jayanarayana Kureti</p>
+                        <p className="text-[10px] text-gray-400">Founder & CEO</p>
                     </div>
-                </div>
-                <div className="mt-8 flex items-center gap-3 text-riverside-teal bg-teal-50 p-4 rounded-xl inline-flex">
-                    <MapPin size={20} />
-                    <span className="font-medium">Located in the heart of Vijayawada, right opposite the Main Bus Stand on the scenic banks of the Krishna River.</span>
                 </div>
             </SectionCard>
         </FadeIn>
@@ -105,62 +99,50 @@ const AboutContent = () => (
 );
 
 const PrivacyContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
         <FadeIn delay={0.1}>
-            <p className="text-lg text-gray-500 mb-8 leading-relaxed">
-                This Privacy Policy sets out how <span className="font-bold text-charcoal-grey">ethree</span> uses & protects any information that you give to us when you visit the Website. We are committed to ensuring user privacy is protected. This policy is effective from May 1st, 2019.
+            <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+                <span className="font-bold text-charcoal-grey">ethree</span> protects any information you give when visiting the Website. Effective from May 1st, 2019.
             </p>
         </FadeIn>
 
-        <FadeIn delay={0.2}>
-            <SectionCard icon={UserCheck} title="What Information We Collect">
-                <ul className="grid sm:grid-cols-2 gap-4 mt-4">
-                    {['Name', 'Contact information (Email & Postal)', 'Mobile Number', 'Customer surveys and offers data'].map((item, i) => (
-                        <li key={i} className="flex items-center gap-3 bg-gray-50/80 p-4 rounded-xl">
-                            <CheckCircle2 className="text-riverside-teal shrink-0" size={20} />
-                            <span className="font-medium text-charcoal-grey">{item}</span>
-                        </li>
-                    ))}
-                </ul>
-            </SectionCard>
-        </FadeIn>
+        <div className="grid md:grid-cols-2 gap-4">
+            <FadeIn delay={0.2}>
+                <SectionCard icon={UserCheck} title="Collected Info" className="h-full">
+                    <ul className="space-y-2">
+                        {['Name & Mobile', 'Email & Address', 'Survey Data'].map((item, i) => (
+                            <li key={i} className="flex items-center gap-2 bg-gray-50/80 p-2 rounded-lg">
+                                <CheckCircle2 className="text-riverside-teal shrink-0" size={14} />
+                                <span className="font-medium text-charcoal-grey text-[11px]">{item}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </SectionCard>
+            </FadeIn>
 
-        <FadeIn delay={0.3}>
-            <SectionCard icon={Lock} title="How We Use Your Information">
-                <p>We require this information to understand your needs and provide you with better services, in particular for:</p>
-                <ul className="space-y-4 mt-4">
-                    <li className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-sunset-orange font-bold shrink-0">1</div>
-                        <p>Internal record keeping and analytics.</p>
-                    </li>
-                    <li className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-sunset-orange font-bold shrink-0">2</div>
-                        <p>Improving our products, services, and customizing the website according to your interests.</p>
-                    </li>
-                    <li className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-sunset-orange font-bold shrink-0">3</div>
-                        <p>Periodically sending promotional emails about new products, special offers, or other information we think would be interesting to you.</p>
-                    </li>
-                    <li className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-sunset-orange font-bold shrink-0">4</div>
-                        <p>Contacting you for market research purposes via phone, fax, or mail.</p>
-                    </li>
-                </ul>
-            </SectionCard>
-        </FadeIn>
+            <FadeIn delay={0.3}>
+                <SectionCard icon={Shield} title="Security" className="h-full">
+                    <p className="text-[11px]">
+                        We use suitable physical and electronic procedures to safeguard your info. We won't sell your data unless required by law.
+                    </p>
+                </SectionCard>
+            </FadeIn>
+        </div>
 
         <FadeIn delay={0.4}>
-            <SectionCard icon={Shield} title="Security & Control">
-                <p className="mb-6">
-                    We are committed to ensuring that your information is secure. To prevent unauthorized access or disclosure, we have put in place suitable physical, electronic, and managerial procedures to safeguard and secure the information we collect online.
-                </p>
-                <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                    <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-                        <AlertCircle size={18} /> Controlling Your Personal Information
-                    </h4>
-                    <p className="text-blue-800 text-sm leading-relaxed">
-                        We will not sell, distribute, or lease your personal information to third parties unless we have your permission or are required by law to do so. You may request details of personal information which we hold about you under the Information Technology Act 2000. If you believe that any information we are holding is incorrect, please write to us to promptly correct it.
-                    </p>
+            <SectionCard icon={Lock} title="Usage">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    {[
+                        'Internal record keeping',
+                        'Improving services',
+                        'Promotional emails',
+                        'Market research'
+                    ].map((text, i) => (
+                        <div key={i} className="flex gap-2 items-start">
+                            <span className="w-4 h-4 rounded-full bg-orange-100 flex items-center justify-center text-sunset-orange font-bold text-[9px] shrink-0 mt-0.5">{i + 1}</span>
+                            <p className="text-[11px]">{text}</p>
+                        </div>
+                    ))}
                 </div>
             </SectionCard>
         </FadeIn>
@@ -168,49 +150,36 @@ const PrivacyContent = () => (
 );
 
 const TermsContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
         <FadeIn delay={0.1}>
-            <p className="text-lg text-gray-500 mb-8 leading-relaxed">
-                Welcome to <span className="font-bold text-charcoal-grey">ethree.in</span>. Your access to use the information and services is subject exclusively to these Terms and Conditions. By using the website as a registered user, guest, or viewer, you demonstrate that you accept these terms.
+            <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+                Usage of <span className="font-bold text-charcoal-grey">ethree.in</span> is subject to these Terms. Acceptance is implied by using the site.
             </p>
         </FadeIn>
 
-        <FadeIn delay={0.2}>
-            <SectionCard icon={Scale} title="Your Obligations & Access">
-                <p>
-                    You are responsible for making all arrangements necessary to access our site. This website may only be used for lawful purposes. Ethree reserves the right to withdraw, amend, or stop the service provided without notice and is not liable to any party for modifications or suspensions.
-                </p>
-                <div className="mt-6 p-4 border-l-4 border-sunset-orange bg-orange-50 rounded-r-xl">
-                    <p className="text-sm text-orange-800 font-medium">
-                        By using this service, you agree to provide true, accurate, and complete information about yourself. It is your responsibility to update information periodically and keep your account login ID and password secure.
+        <div className="grid md:grid-cols-2 gap-4">
+            <FadeIn delay={0.2}>
+                <SectionCard icon={Scale} title="Obligations" className="h-full">
+                    <p className="text-[11px]">
+                        Use for lawful purposes only. You must provide accurate info and keep your login credentials secure.
                     </p>
-                </div>
-            </SectionCard>
-        </FadeIn>
+                </SectionCard>
+            </FadeIn>
 
-        <FadeIn delay={0.3}>
-            <SectionCard icon={LinkIcon} title="Content & External Links">
-                <p>
-                    We provide the Material through the Platforms FOR YOUR PERSONAL AND NON-COMMERCIAL USE ONLY. You may view, copy, and distribute the Materials for internal, informational purposes only. You are prohibited from data mining, scraping, or using processes that send automated queries.
-                </p>
-                <p className="mt-4">
-                    This Website may contain links to other sites not under our control. Ethree assumes no responsibility for the content of such websites and disclaims liability for any loss or damage arising out of their use.
-                </p>
-            </SectionCard>
-        </FadeIn>
+            <FadeIn delay={0.3}>
+                <SectionCard icon={LinkIcon} title="Content" className="h-full">
+                    <p className="text-[11px]">
+                        Materials are for PERSONAL USE ONLY. No data mining or scraping. We aren't responsible for external links.
+                    </p>
+                </SectionCard>
+            </FadeIn>
+        </div>
 
         <FadeIn delay={0.4}>
-            <SectionCard icon={AlertCircle} title="Limitation of Liability & Disclaimers">
-                <div className="space-y-4">
-                    <p>
-                        <strong>Indemnity:</strong> You agree to indemnify and hold ethree.in and its affiliates harmless from any claim or demand, including attorney fees, made by any third party due to or arising out of your use of the Service or violation of the Terms and Conditions.
-                    </p>
-                    <p>
-                        <strong>Liability:</strong> Ethree shall not be liable for damages of any kind, whether direct, indirect, incidental, punitive, or consequential, resulting from the use or inability to use the service, substitute procurements, or statements/conduct of third parties.
-                    </p>
-                    <p>
-                        <strong>Warranties:</strong> Your use of the service is at your sole risk. Ethree expressly disclaims all warranties of any kind, express or implied. We make no warranty that the service will meet your requirements, be uninterrupted, timely, secure, or error-free.
-                    </p>
+            <SectionCard icon={AlertCircle} title="Liability & Terms">
+                <div className="grid grid-cols-2 gap-4">
+                    <p className="text-[11px]"><strong>Indemnity:</strong> You hold us harmless from claims arising from your site usage.</p>
+                    <p className="text-[11px]"><strong>Risk:</strong> Service use is at your own risk. We offer no guarantees of error-free service.</p>
                 </div>
             </SectionCard>
         </FadeIn>
@@ -218,7 +187,6 @@ const TermsContent = () => (
 );
 
 const LegalModal = ({ doc, onClose }) => {
-    // Disable body scroll when modal is open
     useEffect(() => {
         document.body.style.overflow = 'hidden';
         return () => {
@@ -227,21 +195,9 @@ const LegalModal = ({ doc, onClose }) => {
     }, []);
 
     const contentMap = {
-        'about': {
-            title: 'About Us',
-            icon: Info,
-            component: <AboutContent />
-        },
-        'privacy': {
-            title: 'Privacy Policy',
-            icon: Shield,
-            component: <PrivacyContent />
-        },
-        'terms': {
-            title: 'Terms of Use',
-            icon: Book,
-            component: <TermsContent />
-        }
+        'about': { title: 'About Us', icon: Info, component: <AboutContent /> },
+        'privacy': { title: 'Privacy Policy', icon: Shield, component: <PrivacyContent /> },
+        'terms': { title: 'Terms of Use', icon: Book, component: <TermsContent /> }
     };
 
     const currentDoc = contentMap[doc] || contentMap['about'];
@@ -249,8 +205,7 @@ const LegalModal = ({ doc, onClose }) => {
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-                {/* Backdrop */}
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -259,39 +214,33 @@ const LegalModal = ({ doc, onClose }) => {
                     className="absolute inset-0 bg-charcoal-grey/60 backdrop-blur-sm"
                 />
 
-                {/* Modal Container */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-4xl bg-[#f8fafc] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    className="relative w-full max-w-2xl bg-[#f8fafc] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                 >
-                    {/* Header */}
-                    <div className="flex-shrink-0 flex items-center justify-between p-6 md:p-8 bg-white border-b border-gray-100 relative z-20">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white shadow-md shadow-riverside-teal/10 rounded-xl flex items-center justify-center text-riverside-teal">
-                                <HeaderIcon size={24} strokeWidth={2.5} />
+                    <div className="flex-shrink-0 flex items-center justify-between p-5 md:p-6 bg-white border-b border-gray-100 z-20">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-xl flex items-center justify-center text-riverside-teal">
+                                <HeaderIcon size={20} strokeWidth={2.5} />
                             </div>
-                            <h2 className="text-2xl md:text-3xl font-black font-heading text-charcoal-grey">
+                            <h2 className="text-xl md:text-2xl font-black font-heading text-charcoal-grey">
                                 {currentDoc.title}
                             </h2>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 text-gray-400 hover:text-sunset-orange transition-colors"
-                        >
-                            <X size={24} />
+                        <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 text-gray-400 hover:text-sunset-orange transition-colors">
+                            <X size={20} />
                         </button>
                     </div>
 
-                    {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto p-6 md:p-8 relative">
-                        {/* Background Decorations */}
-                        <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-riverside-teal/5 to-transparent pointer-events-none" />
-                        <div className="absolute -top-40 -right-40 w-96 h-96 bg-sunset-orange/5 rounded-full blur-3xl pointer-events-none" />
-
+                    <div className="flex-1 overflow-y-auto p-5 md:p-6 relative hide-scrollbar">
+                        <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-riverside-teal/5 to-transparent pointer-events-none" />
                         <div className="relative z-10">
                             {currentDoc.component}
+                        </div>
+                        <div className="mt-8 pt-4 border-t border-gray-100 text-center">
+                            <button onClick={onClose} className="btn-orange px-8 py-2 text-sm uppercase tracking-widest font-bold">Accept</button>
                         </div>
                     </div>
                 </motion.div>
