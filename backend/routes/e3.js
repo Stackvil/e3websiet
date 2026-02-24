@@ -47,7 +47,7 @@ const mapRecord = (record) => {
  */
 router.get('/rides', async (req, res) => {
     try {
-        let query = supabase.from('e3rides').select('*').order('createdAt', { ascending: false });
+        let query = supabase.from('e3rides').select('*').order('_id', { ascending: true });
         // Only return 'on' rides unless explicitly requested all
         if (req.query.all !== 'true') {
             query = query.eq('status', 'on');
@@ -57,6 +57,19 @@ router.get('/rides', async (req, res) => {
         if (error) throw error;
 
         const rides = data.map(mapRecord);
+        rides.sort((a, b) => {
+            const isMegaA = a.name && a.name.toLowerCase().includes('mega combo pack');
+            const isMegaB = b.name && b.name.toLowerCase().includes('mega combo pack');
+
+            if (isMegaA && !isMegaB) return -1;
+            if (!isMegaA && isMegaB) return 1;
+
+            const numA = parseInt(a._id, 10);
+            const numB = parseInt(b._id, 10);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return String(a._id).localeCompare(String(b._id), undefined, { numeric: true });
+        });
+
         res.json(rides);
     } catch (err) {
         console.error('Fetch Rides Error:', err);
@@ -140,9 +153,13 @@ const { uploadImage } = require('../utils/uploadUtils');
 router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) => {
     try {
         const imageUrl = await uploadImage(req.body.image, 'rides');
-        const imagesUrls = req.body.images
-            ? await Promise.all(req.body.images.map(img => uploadImage(img, 'rides')))
-            : undefined;
+        let imagesUrls = undefined;
+        if (req.body.images && Array.isArray(req.body.images)) {
+            imagesUrls = [];
+            for (const img of req.body.images) {
+                imagesUrls.push(await uploadImage(img, 'rides'));
+            }
+        }
 
         const payload = {
             name: req.body.name,
@@ -154,7 +171,6 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
             image: imageUrl, // Use the uploaded URL
             images: imagesUrls, // Gallery URLs
             desc: req.body.desc,
-            _id: crypto.randomUUID(),
             createdAt: new Date().toISOString()
         };
 
@@ -203,9 +219,13 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
 router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) => {
     try {
         const imageUrl = await uploadImage(req.body.image, 'dine');
-        const menuImagesUrls = req.body.menuImages
-            ? await Promise.all(req.body.menuImages.map(img => uploadImage(img, 'dine')))
-            : undefined;
+        let menuImagesUrls = undefined;
+        if (req.body.menuImages && Array.isArray(req.body.menuImages)) {
+            menuImagesUrls = [];
+            for (const img of req.body.menuImages) {
+                menuImagesUrls.push(await uploadImage(img, 'dine'));
+            }
+        }
 
         const payload = {
             name: req.body.name,
@@ -217,7 +237,6 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
             menuImages: menuImagesUrls,
             status: req.body.status,
             open: req.body.open,
-            _id: crypto.randomUUID(),
             createdAt: new Date().toISOString()
         };
 
@@ -287,10 +306,12 @@ router.put('/rides/:id', [auth, admin], async (req, res) => {
         if (updateData.image && !updateData.image.startsWith('http')) {
             updateData.image = await uploadImage(updateData.image, 'rides');
         }
-        if (updateData.images) {
-            updateData.images = await Promise.all(updateData.images.map(async img =>
-                img.startsWith('http') ? img : await uploadImage(img, 'rides')
-            ));
+        if (updateData.images && Array.isArray(updateData.images)) {
+            const newImages = [];
+            for (const img of updateData.images) {
+                newImages.push(img.startsWith('http') ? img : await uploadImage(img, 'rides'));
+            }
+            updateData.images = newImages;
         }
 
         const { data, error } = await supabase
@@ -405,10 +426,12 @@ router.put('/dine/:id', [auth, admin], async (req, res) => {
         if (updateData.image && !updateData.image.startsWith('http')) {
             updateData.image = await uploadImage(updateData.image, 'dine');
         }
-        if (updateData.menuImages) {
-            updateData.menuImages = await Promise.all(updateData.menuImages.map(async img =>
-                img.startsWith('http') ? img : await uploadImage(img, 'dine')
-            ));
+        if (updateData.menuImages && Array.isArray(updateData.menuImages)) {
+            const newMenuImages = [];
+            for (const img of updateData.menuImages) {
+                newMenuImages.push(img.startsWith('http') ? img : await uploadImage(img, 'dine'));
+            }
+            updateData.menuImages = newMenuImages;
         }
 
         const { data, error } = await supabase

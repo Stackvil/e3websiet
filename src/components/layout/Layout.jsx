@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cart from '../Cart';
 import Logo from '../Logo';
 import useStore from '../../store/useStore';
+import LegalModal from '../../pages/LegalModal';
 
 const getInitials = (name) => {
     if (!name) return 'U';
@@ -139,6 +140,7 @@ import BottomNav from './BottomNav';
 const Layout = ({ children }) => {
     const location = useLocation();
     const isAdmin = location.pathname.startsWith('/admin');
+    const [legalDoc, setLegalDoc] = useState(null);
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -186,11 +188,11 @@ const Layout = ({ children }) => {
                         </p>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-gray-400">
-                        <a href="#" className="hover:text-sunset-orange transition-colors">Privacy Policy</a>
+                        <button onClick={() => setLegalDoc('privacy')} className="hover:text-sunset-orange transition-colors">Privacy Policy</button>
                         <span className="text-gray-200">|</span>
-                        <a href="#" className="hover:text-sunset-orange transition-colors">Terms &amp; Conditions</a>
+                        <button onClick={() => setLegalDoc('terms')} className="hover:text-sunset-orange transition-colors">Terms &amp; Conditions</button>
                         <span className="text-gray-200">|</span>
-                        <a href="#" className="hover:text-sunset-orange transition-colors">Cookie Policy</a>
+                        <button onClick={() => setLegalDoc('about')} className="hover:text-sunset-orange transition-colors">About Us</button>
                     </div>
                 </div>
             </footer>
@@ -199,6 +201,7 @@ const Layout = ({ children }) => {
                 <FooterInfoBar isAdmin={isAdmin} />
             </div>
             <BottomNav />
+            {legalDoc && <LegalModal doc={legalDoc} onClose={() => setLegalDoc(null)} />}
         </div>
     );
 };
