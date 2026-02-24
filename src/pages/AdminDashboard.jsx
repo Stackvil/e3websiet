@@ -62,8 +62,8 @@ const AdminDashboard = () => {
                 }
 
                 const [e3RidesRes, e3DineRes] = await Promise.all([
-                    fetch(`${API_URL}/e3/rides`),
-                    fetch(`${API_URL}/e3/dine`)
+                    fetch(`${API_URL}/e3/rides?all=true`),
+                    fetch(`${API_URL}/e3/dine?all=true`)
                 ]);
 
                 const allProducts = [];

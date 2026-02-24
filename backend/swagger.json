@@ -1,0 +1,2166 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Ethree API",
+    "version": "1.0.0",
+    "description": "API for Ethree - Eat, Enjoy, Entertainment platform (Supabase PostgreSQL Version)"
+  },
+  "servers": [
+    {
+      "url": "https://e3-e4-backend.vercel.app",
+      "description": "Production Server"
+    },
+    {
+      "url": "http://localhost:5000",
+      "description": "Local Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User ID (_id from database)",
+            "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "name": {
+            "type": "string",
+            "example": "Karthik"
+          },
+          "mobile": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "admin"
+            ],
+            "example": "customer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-15T10:30:00.000Z"
+          },
+          "location": {
+            "type": "string",
+            "enum": [
+              "E3",
+              "E4"
+            ],
+            "description": "Which park the user is registered under",
+            "example": "E3"
+          }
+        }
+      },
+      "Sponsor": {
+        "type": "object",
+        "required": [
+          "name",
+          "image"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "Auto-generated ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Sponsor Name"
+          },
+          "image": {
+            "type": "string",
+            "description": "URL of sponsor logo"
+          },
+          "website": {
+            "type": "string",
+            "description": "Link to sponsor website"
+          },
+          "tier": {
+            "type": "string",
+            "description": "Sponsorship tier (e.g. Gold, Silver)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/analytics/e3/stats": {
+      "get": {
+        "summary": "Get E3 platform usage statistics",
+        "tags": [
+          "Analytics - E3"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/e4/stats": {
+      "get": {
+        "summary": "Get E4 platform usage statistics",
+        "tags": [
+          "Analytics - E4"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/send-otp": {
+      "post": {
+        "summary": "Send OTP to mobile number",
+        "description": "Sends a 6-digit OTP via SMS (AUTHKEY). In development mode (no AUTHKEY env var),\nthe OTP is returned in the response as `debugOtp`.\nThe `location` (E3 or E4) is saved alongside the OTP so that `/verify-otp`\ndoes not need to ask for it again.\n",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mobile"
+                ],
+                "properties": {
+                  "mobile": {
+                    "type": "string",
+                    "example": "9876543210",
+                    "description": "10-digit Indian mobile number"
+                  },
+                  "location": {
+                    "type": "string",
+                    "enum": [
+                      "E3",
+                      "E4"
+                    ],
+                    "default": "E3",
+                    "description": "Park location — saved in the OTP record and auto-embedded in the JWT on verification"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "OTP sent successfully"
+                    },
+                    "mobile": {
+                      "type": "string",
+                      "example": "9876543210"
+                    },
+                    "debugOtp": {
+                      "type": "string",
+                      "example": "123456",
+                      "description": "Only returned in development mode (when AUTHKEY env var is not set)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (missing or invalid mobile)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or SMS provider failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify-otp": {
+      "post": {
+        "summary": "Verify OTP and login / register",
+        "description": "Verifies the submitted OTP against the stored value.\n- If the user **exists** → logs them in and returns tokens.\n- If the user **does not exist** → creates a new account with role `customer` and returns tokens.\nThe **location (E3/E4) is read automatically from the OTP record** — you do not need to send it again.\nIt is then embedded into the JWT as the `type` claim for all future requests.\nA long-lived `refreshToken` is also set as an **HTTP-Only cookie** (not visible in the response body).\n",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mobile",
+                  "otp",
+                  "location"
+                ],
+                "properties": {
+                  "mobile": {
+                    "type": "string",
+                    "example": "9876543210"
+                  },
+                  "otp": {
+                    "type": "string",
+                    "example": "123456"
+                  },
+                  "location": {
+                    "type": "string",
+                    "example": "E3"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login / registration successful",
+            "headers": {
+              "Set-Cookie": {
+                "description": "HTTP-Only refreshToken cookie (30 days)",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "Short-lived JWT access token (15 minutes) — contains id, role, type (location)"
+                    },
+                    "isNewUser": {
+                      "type": "boolean",
+                      "description": "true if the account was just created"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OTP, expired OTP, or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh-token": {
+      "post": {
+        "summary": "Refresh Access Token",
+        "description": "Uses the **`refreshToken` HTTP-Only cookie** (set automatically by `/verify-otp`) to issue a new short-lived access token.\nNo request body is needed — the cookie is sent automatically by the browser.\nIf the cookie is missing or invalid, returns 401/403.\n",
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "New access token issued successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "New JWT access token (valid for 15 minutes)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No refresh token cookie found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Refresh token is invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "Logout user",
+        "description": "Clears the `refreshToken` HTTP-Only cookie, effectively ending the session.\nThe client should also discard the access token stored in memory or localStorage.\nNo request body or Authorization header required.\n",
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Logged out successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/slots": {
+      "get": {
+        "summary": "Get hourly slot availability for a date and location",
+        "tags": [
+          "Bookings"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "location",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "e3",
+                "e4"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "schema": {
+              "type": "string",
+              "example": "2026-02-20"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of slots with status"
+          }
+        }
+      }
+    },
+    "/api/bookings/check-availability": {
+      "post": {
+        "summary": "Check if a specific time slot is available",
+        "tags": [
+          "Bookings"
+        ]
+      }
+    },
+    "/api/bookings": {
+      "get": {
+        "summary": "Get all bookings (Derived from Orders)"
+      }
+    },
+    "/api/e3/rides": {
+      "get": {
+        "summary": "Get all E3 rides",
+        "tags": [
+          "E3"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "all",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Pass true to fetch all rides including offline/inactive rides"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of E3 rides",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Ride"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new ride (Admin only)",
+        "tags": [
+          "E3"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ride"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ride created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ride"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/e3/dine": {
+      "get": {
+        "summary": "Get all E3 dine items",
+        "tags": [
+          "E3"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "all",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Pass true to fetch all dine items including closed/inactive ones"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of E3 dine items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DineItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new dine item (Admin only)",
+        "tags": [
+          "E3"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DineItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dine item created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DineItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/e3/rides/{id}": {
+      "put": {
+        "summary": "Update a ride (Admin only)",
+        "tags": [
+          "E3"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Ride ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ride"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ride updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ride"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Ride not found"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a ride (Admin only)",
+        "tags": [
+          "E3"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ride deleted"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Ride not found"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/e3/dine/{id}": {
+      "put": {
+        "summary": "Update a dine item (Admin only)",
+        "tags": [
+          "E3"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Dine item ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DineItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dine item updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DineItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Dine item not found"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a dine item (Admin only)",
+        "tags": [
+          "E3"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dine item deleted"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Dine item not found"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/e4/rides": {
+      "get": {
+        "summary": "Get all E4 rides",
+        "tags": [
+          "E4"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "all",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Pass true to fetch all rides including offline/inactive rides"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of E4 rides",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Ride"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new ride (Admin only)",
+        "tags": [
+          "E4"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ride"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ride created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ride"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/e4/dine": {
+      "get": {
+        "summary": "Get all E4 dine items",
+        "tags": [
+          "E4"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "all",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Pass true to fetch all dine items including closed/inactive ones"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of E4 dine items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DineItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new E4 dine item (Admin only)",
+        "tags": [
+          "E4"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DineItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dine item created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DineItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/e4/rides/{id}": {
+      "put": {
+        "summary": "Update a ride (Admin only)",
+        "tags": [
+          "E4"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ride"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ride updated"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an E4 ride (Admin only)",
+        "tags": [
+          "E4"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Ride ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ride deleted"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Ride not found"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/e4/dine/{id}": {
+      "put": {
+        "summary": "Update an E4 dine item (Admin only)",
+        "tags": [
+          "E4"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Dine item ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DineItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dine item updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DineItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Dine item not found"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a dine item (Admin only)",
+        "tags": [
+          "E4"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dine item deleted"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "summary": "Get all events",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "location",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "E3",
+                "E4"
+              ]
+            },
+            "description": "Filter by location"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new event (Admin only)",
+        "tags": [
+          "Events"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Event"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Event created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/orders/e3/all": {
+      "get": {
+        "summary": "Get all E3 orders (Admin only)",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of E3 orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/orders/e3": {
+      "get": {
+        "summary": "Get my E3 orders",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user's E3 orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/e3/checkout": {
+      "post": {
+        "summary": "Checkout for E3 items",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "items"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "number"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment initiated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "payment_url": {
+                      "type": "string"
+                    },
+                    "access_key": {
+                      "type": "string"
+                    },
+                    "txnid": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/e4/all": {
+      "get": {
+        "summary": "Get all E4 orders (Admin only)",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of E4 orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/e4": {
+      "get": {
+        "summary": "Get my E4 orders",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user's E4 orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/e4/checkout": {
+      "post": {
+        "summary": "Checkout for E4 items",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "items"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "number"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment initiated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "payment_url": {
+                      "type": "string"
+                    },
+                    "access_key": {
+                      "type": "string"
+                    },
+                    "txnid": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/all": {
+      "get": {
+        "summary": "Get all E3 orders combined (Admin only)",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All E3 orders"
+          }
+        }
+      }
+    },
+    "/api/orders/daily": {
+      "get": {
+        "summary": "Get today's sales and last 14 days history (Admin only)",
+        "tags": [
+          "Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily sales breakdown",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "today": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "number"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "orders": {
+                          "type": "array"
+                        }
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string"
+                          },
+                          "total": {
+                            "type": "number"
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payment/status/{orderId}": {
+      "get": {
+        "summary": "Get order/payment status by Order ID",
+        "description": "Looks up an order by its transaction ID across both E3 and E4 order tables.\nUsed by the Success page to display booked items and confirm payment.\nNo authentication required (order ID acts as the access key).\n",
+        "tags": [
+          "Payment"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The transaction/order ID (e.g. ETH-123456)",
+            "example": "ETH-734291"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "order": {
+                      "type": "object",
+                      "properties": {
+                        "_id": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "number"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "success"
+                        },
+                        "items": {
+                          "type": "array"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "location": {
+                          "type": "string",
+                          "enum": [
+                            "E3",
+                            "E4"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payment/my-orders": {
+      "get": {
+        "summary": "Get all orders for the authenticated user",
+        "description": "Returns all E3 and E4 orders belonging to the currently authenticated user,\nsorted newest first. Location is derived from the JWT token (`req.user.type`).\n",
+        "tags": [
+          "Payment"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/payment/success": {
+      "post": {
+        "summary": "Easebuzz payment success callback",
+        "description": "This endpoint is called **by Easebuzz** (not the frontend) after a successful payment.\nIt validates the hash, updates the order status to `success`, records the payment,\nand redirects the user to the frontend `/success` page.\n**Do not call this manually.**\n",
+        "tags": [
+          "Payment"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "txnid": {
+                    "type": "string",
+                    "description": "Transaction ID"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "success"
+                  },
+                  "easepayid": {
+                    "type": "string"
+                  },
+                  "udf1": {
+                    "type": "string",
+                    "description": "Location (E3 or E4) stored during checkout"
+                  },
+                  "udf2": {
+                    "type": "string",
+                    "description": "User ID stored during checkout"
+                  },
+                  "hash": {
+                    "type": "string",
+                    "description": "Easebuzz response hash for signature verification"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Redirects to frontend /success or /failed page"
+          },
+          "400": {
+            "description": "Hash validation failed"
+          }
+        }
+      }
+    },
+    "/api/payment/failure": {
+      "post": {
+        "summary": "Easebuzz payment failure callback",
+        "description": "Called by Easebuzz after a failed/cancelled payment.\nUpdates the order status and redirects to the frontend `/failed` page.\n**Do not call this manually.**\n",
+        "tags": [
+          "Payment"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "txnid": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "failed"
+                  },
+                  "udf1": {
+                    "type": "string",
+                    "description": "Location (E3 or E4)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Redirects to frontend /failed page"
+          }
+        }
+      }
+    },
+    "/api/poa/e3": {
+      "get": {
+        "summary": "Get E3 Plan of Action data",
+        "description": "Returns live operational snapshot for E3: summary stats, recent orders,\nride status, stall status, and alerts. (Currently returns dummy data — will\nconnect to MongoDB in production.)\n",
+        "tags": [
+          "POA"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "E3 operational data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/poa/e4": {
+      "get": {
+        "summary": "Get E4 Plan of Action data",
+        "description": "Returns live operational snapshot for E4: summary stats, recent orders,\nride status, stall status, and alerts. (Currently returns dummy data — will\nconnect to MongoDB in production.)\n",
+        "tags": [
+          "POA"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "E4 operational data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/profile": {
+      "get": {
+        "summary": "Get authenticated user's profile",
+        "description": "Returns the profile of the currently authenticated user.\nThe user is identified via the JWT access token in the `Authorization` header.\nThe system automatically searches both E3 and E4 user tables.\n",
+        "tags": [
+          "Profile"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                },
+                "example": {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "name": "Karthik",
+                  "mobile": "9876543210",
+                  "role": "customer",
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "location": "E3"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found in E3 or E4 tables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update authenticated user's profile",
+        "description": "Updates the name and/or email of the currently authenticated user.\nOnly the fields provided in the request body will be updated (partial update).\nThe user is identified via the JWT access token.\n",
+        "tags": [
+          "Profile"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Karthik Kumar",
+                    "description": "New display name"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "karthik@example.com",
+                    "description": "New email address"
+                  }
+                }
+              },
+              "example": {
+                "name": "Karthik Kumar",
+                "email": "karthik@example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                },
+                "example": {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "name": "Karthik Kumar",
+                  "mobile": "9876543210",
+                  "role": "customer",
+                  "createdAt": "2024-01-15T10:30:00.000Z",
+                  "location": "E3"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or database update failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profile/{type}": {
+      "get": {
+        "summary": "Get profile (backward compatibility alias)",
+        "description": "Backward compatibility route. Accepts `/api/profile/e3` or `/api/profile/e4`\nbut internally delegates to `GET /api/profile`.\nPrefer using `GET /api/profile` directly.\n",
+        "tags": [
+          "Profile"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "e3",
+                "e4"
+              ]
+            },
+            "description": "Park type (ignored — resolved automatically from token)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT token"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/api/sponsors": {
+      "get": {
+        "summary": "Get all sponsors",
+        "tags": [
+          "Sponsors"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of sponsors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Sponsor"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new sponsor (Admin only)",
+        "tags": [
+          "Sponsors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "image"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "string"
+                  },
+                  "website": {
+                    "type": "string"
+                  },
+                  "tier": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sponsor added successfully"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/api/sponsors/{id}": {
+      "delete": {
+        "summary": "Delete a sponsor (Admin only)",
+        "tags": [
+          "Sponsors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Sponsor ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sponsor deleted"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Sponsor not found"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Authentication APIs"
+    },
+    {
+      "name": "E3",
+      "description": "E3 Rides and Dining APIs"
+    },
+    {
+      "name": "E4",
+      "description": "E4 Rides and Dining APIs"
+    },
+    {
+      "name": "Events",
+      "description": "Event management APIs"
+    },
+    {
+      "name": "Orders",
+      "description": "Order management and checkout"
+    },
+    {
+      "name": "Payment",
+      "description": "Payment callbacks and order status"
+    },
+    {
+      "name": "POA",
+      "description": "Plan of Action - E3 & E4 operational data (MongoDB)"
+    },
+    {
+      "name": "Profile",
+      "description": "User profile management"
+    }
+  ]
+}

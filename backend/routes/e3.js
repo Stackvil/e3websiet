@@ -29,6 +29,12 @@ const mapRecord = (record) => {
  *   get:
  *     summary: Get all E3 rides
  *     tags: [E3]
+ *     parameters:
+ *       - in: query
+ *         name: all
+ *         schema:
+ *           type: string
+ *         description: Pass true to fetch all rides including offline/inactive rides
  *     responses:
  *       200:
  *         description: List of E3 rides
@@ -41,10 +47,12 @@ const mapRecord = (record) => {
  */
 router.get('/rides', async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from('e3rides')
-            .select('*')
-            .order('createdAt', { ascending: false });
+        let query = supabase.from('e3rides').select('*').order('createdAt', { ascending: false });
+        // Only return 'on' rides unless explicitly requested all
+        if (req.query.all !== 'true') {
+            query = query.eq('status', 'on');
+        }
+        const { data, error } = await query;
 
         if (error) throw error;
 
@@ -62,6 +70,12 @@ router.get('/rides', async (req, res) => {
  *   get:
  *     summary: Get all E3 dine items
  *     tags: [E3]
+ *     parameters:
+ *       - in: query
+ *         name: all
+ *         schema:
+ *           type: string
+ *         description: Pass true to fetch all dine items including closed/inactive ones
  *     responses:
  *       200:
  *         description: List of E3 dine items
@@ -74,10 +88,11 @@ router.get('/rides', async (req, res) => {
  */
 router.get('/dine', async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from('e3dines')
-            .select('*')
-            .order('createdAt', { ascending: false });
+        let query = supabase.from('e3dines').select('*').order('createdAt', { ascending: false });
+        if (req.query.all !== 'true') {
+            query = query.eq('status', 'on');
+        }
+        const { data, error } = await query;
 
         if (error) throw error;
 
@@ -255,23 +270,33 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
  *         description: Ride not found
  *       403:
  *         description: Admin access required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 // PUT /rides/:id
 router.put('/rides/:id', [auth, admin], async (req, res) => {
     try {
         let updateData = { ...req.body };
+        delete updateData._id;
+        delete updateData.id;
 
-        if (updateData.image) {
+        if (updateData.image && !updateData.image.startsWith('http')) {
             updateData.image = await uploadImage(updateData.image, 'rides');
         }
         if (updateData.images) {
-            updateData.images = await Promise.all(updateData.images.map(img => uploadImage(img, 'rides')));
+            updateData.images = await Promise.all(updateData.images.map(async img =>
+                img.startsWith('http') ? img : await uploadImage(img, 'rides')
+            ));
         }
 
         const { data, error } = await supabase
             .from('e3rides')
             .update(updateData)
-            .eq('id', req.params.id)
+            .eq('_id', req.params.id)
             .select()
             .single();
 
@@ -306,13 +331,19 @@ router.put('/rides/:id', [auth, admin], async (req, res) => {
  *         description: Ride not found
  *       403:
  *         description: Admin access required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.delete('/rides/:id', [auth, admin], async (req, res) => {
     try {
         const { error } = await supabase
             .from('e3rides')
             .delete()
-            .eq('id', req.params.id);
+            .eq('_id', req.params.id);
 
         if (error) throw error;
 
@@ -357,23 +388,33 @@ router.delete('/rides/:id', [auth, admin], async (req, res) => {
  *         description: Dine item not found
  *       403:
  *         description: Admin access required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 // PUT /dine/:id
 router.put('/dine/:id', [auth, admin], async (req, res) => {
     try {
         let updateData = { ...req.body };
+        delete updateData._id;
+        delete updateData.id;
 
-        if (updateData.image) {
+        if (updateData.image && !updateData.image.startsWith('http')) {
             updateData.image = await uploadImage(updateData.image, 'dine');
         }
         if (updateData.menuImages) {
-            updateData.menuImages = await Promise.all(updateData.menuImages.map(img => uploadImage(img, 'dine')));
+            updateData.menuImages = await Promise.all(updateData.menuImages.map(async img =>
+                img.startsWith('http') ? img : await uploadImage(img, 'dine')
+            ));
         }
 
         const { data, error } = await supabase
             .from('e3dines')
             .update(updateData)
-            .eq('id', req.params.id)
+            .eq('_id', req.params.id)
             .select()
             .single();
 
@@ -408,13 +449,19 @@ router.put('/dine/:id', [auth, admin], async (req, res) => {
  *         description: Dine item not found
  *       403:
  *         description: Admin access required
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.delete('/dine/:id', [auth, admin], async (req, res) => {
     try {
         const { error } = await supabase
             .from('e3dines')
             .delete()
-            .eq('id', req.params.id);
+            .eq('_id', req.params.id);
 
         if (error) throw error;
 

@@ -171,7 +171,7 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [mobile, otp]
+ *             required: [mobile, otp, location]
  *             properties:
  *               mobile:
  *                 type: string
@@ -179,6 +179,9 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
  *               otp:
  *                 type: string
  *                 example: "123456"
+ *               location:
+ *                 type: string
+ *                 example: "E3"
  *     responses:
  *       200:
  *         description: Login / registration successful
