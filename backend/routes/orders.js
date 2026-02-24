@@ -80,21 +80,27 @@ const checkoutHandler = (type) => async (req, res) => {
         // Fetch canonical prices from the database for security overrides
         const prefix = (type || 'e3').toLowerCase();
         const [ridesRes, dinesRes, eventsRes] = await Promise.all([
-            supabase.from(`${prefix}rides`).select('_id, id, price'),
-            supabase.from(`${prefix}dines`).select('_id, id, price'),
-            supabase.from(`${prefix}events`).select('_id, id, price')
+            supabase.from(`${prefix}rides`).select('_id, price'),
+            supabase.from(`${prefix}dines`).select('_id, price'),
+            supabase.from(`${prefix}events`).select('_id, price')
         ]);
 
         const validPrices = {};
-        [...(ridesRes.data || []), ...(dinesRes.data || []), ...(eventsRes.data || [])].forEach(item => {
+        const allDbItems = [...(ridesRes.data || []), ...(dinesRes.data || []), ...(eventsRes.data || [])];
+
+        allDbItems.forEach(item => {
             if (item._id) validPrices[String(item._id)] = Number(item.price) || 0;
             if (item.id) validPrices[String(item.id)] = Number(item.price) || 0;
         });
 
         let totalAmount = 0;
         for (const item of items) {
-            const dbPrice = validPrices[String(item.id)];
+            // Strip frontend prefixes like 'play-', 'dine-', 'event-'
+            const cleanId = String(item.id).replace(/^(play|dine|event|item)-/, '');
+            const dbPrice = validPrices[cleanId];
+
             if (dbPrice === undefined) {
+                console.error(`Validation Failed: Item ${item.name} (ID: ${item.id}, CleanID: ${cleanId}) not found in DB.`);
                 return res.status(400).json({ success: false, message: `Item validation failed: pricing not found for ${item.name}` });
             }
             totalAmount += (dbPrice * item.quantity);

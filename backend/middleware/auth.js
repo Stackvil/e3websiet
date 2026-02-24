@@ -11,11 +11,14 @@ const auth = (req, res, next) => {
     if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_key');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secure_secret_key_12345');
         req.user = decoded;
         next();
     } catch (err) {
-        console.error('Auth Middleware Error:', err.message);
+        console.error('Auth Middleware Error:', err.name, err.message);
+        if (err.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Token expired', expiredAt: err.expiredAt });
+        }
         res.status(401).json({ message: 'Token is not valid' });
     }
 };
