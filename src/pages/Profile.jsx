@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, Award, Gift, LogOut, Edit2, Save, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config/api';
+import { fetchWithAuth } from '../utils/apiFetch';
 
 const Profile = () => {
     const { user, setUser } = useStore();          // ← removed non-existent 'logout'
@@ -14,6 +15,7 @@ const Profile = () => {
     const [editName, setEditName] = useState('');
     const [editEmail, setEditEmail] = useState('');
     const [saving, setSaving] = useState(false);
+    const [claiming, setClaiming] = useState(false);
     const [toast, setToast] = useState(null); // { type: 'success'|'error', msg }
 
     // ── Fetch fresh profile once on mount ────────────────────────────────────
@@ -23,9 +25,7 @@ const Profile = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
         try {
-            const res = await fetch(`${API_URL}/profile`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await fetchWithAuth(`${API_URL}/profile`);
             if (res.ok) {
                 const data = await res.json();
                 setUser(data);
@@ -60,11 +60,10 @@ const Profile = () => {
         setSaving(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/profile`, {
+            const res = await fetchWithAuth(`${API_URL}/profile`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ name: editName, email: editEmail })
             });
@@ -83,6 +82,30 @@ const Profile = () => {
             setToast({ type: 'error', msg: 'Network error. Please try again.' });
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleClaimReward = async () => {
+        if (user?.reward_points < 500) return;
+        setClaiming(true);
+        try {
+            const location = user.location?.toLowerCase() || 'e3';
+            const res = await fetchWithAuth(`${API_URL}/orders/${location}/claim-reward`, {
+                method: 'POST'
+            });
+
+            if (res.ok) {
+                // Refresh profile to show deducted points
+                await fetchProfile();
+                setToast({ type: 'success', msg: 'Free Ride Ticket Claimed 🎉 Check Your Tickets!' });
+            } else {
+                const err = await res.json();
+                setToast({ type: 'error', msg: err.message || 'Failed to claim reward.' });
+            }
+        } catch (err) {
+            setToast({ type: 'error', msg: 'Network error. Please try again.' });
+        } finally {
+            setClaiming(false);
         }
     };
 
@@ -302,9 +325,26 @@ const Profile = () => {
                                         </div>
                                         <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-indigo-100 flex items-start gap-2">
                                             <Gift className="text-purple-500 shrink-0 mt-0.5" size={16} />
-                                            <p className="text-xs text-gray-600 leading-snug">
-                                                Earn <strong className="text-indigo-600">500 Points</strong> to unlock a <strong className="text-purple-600">Free Ride Ticket</strong> 🎟️
-                                            </p>
+                                            {user.reward_points >= 500 ? (
+                                                <div className="flex-1 flex flex-col gap-2">
+                                                    <p className="text-xs text-gray-800 font-bold leading-snug">
+                                                        You've unlocked a <strong className="text-purple-600">Free Ride Ticket</strong>! 🎟️
+                                                    </p>
+                                                    <button
+                                                        onClick={handleClaimReward}
+                                                        disabled={claiming}
+                                                        className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-xs py-2 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        {claiming ? <Loader2 size={14} className="animate-spin" /> : 'Claim Free Ride Now'}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-gray-600 leading-snug">
+                                                    Earn <strong className="text-indigo-600">500 Points</strong> to unlock a <strong className="text-purple-600">Free Ride Ticket</strong> 🎟️
+                                                    <br />
+                                                    <span className="text-[10px] text-gray-400 font-medium">({500 - (user.reward_points || 0)} more points needed)</span>
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

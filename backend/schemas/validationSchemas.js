@@ -160,8 +160,8 @@ const addSponsorSchema = z.object({
 const updateProfileSchema = z.object({
     body: z.object({
         name: z.string().min(2).optional(),
-        email: z.string().email().optional(),
-        mobile: z.string().regex(/^\d{10}$/).optional()
+        email: z.string().email().or(z.literal('')).optional(),
+        mobile: z.string().regex(/^\d{10}$/).or(z.literal('')).optional()
     })
 });
 

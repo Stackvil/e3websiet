@@ -167,6 +167,12 @@ const Success = () => {
                             <Download size={18} /> View & Download Invoice
                         </button>
                         <Link
+                            to="/tickets"
+                            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-riverside-teal text-white font-bold text-sm hover:bg-teal-600 transition-all shadow-lg shadow-teal-200"
+                        >
+                            <Ticket size={18} /> See Your Tickets
+                        </Link>
+                        <Link
                             to="/"
                             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-gray-100 text-charcoal-grey font-bold text-sm hover:border-riverside-teal hover:text-riverside-teal transition-all"
                         >
