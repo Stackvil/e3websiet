@@ -149,7 +149,6 @@ router.post('/rides', [auth, admin, validate(addRideSchema)], async (req, res) =
         }
 
         const payload = {
-            _id: crypto.randomUUID(),
             name: req.body.name,
             price: Number(req.body.price),
             ageGroup: req.body.ageGroup || 'All',
@@ -218,7 +217,6 @@ router.post('/dine', [auth, admin, validate(addDineSchema)], async (req, res) =>
         }
 
         const payload = {
-            _id: crypto.randomUUID(),
             name: req.body.name,
             price: Number(req.body.price),
             category: req.body.category || 'dine',
