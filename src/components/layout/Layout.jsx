@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ShoppingCart, MapPin, Clock, Info, Ticket, Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
+import { Menu, X, ShoppingCart, MapPin, Clock, Info, Ticket, Facebook, Instagram, Youtube, Twitter, UserRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cart from '../Cart';
 import Logo from '../Logo';
@@ -55,13 +55,14 @@ const Header = () => {
                     ))}
                     <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} className={`font-semibold transition-all duration-300 hover:scale-105 ${user ? '' : 'text-charcoal-grey hover:text-sunset-orange'}`}>
                         {user ? (
-                            <div
-                                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md text-sm"
-                                style={{ backgroundColor: getAvatarColor(displayName) }}
+                            <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1D2B44] text-white shadow-md border-2 border-white relative group transition-all duration-300 pointer-events-auto"
                                 title={displayName}
                             >
-                                {getInitials(displayName)}
-                            </div>
+                                <UserRound size={22} className="relative z-10 transition-transform group-hover:scale-110" />
+                            </motion.div>
                         ) : 'Login'}
                     </Link>
                     {location.pathname !== '/' && (
@@ -97,7 +98,14 @@ const Header = () => {
                                     {link.name}
                                 </Link>
                             ))}
-                            <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} onClick={() => setIsOpen(false)} className="text-lg font-semibold">
+                            <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3">
+                                {user && (
+                                    <div
+                                        className="w-8 h-8 rounded-full flex items-center justify-center bg-[#1D2B44] text-white"
+                                    >
+                                        <UserRound size={16} />
+                                    </div>
+                                )}
                                 {user ? (user.role === 'admin' ? 'Admin' : (user.name || 'User')) : 'Login'}
                             </Link>
                             {location.pathname !== '/' && (
@@ -194,8 +202,8 @@ const Layout = ({ children }) => {
                         <p className="text-gray-400 text-xs">
                             © {new Date().getFullYear()} <span className="font-semibold text-gray-500">E3 Entertainment</span>. All Rights Reserved.
                         </p>
-                        <p className="text-gray-400 text-[10px] font-medium">
-                            * All payments for dining, rides, and event bookings are strictly non-refundable once the service is availed or consumed.
+                        <p className="text-gray-400 text-[10px] font-medium italic">
+                            * All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted.
                         </p>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-gray-400">

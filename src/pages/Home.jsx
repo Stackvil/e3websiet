@@ -6,17 +6,20 @@ import useStore from '../store/useStore';
 import { API_URL } from '../config/api';
 
 import RideCard from '../components/RideCard';
-import Sponsors from '../components/Sponsors';
+import RideSkeleton from '../components/RideSkeleton';
+// import Sponsors from '../components/Sponsors';
 import localProducts from '../data/products.json';
 
 const Home = () => {
     const { addToCart, toggleCart } = useStore();
     const [activities, setActivities] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
 
 
     useEffect(() => {
         const fetchActivities = async () => {
+            setIsLoading(true);
             let data = [];
             try {
                 const res = await fetch(`${API_URL}/e3/rides?all=true`);
@@ -30,6 +33,7 @@ const Home = () => {
             if (data) {
                 setActivities(data);
             }
+            setIsLoading(false);
         };
         fetchActivities();
     }, []);
@@ -67,16 +71,23 @@ const Home = () => {
                     <div className="w-full">
                         {/* Changed grid-cols-3 to grid-cols-2 for better mobile layout */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                            {activities.map((ride, index) => (
-                                <motion.div
-                                    key={ride._id || ride.id}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: index * 0.05 }}
-                                >
-                                    <RideCard ride={ride} />
-                                </motion.div>
-                            ))}
+                            {isLoading ? (
+                                // Show 8 skeletons while loading
+                                [...Array(8)].map((_, i) => (
+                                    <RideSkeleton key={i} />
+                                ))
+                            ) : (
+                                activities.map((ride, index) => (
+                                    <motion.div
+                                        key={ride._id || ride.id}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: index * 0.05 }}
+                                    >
+                                        <RideCard ride={ride} />
+                                    </motion.div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
@@ -107,10 +118,10 @@ const Home = () => {
             </section>
 
             {/* Sponsors Section */}
-            <Sponsors />
+            {/* <Sponsors /> */}
 
             {/* Riverside Section - Parallax style background */}
-            <section className="relative py-32 overflow-hidden flex items-center text-white">
+            <section className="relative py-16 overflow-hidden flex items-center text-white">
                 <div
                     className="absolute inset-0 z-0 bg-fixed bg-cover bg-center brightness-75 transition-all duration-700 hover:scale-105"
                     style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1544648151-50e50257077e?auto=format&fit=crop&w=1600&q=80")' }}
@@ -119,7 +130,7 @@ const Home = () => {
 
                 <div className="relative z-20 container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
                     <div>
-                        <h2 className="text-4xl md:text-6xl font-heading font-bold mb-8">Scenic Riverside Experience</h2>
+                        <h2 className="text-2xl md:text-4xl font-heading font-bold mb-8">Scenic Riverside Experience</h2>
                         <p className="text-lg leading-relaxed mb-10 opacity-90">
                             E3 Entertainment is widely recognized for its scenic location on the banks of the Krishna River. It features a casual, trendy, and contemporary atmosphere with mostly open-air seating, offering a refreshing breeze and picturesque views, especially after sunset.
                         </p>

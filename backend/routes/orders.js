@@ -86,31 +86,77 @@ const checkoutHandler = (type) => async (req, res) => {
         // Fetch canonical prices from the database for security overrides
         const prefix = (type || 'e3').toLowerCase();
         const [ridesRes, dinesRes, eventsRes] = await Promise.all([
-            supabase.from(`${prefix}rides`).select('_id, price'),
-            supabase.from(`${prefix}dines`).select('_id, price'),
-            supabase.from(`${prefix}events`).select('_id, price')
+            supabase.from(`${prefix}rides`).select('_id, price, name'),
+            supabase.from(`${prefix}dines`).select('_id, price, name'),
+            supabase.from(`${prefix}events`).select('_id, price, name')
         ]);
+
+        if (ridesRes.error) console.error(`Supabase Error (${prefix}rides):`, ridesRes.error);
+        if (dinesRes.error) console.error(`Supabase Error (${prefix}dines):`, dinesRes.error);
+        if (eventsRes.error) console.error(`Supabase Error (${prefix}events):`, eventsRes.error);
 
         const validPrices = {};
         const allDbItems = [...(ridesRes.data || []), ...(dinesRes.data || []), ...(eventsRes.data || [])];
 
-        allDbItems.forEach(item => {
-            if (item._id) validPrices[String(item._id)] = Number(item.price) || 0;
-            if (item.id) validPrices[String(item.id)] = Number(item.price) || 0;
+        // Priority: Build map with prefixed keys to avoid ID collisions between categories
+        // We also keep raw IDs for legacy compatibility, though they may overwrite each other
+        ridesRes.data?.forEach(item => {
+            const id = String(item._id || item.id);
+            const entry = { price: Number(item.price) || 0, name: item.name };
+            validPrices[id] = entry;
+            validPrices[`play-${id}`] = entry;
         });
+        dinesRes.data?.forEach(item => {
+            const id = String(item._id || item.id);
+            const entry = { price: Number(item.price) || 0, name: item.name };
+            validPrices[id] = entry;
+            validPrices[`dine-${id}`] = entry;
+        });
+        eventsRes.data?.forEach(item => {
+            const id = String(item._id || item.id);
+            const entry = { price: Number(item.price) || 0, name: item.name };
+            validPrices[id] = entry;
+            validPrices[`event-${id}`] = entry;
+            validPrices[`item-${id}`] = entry; // Just in case
+        });
+
+        console.log(`Checkout Debug [${type.toUpperCase()}]: Fetched ${allDbItems.length} items from DB. Map size: ${Object.keys(validPrices).length}`);
 
         let totalAmount = 0;
         for (const item of items) {
-            // Strip frontend prefixes like 'play-', 'dine-', 'event-'
-            const cleanId = String(item.id).replace(/^(play|dine|event|item)-/, '');
-            const dbPrice = validPrices[cleanId];
+            // Priority 1: Direct match using the full ID sent by frontend (often prefixed like 'play-3')
+            let dbItem = validPrices[String(item.id).trim()];
 
-            if (dbPrice === undefined) {
-                console.error(`Validation Failed: Item ${item.name} (ID: ${item.id}, CleanID: ${cleanId}) not found in DB.`);
-                return res.status(400).json({ success: false, message: `Item validation failed: pricing not found for ${item.name}` });
+            // Priority 2: Match using cleaned ID (strip prefixes)
+            const cleanId = String(item.id).replace(/^(play|dine|event|item)-/, '').trim();
+            if (!dbItem) {
+                dbItem = validPrices[cleanId];
             }
+
+            // Priority 3: Fallback by name (case-insensitive)
+            if (!dbItem) {
+                console.warn(`ID Match Failed for "${item.name}" (Sent ID: "${item.id}", Cleaned ID: "${cleanId}"). Attempting fallback by name...`);
+                // Find item with matching name in the allDbItems list to avoid map overwrite bias
+                const nameMatch = allDbItems.find(v => v.name && v.name.toLowerCase() === item.name.toLowerCase());
+                if (nameMatch) {
+                    console.log(`Fallback Successful: Found item "${item.name}" in DB.`);
+                    dbItem = { price: Number(nameMatch.price) || 0, name: nameMatch.name };
+                }
+            }
+
+            if (!dbItem) {
+                console.error(`Validation Failed: Item "${item.name}" (Sent ID: ${item.id}, Cleaned ID: "${cleanId}") not found in DB.`);
+                return res.status(400).json({
+                    success: false,
+                    message: `Item validation failed: pricing not found for ${item.name}. Please refresh your cart.`,
+                    debug: { sentId: item.id, cleanedId: cleanId, availableNames: allDbItems.map(v => v.name).slice(0, 15) }
+                });
+            }
+
+            const dbPrice = dbItem.price;
             totalAmount += (dbPrice * item.quantity);
             item.price = dbPrice; // Stomp frontend price with authentic pricing
+            item.dbName = dbItem.name; // Keep DB name for reference
         }
 
         const txnid = 'ETH-' + Math.floor(100000 + Math.random() * 900000);

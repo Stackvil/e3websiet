@@ -176,10 +176,20 @@ const TermsContent = () => (
         </div>
 
         <FadeIn delay={0.4}>
-            <SectionCard icon={AlertCircle} title="Liability & Terms">
-                <div className="grid grid-cols-2 gap-4">
-                    <p className="text-[11px]"><strong>Indemnity:</strong> You hold us harmless from claims arising from your site usage.</p>
-                    <p className="text-[11px]"><strong>Risk:</strong> Service use is at your own risk. We offer no guarantees of error-free service.</p>
+            <SectionCard icon={AlertCircle} title="Liability & Refunds">
+                <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                        <p className="text-[11px]"><strong>Indemnity:</strong> You hold us harmless from claims arising from your site usage.</p>
+                        <p className="text-[11px]"><strong>Risk:</strong> Service use is at your own risk. We offer no guarantees of error-free service.</p>
+                    </div>
+                    <div className="bg-red-50/50 p-3 rounded-xl border border-red-100/50">
+                        <p className="text-[11px] font-bold text-red-700 flex items-center gap-2 mb-1">
+                            <AlertCircle size={14} /> Refund & Return Policy
+                        </p>
+                        <p className="text-[10px] text-gray-600 leading-relaxed italic">
+                            "All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted. Please double-check your order before proceeding."
+                        </p>
+                    </div>
                 </div>
             </SectionCard>
         </FadeIn>

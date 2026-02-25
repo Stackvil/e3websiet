@@ -85,98 +85,27 @@ const Success = () => {
                     >
                         <CheckCircle size={44} className="text-white" />
                     </motion.div>
-                    <h1 className="text-3xl font-heading font-bold tracking-tight">Payment Successful!</h1>
-                    <p className="text-green-100 mt-1 text-sm">Your booking is confirmed</p>
+                    <h1 className="text-3xl font-heading font-bold tracking-tight">Your rides are confirmed!</h1>
+                    <p className="text-green-100 mt-1 text-sm">Check your tickets in your tickets page</p>
                     <div className="mt-4 bg-white/20 rounded-xl px-4 py-2 inline-block">
                         <span className="font-mono font-bold text-sm tracking-widest">{orderId}</span>
                     </div>
                 </div>
 
-                <div className="p-8 space-y-6">
-                    {/* ── Order QR ── */}
-                    <div className="flex flex-col items-center">
-                        <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${orderId}&margin=10&color=1a1a2e`}
-                            alt="Order QR"
-                            className="rounded-2xl border-4 border-gray-50 shadow-lg"
-                        />
-                        <p className="text-xs text-gray-400 mt-2 font-medium">Show this QR at the entry</p>
-                    </div>
-
-                    {/* ── Tickets with per-ticket QR ── */}
-                    <div>
-                        <h2 className="text-lg font-bold text-charcoal-grey mb-3 flex items-center gap-2">
-                            <Ticket size={18} className="text-sunset-orange" /> Your Tickets
-                        </h2>
-                        <div className="space-y-3">
-                            {bookedItems.map((item, index) => {
-                                const ticketId = `${orderId}-${index + 1}`;
-                                return (
-                                    <div
-                                        key={`${item.id}-${index}`}
-                                        className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-start gap-4 relative overflow-hidden"
-                                    >
-                                        {/* Orange left stripe */}
-                                        <div className="absolute left-0 top-0 h-full w-1.5 bg-sunset-orange rounded-l-2xl" />
-
-                                        {/* Item Avatar */}
-                                        <div className="w-14 h-14 rounded-xl shrink-0 bg-gradient-to-br from-sunset-orange to-orange-400 flex items-center justify-center text-white font-black text-2xl uppercase shadow-sm">
-                                            {item.name?.charAt(0) || '?'}
-                                        </div>
-
-                                        {/* Item Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-charcoal-grey truncate">{item.name}</p>
-                                            <p className="text-xs text-gray-400 mt-0.5">Qty: 1 &bull; ₹{item.price}</p>
-                                            <span className="inline-block mt-1 text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase tracking-widest">
-                                                Valid Today
-                                            </span>
-                                            <p className="text-[10px] text-gray-400 font-mono mt-1 truncate">{ticketId}</p>
-                                        </div>
-
-                                        {/* Per-Ticket QR */}
-                                        <div className="shrink-0 flex flex-col items-center border-l border-dashed border-gray-300 pl-4">
-                                            <img
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=${ticketId}&margin=4`}
-                                                alt={`QR Ticket ${index + 1}`}
-                                                className="rounded-lg border-2 border-white shadow"
-                                            />
-                                            <span className="text-[10px] text-gray-400 font-bold mt-1">#{index + 1}</span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {bookedItems.length === 0 && (
-                                <p className="text-center text-gray-400 text-sm py-4">Loading tickets...</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* ── Total ── */}
-                    <div className="bg-charcoal-grey text-white rounded-2xl p-4 flex justify-between items-center">
-                        <span className="text-sm font-bold uppercase tracking-widest text-gray-400">Total Paid</span>
-                        <span className="text-2xl font-black font-heading">₹{totalAmount}</span>
-                    </div>
-
+                <div className="p-8 space-y-8">
                     {/* ── Action Buttons ── */}
-                    <div className="space-y-3">
-                        <button
-                            onClick={() => setShowInvoice(true)}
-                            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-sunset-orange text-white font-bold text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-200"
-                        >
-                            <Download size={18} /> View & Download Invoice
-                        </button>
+                    <div className="space-y-4 pt-4">
                         <Link
                             to="/tickets"
-                            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-riverside-teal text-white font-bold text-sm hover:bg-teal-600 transition-all shadow-lg shadow-teal-200"
+                            className="w-full flex items-center justify-center gap-3 py-5 rounded-[1.5rem] bg-riverside-teal text-white font-bold text-lg hover:bg-teal-600 transition-all shadow-xl shadow-teal-100"
                         >
-                            <Ticket size={18} /> See Your Tickets
+                            <Ticket size={22} /> See Your Tickets
                         </Link>
                         <Link
                             to="/"
-                            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-gray-100 text-charcoal-grey font-bold text-sm hover:border-riverside-teal hover:text-riverside-teal transition-all"
+                            className="w-full flex items-center justify-center gap-2 py-4 rounded-[1.5rem] border-2 border-gray-100 text-charcoal-grey font-bold text-base hover:border-riverside-teal hover:text-riverside-teal transition-all"
                         >
-                            Back to Home <ArrowRight size={16} />
+                            Back to Home <ArrowRight size={20} />
                         </Link>
                     </div>
                 </div>

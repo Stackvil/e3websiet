@@ -4,6 +4,7 @@ import { Search, Plus, ShoppingCart, Clock, Filter, ShoppingBag, X, ChevronLeft,
 import useStore from '../store/useStore';
 import localProducts from '../data/products.json';
 import { API_URL } from '../config/api';
+import DineSkeleton from '../components/DineSkeleton';
 
 // Map stall names to their menu images in public/menus
 const menuImages = {
@@ -143,8 +144,6 @@ const Dine = () => {
     return (
         <div className="bg-creamy-white min-h-screen pt-16 pb-12">
             <div className="container mx-auto px-6">
-
-
                 {/* Header & Search */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                     <div>
@@ -167,45 +166,50 @@ const Dine = () => {
                     </div>
                 </div>
 
-
-
                 {/* Menu Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     <AnimatePresence mode="popLayout">
-                        {filteredItems.map((item) => (
-                            <motion.div
-                                key={item.id || item._id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group relative transition-all duration-500 hover:shadow-2xl hover:shadow-riverside-teal/20 hover:-translate-y-2"
-                            >
-                                <div className="relative h-40 overflow-hidden">
-                                    <img src={item.image} alt={item.name} className="w-full h-full object-fill group-hover:scale-105 transition-transform duration-700" />
-                                </div>
-
-                                <div className="p-3">
-                                    <div className="mb-2">
-                                        <h3 className="text-sm font-bold leading-tight truncate text-charcoal-grey group-hover:text-riverside-teal transition-colors">
-                                            {item.stall || item.name || 'Unknown Stall'}
-                                        </h3>
-                                        {item.contactNumber && (
-                                            <p className="text-charcoal-grey font-bold font-mono text-xs mt-1 flex items-center gap-1">
-                                                📞 {item.contactNumber}
-                                            </p>
-                                        )}
+                        {loading ? (
+                            // Show 10 skeletons while loading
+                            [...Array(10)].map((_, i) => (
+                                <DineSkeleton key={i} />
+                            ))
+                        ) : (
+                            filteredItems.map((item) => (
+                                <motion.div
+                                    key={item.id || item._id}
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group relative transition-all duration-500 hover:shadow-2xl hover:shadow-riverside-teal/20 hover:-translate-y-2"
+                                >
+                                    <div className="relative h-40 overflow-hidden">
+                                        <img src={item.image} alt={item.name} className="w-full h-full object-fill group-hover:scale-105 transition-transform duration-700" />
                                     </div>
 
-                                    <button
-                                        onClick={() => handleViewMenu(item)}
-                                        className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold text-xs bg-gray-100 text-charcoal-grey hover:bg-sunset-orange hover:text-white transition-all duration-300 hover:tracking-widest"
-                                    >
-                                        View Menu
-                                    </button>
-                                </div>
-                            </motion.div>
-                        ))}
+                                    <div className="p-3">
+                                        <div className="mb-2">
+                                            <h3 className="text-sm font-bold leading-tight truncate text-charcoal-grey group-hover:text-riverside-teal transition-colors">
+                                                {item.stall || item.name || 'Unknown Stall'}
+                                            </h3>
+                                            {item.contactNumber && (
+                                                <p className="text-charcoal-grey font-bold font-mono text-xs mt-1 flex items-center gap-1">
+                                                    📞 {item.contactNumber}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            onClick={() => handleViewMenu(item)}
+                                            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold text-xs bg-gray-100 text-charcoal-grey hover:bg-sunset-orange hover:text-white transition-all duration-300 hover:tracking-widest"
+                                        >
+                                            View Menu
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            ))
+                        )}
                     </AnimatePresence>
                 </div>
             </div>
@@ -310,13 +314,13 @@ const Dine = () => {
                     </div>
                     <div className="text-gray-400 text-sm font-medium flex flex-col items-center gap-1">
                         <p>© {new Date().getFullYear()} E3 Entertainment. All rights reserved.</p>
-                        <p className="text-[11px] text-gray-400/80 mt-1 max-w-lg">
-                            Terms & Conditions Apply. All payments for dining and beverages are non-refundable once the order is placed and consumed.
+                        <p className="text-[11px] text-gray-400/80 mt-1 max-w-lg italic">
+                            * All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted.
                         </p>
                     </div>
                 </div>
             </footer>
-        </div >
+        </div>
     );
 };
 

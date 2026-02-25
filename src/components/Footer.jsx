@@ -78,8 +78,8 @@ const Footer = () => {
                         <p className="text-[10px] uppercase tracking-widest text-text-dim">
                             © {new Date().getFullYear()} E3 Entertainment. All Rights Reserved.
                         </p>
-                        <p className="text-[10px] text-text-dim/80 max-w-2xl">
-                            By using this site, you agree to our <Link to="/terms" className="hover:text-primary underline">Terms & Conditions</Link> and <Link to="/privacy" className="hover:text-primary underline">Privacy Policy</Link>. All payments for dining, rides, and event bookings are strictly non-refundable once the service is availed or consumed.
+                        <p className="text-[10px] text-text-dim/80 max-w-2xl italic">
+                            By using this site, you agree to our <Link to="/terms" className="hover:text-primary underline">Terms & Conditions</Link> and <Link to="/privacy" className="hover:text-primary underline">Privacy Policy</Link>. All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted.
                         </p>
                     </div>
 
