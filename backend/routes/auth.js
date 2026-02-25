@@ -114,7 +114,7 @@ router.post('/send-otp', validate(sendOtpSchema), async (req, res) => {
 
                 const smsRes = await fetch(`${url}?${params.toString()}`);
                 const smsText = await smsRes.text();
-                console.log(`[OTP] SMS sent to +${COUNTRYCODE}${cleanMobile} | Response: ${smsText}`);
+                // console.log(`[OTP] SMS sent to +${COUNTRYCODE}${cleanMobile} | Response: ${smsText}`);
             } catch (err) {
                 console.error('SMS Provider Error:', err.message);
                 // Don't throw — OTP is still saved, user can retry
@@ -298,6 +298,23 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
             sameSite: 'lax', // CSRF protection
             maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
         });
+
+        // 4. Log Analytics (Platform Tracking)
+        try {
+            const userAgent = req.headers['user-agent'] || '';
+            let platform = 'web';
+            if (/android/i.test(userAgent)) platform = 'android';
+            else if (/ipad|iphone|ipod/i.test(userAgent)) platform = 'ios';
+            else if (/mobile/i.test(userAgent)) platform = 'mobile';
+
+            const analyticsTable = (location === 'E4') ? 'e4analytics' : 'e3analytics';
+            await supabase.from(analyticsTable).insert([{
+                platform,
+                createdAt: new Date().toISOString()
+            }]);
+        } catch (analyticsErr) {
+            console.error('Analytics tracking error:', analyticsErr.message);
+        }
 
         res.json({
             token: accessToken,

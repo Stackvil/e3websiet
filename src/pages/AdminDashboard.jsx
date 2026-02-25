@@ -32,7 +32,9 @@ const AdminDashboard = () => {
     const [dailySales, setDailySales] = useState({ today: { total: 0, count: 0, allOrdersCount: 0, orders: [] }, history: [] });
     const [poaData, setPoaData] = useState({ e3: null });
     const [poaError, setPoaError] = useState('');
-    const [visibleCount, setVisibleCount] = useState(10);
+    const [visibleCount, setVisibleCount] = useState(7);
+    const [todayVisibleCount, setTodayVisibleCount] = useState(7);
+    const [bookingsVisibleCount, setBookingsVisibleCount] = useState(7);
     // const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events', 'other'
     const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events'
 
@@ -562,10 +564,10 @@ const AdminDashboard = () => {
                                 ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
                                 : (user?.mobile?.slice(-2) || 'A')}
                         </div>
-                        <div className="min-w-0">
+                        {/* <div className="min-w-0">
                             <p className="font-bold text-sm text-charcoal-grey truncate">{user?.name || 'Admin'}</p>
                             <p className="text-[11px] text-gray-400 truncate">+91 {user?.mobile || ''}</p>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Actions */}
@@ -787,35 +789,70 @@ const AdminDashboard = () => {
                                     Refresh List
                                 </button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {bookings.map((booking) => (
-                                    <div key={booking.id} className="bg-white p-6 rounded-xl border shadow-sm">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <span className="px-3 py-1 bg-riverside-teal/10 text-riverside-teal rounded-full text-xs font-bold font-heading">
-                                                {booking.facility}
-                                            </span>
-                                            <span className="text-gray-400 text-sm">#{booking.bookingId || booking.id}</span>
-                                        </div>
-                                        <h3 className="font-bold text-lg text-charcoal-grey">{booking.name}</h3>
-                                        <p className="text-gray-500 text-sm mt-1">{booking.date} • {booking.time}</p>
-                                        <div className="flex gap-2 mt-4">
-                                            <button
-                                                onClick={() => handleDownloadReceipt(booking)}
-                                                className="flex-1 bg-riverside-teal/10 text-riverside-teal py-2 rounded-lg text-sm font-bold hover:bg-riverside-teal hover:text-white transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <Download className="w-4 h-4" />
-                                                Receipt
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteBooking(booking.id)}
-                                                className="bg-red-50 text-red-500 px-3 py-2 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                                                title="Delete Booking"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="border-b border-gray-100">
+                                            <tr>
+                                                <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Booking ID</th>
+                                                <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
+                                                <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Facility</th>
+                                                <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Date & Time</th>
+                                                <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {bookings.slice(0, bookingsVisibleCount).map((booking) => (
+                                                <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-5 py-3 text-xs font-mono text-gray-900 font-medium">#{booking.bookingId || booking.id}</td>
+                                                    <td className="px-5 py-3 text-xs font-bold text-charcoal-grey">{booking.name}</td>
+                                                    <td className="px-5 py-3 text-xs">
+                                                        <span className="px-2 py-0.5 bg-riverside-teal/10 text-riverside-teal rounded-full font-bold uppercase border border-riverside-teal/20">
+                                                            {booking.facility}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-5 py-3 text-xs text-gray-500 whitespace-nowrap">
+                                                        {booking.date} <span className="text-gray-300 mx-1">•</span> {booking.time}
+                                                    </td>
+                                                    <td className="px-5 py-3 flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => handleDownloadReceipt(booking)}
+                                                            className="px-3 py-1.5 bg-riverside-teal/10 text-riverside-teal hover:bg-riverside-teal hover:text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-riverside-teal/20 hover:border-riverside-teal"
+                                                            title="Download Receipt"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5" />
+                                                            Receipt
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteBooking(booking.id)}
+                                                            className="px-2 py-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-100 hover:border-red-500"
+                                                            title="Delete Booking"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {bookings.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="5" className="px-5 py-8 text-center text-sm text-gray-400 font-medium">
+                                                        No event bookings found.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {bookingsVisibleCount < bookings.length && (
+                                    <div className="p-4 border-t border-gray-100 flex justify-center bg-gray-50">
+                                        <button
+                                            onClick={() => setBookingsVisibleCount(prev => prev + 7)}
+                                            className="text-sm font-bold text-riverside-teal opacity-60 hover:opacity-100 hover:text-charcoal-grey transition-all duration-300 flex items-center gap-2"
+                                        >
+                                            View More <span className="text-xs">v</span>
+                                        </button>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
                     )}
@@ -989,7 +1026,7 @@ const AdminDashboard = () => {
                             // Filter Logic
                             if (filterType === 'all') return true;
 
-                            const hasEvent = tx.items && tx.items.some(i => (i.stall === 'Events' || (i.id && i.id.toString().startsWith('event-'))));
+                            const hasEvent = tx.items && tx.items.some(i => (i.stall === 'Events' || (i.id && i.id.toString().startsWith('event-')) || (i.name && i.name.includes('VIP Dining Suite Booking'))));
                             const hasRide = tx.items && tx.items.some(i => (i.type === 'ride' || (i.id && i.id.toString().startsWith('ride-')) || (i.id && i.id.toString().startsWith('play-'))));
 
                             if (filterType === 'events') return hasEvent;
@@ -1161,7 +1198,7 @@ const AdminDashboard = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-gray-50">
-                                                        {dailySales.today.orders.map((o) => {
+                                                        {dailySales.today.orders.slice(0, todayVisibleCount).map((o) => {
                                                             const s = (o.status || '').toLowerCase();
                                                             const isPaidOrder = s === 'confirmed' || s === 'success' || s === 'completed' || s === 'placed';
                                                             return (
@@ -1188,6 +1225,16 @@ const AdminDashboard = () => {
                                                     </tbody>
                                                 </table>
                                             </div>
+                                            {todayVisibleCount < dailySales.today.orders.length && (
+                                                <div className="p-4 border-t border-gray-100 flex justify-center bg-gray-50">
+                                                    <button
+                                                        onClick={() => setTodayVisibleCount(prev => prev + 7)}
+                                                        className="text-sm font-bold text-riverside-teal opacity-60 hover:opacity-100 hover:text-charcoal-grey transition-all duration-300 flex items-center gap-2"
+                                                    >
+                                                        View More <span className="text-xs">v</span>
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     {(dailySales.today?.orders?.length === 0) && (
@@ -1333,7 +1380,7 @@ const AdminDashboard = () => {
                                                 {['all', 'rides', 'events'].map(type => (
                                                     <button
                                                         key={type}
-                                                        onClick={() => { setFilterType(type); setVisibleCount(10); }}
+                                                        onClick={() => { setFilterType(type); setVisibleCount(7); }}
                                                         className={`px-3 py-1 rounded-md text-xs font-bold capitalize transition-colors ${filterType === type ? 'bg-riverside-teal text-white' : 'text-gray-500 hover:bg-gray-50'}`}
                                                     >
                                                         {type}
@@ -1380,10 +1427,10 @@ const AdminDashboard = () => {
                                     {visibleCount < filteredTransactions.length && (
                                         <div className="p-4 border-t border-gray-100 flex justify-center bg-gray-50">
                                             <button
-                                                onClick={() => setVisibleCount(prev => prev + 10)}
-                                                className="text-sm font-bold text-riverside-teal hover:text-charcoal-grey transition-colors flex items-center gap-2"
+                                                onClick={() => setVisibleCount(prev => prev + 7)}
+                                                className="text-sm font-bold text-riverside-teal opacity-60 hover:opacity-100 hover:text-charcoal-grey transition-all duration-300 flex items-center gap-2"
                                             >
-                                                View More <span className="text-xs">({filteredTransactions.length - visibleCount} remaining)</span>
+                                                View More <span className="text-xs">v</span>
                                             </button>
                                         </div>
                                     )}

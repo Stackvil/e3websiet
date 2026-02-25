@@ -1,24 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const MockModel = require('../utils/mockDB');
-const E3Analytics = new MockModel('E3Analytics');
-const E4Analytics = new MockModel('E4Analytics');
+const supabase = require('../utils/supabaseHelper');
 const { auth, admin } = require('../middleware/auth');
 
 const getStats = (type) => async (req, res) => {
     try {
-        const Model = type === 'e4' ? E4Analytics : E3Analytics;
-        const allData = await Model.find();
+        const table = type === 'e4' ? 'e4analytics' : 'e3analytics';
+
+        const { data: allData, error } = await supabase
+            .from(table)
+            .select('*');
+
+        if (error) throw error;
 
         const stats = {
             web: 0,
             mobile: 0,
             android: 0,
             ios: 0,
-            total: allData.length
+            total: (allData || []).length
         };
 
-        allData.forEach(entry => {
+        (allData || []).forEach(entry => {
             const platform = (entry.platform || '').toLowerCase();
             if (platform === 'web') stats.web++;
             else if (platform === 'mobile') stats.mobile++;
@@ -60,11 +63,13 @@ router.get('/e4/stats', [auth, admin], getStats('e4'));
 // Legacy/Combined
 router.get('/stats', [auth, admin], async (req, res) => {
     try {
-        // Merge stats? Or default to E3?
-        // Let's return combined for global view
-        const e3Data = await E3Analytics.find();
-        const e4Data = await E4Analytics.find();
-        const allData = [...e3Data, ...e4Data];
+        const { data: e3Data, error: e3Err } = await supabase.from('e3analytics').select('*');
+        if (e3Err) throw e3Err;
+
+        const { data: e4Data, error: e4Err } = await supabase.from('e4analytics').select('*');
+        if (e4Err) throw e4Err;
+
+        const allData = [...(e3Data || []), ...(e4Data || [])];
 
         const stats = {
             web: 0,

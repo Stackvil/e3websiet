@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { LogOut, User, Edit2, Save, X, Phone } from 'lucide-react';
+import { LogOut, User, Edit2, Save, X, Phone, ArrowLeft } from 'lucide-react';
 
 import { API_URL } from '../config/api';
 import AuthComponent from '../components/auth/AuthComponent';
@@ -63,13 +63,22 @@ const Login = ({ location = 'E3' }) => {
 
     if (user) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20">
+            <div className="w-full flex-grow relative flex items-center justify-center overflow-hidden min-h-[calc(100vh-160px)] md:min-h-[calc(100vh-140px)]">
+                {/* ── Background Image (Cropped Bottom) ── */}
+                <img
+                    src="https://i.pinimg.com/originals/ec/26/e0/ec26e0ccac8bfe213101db851920cdf0.jpg"
+                    alt="Amusement Park"
+                    className="absolute inset-0 w-full h-[115%] object-cover object-top -mt-[5%]"
+                />
+                <div className="absolute inset-0 bg-black/40" />
+
+                {/* ── Profile View ── */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 text-center"
+                    className="relative z-10 bg-white/95 backdrop-blur-md p-8 lg:p-10 rounded-3xl shadow-2xl w-full max-w-md border border-white/20 text-center mx-4 my-auto max-h-[95vh] overflow-y-auto scrollbar-hide"
                 >
-                    <div className="w-24 h-24 bg-riverside-teal/10 rounded-full flex items-center justify-center mx-auto mb-6 text-riverside-teal">
+                    <div className="w-24 h-24 bg-riverside-teal/10 rounded-full flex items-center justify-center mx-auto mb-6 text-riverside-teal shadow-inner border border-riverside-teal/20">
                         <User size={48} />
                     </div>
 
@@ -173,14 +182,20 @@ const Login = ({ location = 'E3' }) => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20">
+        <div className="w-full flex-grow relative flex items-center justify-center overflow-hidden min-h-[calc(100vh-160px)] md:min-h-[calc(100vh-140px)]">
+            {/* ── Background Image (Cropped Bottom) ── */}
+            <img
+                src="https://i.pinimg.com/originals/ec/26/e0/ec26e0ccac8bfe213101db851920cdf0.jpg"
+                alt="Amusement Park"
+                className="absolute inset-0 w-full h-[115%] object-cover object-top -mt-[5%]"
+            />
+            <div className="absolute inset-0 bg-black/40" />
+
             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md"
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="relative z-10 w-full max-w-md mx-4 max-h-[95vh] overflow-y-auto scrollbar-hide rounded-3xl"
             >
-
-
                 <AuthComponent onSuccess={handleLoginSuccess} initialLocation={location} />
             </motion.div>
         </div>

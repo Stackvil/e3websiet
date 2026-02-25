@@ -111,8 +111,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
     };
 
     // Step 2: Verify OTP
-    const handleVerifyOtp = async (e) => {
-        e.preventDefault();
+    const handleVerifyOtp = async (otpToVerify = otp) => {
         setError('');
         setIsLoading(true);
 
@@ -121,7 +120,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ mobile, otp })  // location now comes from OTP record
+                body: JSON.stringify({ mobile, otp: otpToVerify })  // location now comes from OTP record
             });
             const data = await res.json();
 
@@ -142,6 +141,11 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const onSubmitVerify = (e) => {
+        e.preventDefault();
+        handleVerifyOtp(otp);
     };
 
     // Step 3: Complete Profile (New Users Only)
@@ -266,7 +270,7 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        onSubmit={handleVerifyOtp}
+                        onSubmit={onSubmitVerify}
                         className="space-y-4"
                     >
                         <div>
@@ -278,8 +282,15 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                                 <input
                                     type="text"
                                     inputMode="numeric"
+                                    autoComplete="one-time-code"
                                     value={otp}
-                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                        setOtp(val);
+                                        if (val.length === 6) {
+                                            handleVerifyOtp(val);
+                                        }
+                                    }}
                                     placeholder="• • • • • •"
                                     className="w-full pl-10 pr-3 py-3 bg-gray-50 rounded-lg font-bold text-xl tracking-[0.3em] text-charcoal-grey outline-none focus:bg-white focus:ring-2 focus:ring-sunset-orange/20 transition-all border border-transparent focus:border-sunset-orange text-center"
                                     required
@@ -305,8 +316,8 @@ const AuthComponent = ({ onClose, onSuccess, initialLocation = 'E3' }) => {
                                 onClick={handleResend}
                                 disabled={resendTimer > 0 || isLoading}
                                 className={`flex items-center gap-1.5 text-xs font-bold transition-all ${resendTimer > 0
-                                        ? 'text-gray-300 cursor-not-allowed'
-                                        : 'text-sunset-orange hover:text-orange-600 active:scale-95'
+                                    ? 'text-gray-300 cursor-not-allowed'
+                                    : 'text-sunset-orange hover:text-orange-600 active:scale-95'
                                     }`}
                             >
                                 <RefreshCw size={12} className={resendTimer > 0 ? '' : 'group-hover:rotate-180 transition-transform'} />
