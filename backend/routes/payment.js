@@ -31,7 +31,7 @@ const recordPayment = async (location, data) => {
             }]);
 
         if (error) console.error(`Error recording payment for ${data.txnid}:`, error.message);
-        else console.log(`Recorded payment for ${location}: ${data.txnid}`);
+        // else console.log(`Recorded payment for ${location}: ${data.txnid}`);
 
     } catch (err) {
         console.error(`Failed to record payment for ${location}:`, err);
@@ -254,6 +254,32 @@ router.post('/success', async (req, res) => {
 
             // Record Transaction in Payments Table
             await recordPayment(location, req.body);
+
+            // Reward Points Logic
+            try {
+                if (Number(req.body.amount) >= 300 && req.body.udf2) {
+                    const userId = req.body.udf2;
+                    const userTable = location.toLowerCase() === 'e4' ? 'e4users' : 'e3users';
+
+                    // Supabase raw RPC or manual lookup & update
+                    const { data: userRecord } = await supabase
+                        .from(userTable)
+                        .select('reward_points')
+                        .eq('_id', userId)
+                        .single();
+
+                    if (userRecord) {
+                        const currentPoints = userRecord.reward_points || 0;
+                        await supabase
+                            .from(userTable)
+                            .update({ reward_points: currentPoints + 10 })
+                            .eq('_id', userId);
+                        console.log(`Credited 10 points to user ${userId} for transaction ${txnid}`);
+                    }
+                }
+            } catch (rewardErr) {
+                console.error('Reward Points Error:', rewardErr);
+            }
 
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
             res.redirect(`${frontendUrl}/success?orderId=${txnid}&location=${location}`);

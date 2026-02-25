@@ -7,6 +7,7 @@ import jsPDF from 'jspdf';
 import { formatTime12h } from '../utils/timeUtils';
 import autoTable from 'jspdf-autotable';
 import { API_URL } from '../config/api';
+import { fetchWithAuth as fetch } from '../utils/apiFetch';
 import { compressImage } from '../utils/imageUtils';
 
 const AdminDashboard = () => {

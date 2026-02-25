@@ -26,9 +26,12 @@ const mapRecord = (record) => {
 const getAllOrders = (type) => async (req, res) => {
     try {
         const table = getOrderTable(type);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const { data, error } = await supabase
             .from(table)
             .select('*')
+            .gte('createdAt', sevenDaysAgo.toISOString())
             .order('createdAt', { ascending: false });
 
         if (error) throw error;
@@ -41,10 +44,13 @@ const getAllOrders = (type) => async (req, res) => {
 const getUserOrders = (type) => async (req, res) => {
     try {
         const table = getOrderTable(type);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const { data, error } = await supabase
             .from(table)
             .select('*')
             .eq('userId', req.user.id) // Ensure userId column usage matches schema
+            .gte('createdAt', sevenDaysAgo.toISOString())
             .order('createdAt', { ascending: false });
 
         if (error) throw error;

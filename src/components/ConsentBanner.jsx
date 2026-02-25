@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LegalModal from '../pages/LegalModal';
 
 const ConsentBanner = () => {
     const [isVisible, setIsVisible] = useState(false);
+    const [legalDoc, setLegalDoc] = useState(null);
 
     useEffect(() => {
         const consent = localStorage.getItem('e3PolicyAccepted');
@@ -25,7 +27,8 @@ const ConsentBanner = () => {
                 >
                     <p className="text-sm text-gray-300 text-center sm:text-left">
                         🍪 By using Jaan Entertainment, you agree to our{' '}
-                        <span className="text-sunset-orange font-semibold">Terms & Privacy Policy</span>.
+                        <button onClick={() => setLegalDoc('terms')} className="text-sunset-orange font-semibold hover:underline">Terms</button> &{' '}
+                        <button onClick={() => setLegalDoc('privacy')} className="text-sunset-orange font-semibold hover:underline">Privacy Policy</button>.
                         We use cookies to improve your experience.
                     </p>
                     <button
@@ -36,6 +39,7 @@ const ConsentBanner = () => {
                     </button>
                 </motion.div>
             )}
+            {legalDoc && <LegalModal doc={legalDoc} onClose={() => setLegalDoc(null)} />}
         </AnimatePresence>
     );
 };

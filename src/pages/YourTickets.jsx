@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Ticket, Calendar, Clock, MapPin, ArrowRight } from 'lucide-react';
+import { Ticket, Calendar, Clock, MapPin, ArrowRight, AlertCircle } from 'lucide-react';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
 import { API_URL } from '../config/api';
+import { fetchWithAuth } from '../utils/apiFetch';
 import jsPDF from 'jspdf';
 import { formatTime12h } from '../utils/timeUtils';
 
@@ -16,12 +17,8 @@ const YourTickets = () => {
         const fetchOrders = async () => {
             if (!user) return;
             try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/orders`, {
-                    headers: {
-                        'x-auth-token': token
-                    }
-                });
+                const location = user.location?.toLowerCase() || 'e3';
+                const res = await fetchWithAuth(`${API_URL}/orders/${location}`);
                 if (res.ok) {
                     const data = await res.json();
                     setOrders(data);
@@ -141,43 +138,81 @@ const YourTickets = () => {
         );
     }
 
-    // Flatten orders into individual tickets based on quantity
+    // Flatten orders into individual tickets based on quantity and combo multipliers
     const tickets = orders.flatMap(order =>
-        (order.items || []).flatMap((item, itemIdx) =>
-            Array.from({ length: item.quantity || 1 }).map((_, qtyIdx) => ({
-                ...item,
-                orderId: order._id,
-                orderDate: order.createdAt,
-                status: order.status,
-                uniqueQrId: `${order._id}-${item.id || item.product || itemIdx}-${qtyIdx}`
-            }))
-        )
+        (order.items || []).flatMap((item, itemIdx) => {
+            const isComboItem = item.details?.isCombo || (item.name && item.name.toLowerCase().includes('combo'));
+            const ridesPerCombo = isComboItem ? (item.details?.rideCount || 5) : 1;
+            const totalTickets = (item.quantity || 1) * ridesPerCombo;
+
+            return Array.from({ length: totalTickets }).map((_, globalIdx) => {
+                // Determine which purchased bundle this belongs to (e.g. qty 2 means 10 tickets total)
+                const qtyIdx = Math.floor(globalIdx / ridesPerCombo);
+                // Determine which ride inside the combo this is (e.g. ride 1 of 5)
+                const comboIdx = globalIdx % ridesPerCombo;
+
+                return {
+                    ...item,
+                    orderId: order._id,
+                    orderDate: order.createdAt,
+                    status: order.status,
+                    uniqueQrId: `${order._id}-${item.id || item.product || itemIdx}-${qtyIdx}${isComboItem ? `-combo${comboIdx + 1}` : ''}`,
+                    displayComboIndex: isComboItem ? comboIdx + 1 : null,
+                    totalComboRides: isComboItem ? ridesPerCombo : null
+                };
+            });
+        })
     ).sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
 
     return (
         <div className="min-h-screen bg-creamy-white pt-24 pb-12">
             <div className="container mx-auto px-6">
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl md:text-4xl font-heading font-bold text-charcoal-grey">Your Tickets</h1>
+                </div>
+
+                {/* Important Notice Banner */}
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <AlertCircle className="text-orange-500 shrink-0" size={24} />
+                    <p className="text-sm font-medium text-gray-700">
+                        <strong className="text-orange-700 uppercase tracking-widest text-xs">Important Note:</strong><br />
+                        All unredeemed tickets will automatically <strong className="text-orange-700">expire 7 days</strong> from the date of purchase. Expired tickets cannot be used.
+                    </p>
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     {tickets.map((ticket) => {
                         const isEvent = ticket.name.toLowerCase().includes('booking') || ticket.name.toLowerCase().includes('event') || (ticket.id && ticket.id.toString().toLowerCase().includes('event'));
+                        const orderDateObj = ticket.orderDate ? new Date(ticket.orderDate) : new Date();
+                        const timeDiff = new Date() - orderDateObj;
+                        const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+                        const isExpired = daysDiff >= 7;
+
+                        // Show warning when 2 days or less are remaining (so if daysDiff is 5 or more)
+                        const daysLeft = Math.ceil(7 - daysDiff);
+                        const isExpiringSoon = daysLeft <= 2 && daysLeft > 0;
 
                         return (
                             <motion.div
                                 key={ticket.uniqueQrId}
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className="bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100 flex flex-col w-full relative"
+                                className={`bg-white rounded-xl overflow-hidden shadow-lg border flex flex-col w-full relative ${isExpired ? 'border-red-100 grayscale-[0.5]' : 'border-gray-100'}`}
                             >
                                 {/* QR Code Section OR Receipt Section */}
                                 <div className="p-6 bg-white flex flex-col items-center justify-center border-b-2 border-dashed border-gray-100 relative min-h-[160px]">
-                                    <div className="absolute bottom-[-8px] left-[-8px] w-4 h-4 bg-creamy-white rounded-full" />
-                                    <div className="absolute bottom-[-8px] right-[-8px] w-4 h-4 bg-creamy-white rounded-full" />
+                                    <div className="absolute bottom-[-8px] left-[-8px] w-4 h-4 bg-creamy-white rounded-full z-10" />
+                                    <div className="absolute bottom-[-8px] right-[-8px] w-4 h-4 bg-creamy-white rounded-full z-10" />
 
-                                    {!isEvent ? (
+                                    {isExpired ? (
+                                        <div className="text-center flex flex-col items-center justify-center h-full w-full py-4 bg-gray-50/50 rounded-xl">
+                                            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-3">
+                                                <AlertCircle size={24} />
+                                            </div>
+                                            <p className="text-sm text-red-500 font-bold uppercase tracking-wider mb-1">Expired</p>
+                                            <p className="text-[10px] text-gray-500 font-medium px-4 leading-tight">This ticket has surpassed its 7-day validity window.</p>
+                                        </div>
+                                    ) : !isEvent ? (
                                         <>
                                             <img
                                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${ticket.uniqueQrId}`}
@@ -209,14 +244,21 @@ const YourTickets = () => {
                                     <div>
                                         <h3 className="font-bold text-charcoal-grey text-lg leading-tight mb-1">{ticket.name}</h3>
 
-                                        {/* Combo Validity Text */}
-                                        {(ticket.details?.isCombo || ticket.name.toLowerCase().includes('combo')) && (
-                                            <p className="mt-1 text-[11px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md inline-block border border-green-100">
-                                                This QR is valid for {ticket.details?.rideCount || 5} rides
+                                        {/* Expiring Soon Text */}
+                                        {isExpiringSoon && (
+                                            <p className="mb-2 text-[11px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md inline-flex items-center gap-1 border border-orange-100">
+                                                <AlertCircle size={12} /> Expiring soon ({Math.ceil(7 - daysDiff)} days left)
                                             </p>
                                         )}
 
-                                        {ticket.details && !ticket.details.isCombo && (
+                                        {/* Combo Validity Text */}
+                                        {ticket.displayComboIndex && !isExpired && (
+                                            <p className="mt-1 text-[11px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md inline-block border border-green-100">
+                                                Combo Ticket: Ride {ticket.displayComboIndex} of {ticket.totalComboRides}
+                                            </p>
+                                        )}
+
+                                        {ticket.details && !ticket.displayComboIndex && (
                                             <p className="text-xs text-riverside-teal font-bold mt-1">
                                                 {ticket.details.date} {formatTime12h(ticket.details.startTime)} {ticket.details.endTime ? `- ${formatTime12h(ticket.details.endTime)}` : ''}
                                             </p>
@@ -231,7 +273,7 @@ const YourTickets = () => {
                                         <div className="flex justify-between items-center text-[10px] text-gray-400 mt-1">
                                             <span>Ordered</span>
                                             <span>
-                                                {new Date(ticket.orderDate).toLocaleDateString()} at {new Date(ticket.orderDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {new Date(ticket.orderDate).toLocaleDateString()} at {new Date(ticket.orderDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                             </span>
                                         </div>
                                     </div>
