@@ -17,7 +17,8 @@ const YourTickets = () => {
             if (!user) return;
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/orders`, {
+                const location = user.location?.toLowerCase() || 'e3';
+                const res = await fetch(`${API_URL}/orders/${location}`, {
                     headers: {
                         'x-auth-token': token
                     }
