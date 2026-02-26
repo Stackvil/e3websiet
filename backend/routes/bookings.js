@@ -125,88 +125,101 @@ router.post('/check-availability', async (req, res) => {
  * /api/bookings:
  *   get:
  *     summary: Get all event bookings (Admin)
+ *     description: |
+ *       Fetches all orders from E3 and E4, filters out the event-related items,
+ *       and maps them with user details for the Admin Dashboard.
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
  */
 router.get('/', [auth, admin], async (req, res) => {
     try {
-        const { data: e3, error: e3Err } = await supabase.from('e3orders').select('*');
-        const { data: e4, error: e4Err } = await supabase.from('e4orders').select('*');
+        console.log("Admin fetching all bookings...");
 
-        if (e3Err || e4Err) throw new Error('Failed to fetch orders');
+        // Fetch all data in parallel for speed
+        const [e3Orders, e4Orders, e3Users, e4Users] = await Promise.all([
+            supabase.from('e3orders').select('*').order('createdAt', { ascending: false }),
+            supabase.from('e4orders').select('*').order('createdAt', { ascending: false }),
+            supabase.from('e3users').select('_id, name, mobilenumber, email'),
+            supabase.from('e4users').select('_id, name, mobilenumber, email')
+        ]);
 
-        const allOrders = [...(e3 || []), ...(e4 || [])];
+        if (e3Orders.error) console.error("E3 Orders Error:", e3Orders.error);
+        if (e4Orders.error) console.error("E4 Orders Error:", e4Orders.error);
+
+        const allOrders = [...(e3Orders.data || []), ...(e4Orders.data || [])];
+
+        // Create a fast lookup map for users
+        const usersMap = {};
+        [...(e3Users.data || []), ...(e4Users.data || [])].forEach(u => {
+            if (u._id) usersMap[u._id] = u;
+        });
+
+        const formatTime12h = (time24) => {
+            if (!time24) return '';
+            const parts = time24.split(':');
+            let h = parseInt(parts[0]);
+            const m = parts[1] || '00';
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${h}:${m} ${ampm}`;
+        };
 
         const bookings = allOrders.flatMap(order => {
             const items = order.items || [];
-            return items.filter(item =>
-                item.category === 'event' ||
-                (item.name && item.name.toLowerCase().includes('event')) ||
-                (item.product && item.product.includes('event'))
-            ).map(item => ({
-                id: order._id,
-                bookingId: order._id,
-                name: 'Guest',
-                facility: item.name,
-                date: item.details?.date || order.createdAt,
-                start_time: item.details?.startTime,
-                end_time: item.details?.endTime,
-                status: order.status,
-                price: item.price,
-                guests: item.quantity
-            }));
+
+            // Filter logic: Must be an event category or contain booking/event/celebration keywords
+            return items.filter(item => {
+                const itemName = (item.name || '').toLowerCase();
+                const isEvent = item.category === 'events' ||
+                    item.category === 'event' ||
+                    item.stall === 'Events' ||
+                    itemName.includes('booking') ||
+                    itemName.includes('event') ||
+                    itemName.includes('celebration zone') ||
+                    itemName.includes('vip dining') ||
+                    (item.id && item.id.toString().startsWith('event-'));
+
+                // Only include successful or confirmed bookings for the main list
+                const status = (order.status || '').toLowerCase();
+                const isValidOrder = status === 'success' || status === 'confirmed' || status === 'placed';
+
+                return isEvent && isValidOrder;
+            }).map(item => {
+                const user = usersMap[order.userId] || usersMap[order.udf2] || {};
+
+                // Format time string
+                let timeStr = 'N/A';
+                if (item.details?.startTime) {
+                    timeStr = formatTime12h(item.details.startTime);
+                    if (item.details.endTime) {
+                        timeStr += ` - ${formatTime12h(item.details.endTime)}`;
+                    }
+                }
+
+                return {
+                    id: `${order._id}-${Math.random().toString(36).substr(2, 4)}`,
+                    bookingId: order._id,
+                    name: user.name || 'Guest',
+                    mobile: user.mobilenumber || 'N/A',
+                    email: user.email || 'N/A',
+                    facility: item.name,
+                    date: item.details?.date || new Date(order.createdAt).toLocaleDateString('en-IN'),
+                    time: timeStr,
+                    status: order.status,
+                    price: item.price,
+                    guests: item.details?.guests || item.quantity || 1,
+                    orderDate: order.createdAt
+                };
+            });
         });
+
+        // Sort by date newest first
+        bookings.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
 
         res.json(bookings);
     } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-module.exports = router;
-
-
-// Placeholder for Bookings - derived from Orders in the new schema
-// To properly implement, we'd query e3orders/e4orders for items with category='event'
-
-/**
- * @swagger
- * /api/bookings:
- *   get:
- *     summary: Get all bookings (Derived from Orders)
- */
-router.get('/', [auth, admin], async (req, res) => {
-    try {
-        // Fetch all orders from both
-        const { data: e3, error: e3Err } = await supabase.from('e3orders').select('*');
-        const { data: e4, error: e4Err } = await supabase.from('e4orders').select('*');
-
-        if (e3Err || e4Err) throw new Error('Failed to fetch orders');
-
-        const allOrders = [...(e3 || []), ...(e4 || [])];
-
-        // Filter for events
-        const bookings = allOrders.flatMap(order => {
-            // Items is JSONB array
-            const items = order.items || [];
-            return items.filter(item =>
-                item.category === 'event' ||
-                (item.name && item.name.toLowerCase().includes('event')) ||
-                (item.product && item.product.includes('event'))
-            ).map(item => ({
-                id: order._id, // use order ID as booking ID ref
-                bookingId: order._id,
-                name: 'Guest', // User details need join or storing on order
-                facility: item.name,
-                date: item.details?.date || order.createdAt,
-                start_time: item.details?.startTime,
-                end_time: item.details?.endTime,
-                status: order.status,
-                price: item.price,
-                guests: item.quantity
-            }));
-        });
-
-        res.json(bookings);
-    } catch (err) {
+        console.error("Fetch Bookings Error:", err);
         res.status(500).json({ message: err.message });
     }
 });

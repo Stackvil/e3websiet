@@ -14,6 +14,8 @@ const getPaymentTable = (location) => {
     return (location || 'e3').toLowerCase() === 'e4' ? 'e4payments' : 'e3payments';
 };
 
+
+
 // Helper to record payment
 const recordPayment = async (location, data) => {
     try {
@@ -254,6 +256,7 @@ router.post('/success', async (req, res) => {
 
             // Record Transaction in Payments Table
             await recordPayment(location, req.body);
+
 
             // Reward Points Logic
             try {

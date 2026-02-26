@@ -797,6 +797,7 @@ const AdminDashboard = () => {
                                                 <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Booking ID</th>
                                                 <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
                                                 <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Facility</th>
+                                                <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Guests</th>
                                                 <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Date & Time</th>
                                                 <th className="px-5 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
                                             </tr>
@@ -804,12 +805,18 @@ const AdminDashboard = () => {
                                         <tbody className="divide-y divide-gray-50">
                                             {bookings.slice(0, bookingsVisibleCount).map((booking) => (
                                                 <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-5 py-3 text-xs font-mono text-gray-900 font-medium">#{booking.bookingId || booking.id}</td>
-                                                    <td className="px-5 py-3 text-xs font-bold text-charcoal-grey">{booking.name}</td>
+                                                    <td className="px-5 py-3 text-xs font-mono text-gray-900 font-medium">#{booking.bookingId || booking.id.split('-')[0]}</td>
+                                                    <td className="px-5 py-3">
+                                                        <div className="text-xs font-bold text-charcoal-grey">{booking.name}</div>
+                                                        <div className="text-[10px] text-gray-400">{booking.mobile}</div>
+                                                    </td>
                                                     <td className="px-5 py-3 text-xs">
                                                         <span className="px-2 py-0.5 bg-riverside-teal/10 text-riverside-teal rounded-full font-bold uppercase border border-riverside-teal/20">
                                                             {booking.facility}
                                                         </span>
+                                                    </td>
+                                                    <td className="px-5 py-3 text-xs font-bold text-riverside-teal">
+                                                        {booking.guests}
                                                     </td>
                                                     <td className="px-5 py-3 text-xs text-gray-500 whitespace-nowrap">
                                                         {booking.date} <span className="text-gray-300 mx-1">•</span> {booking.time}
@@ -1026,7 +1033,10 @@ const AdminDashboard = () => {
                             // Filter Logic
                             if (filterType === 'all') return true;
 
-                            const hasEvent = tx.items && tx.items.some(i => (i.stall === 'Events' || (i.id && i.id.toString().startsWith('event-')) || (i.name && i.name.includes('VIP Dining Suite Booking'))));
+                            const hasEvent = tx.items && tx.items.some(i => {
+                                const n = (i.name || '').toLowerCase();
+                                return i.stall === 'Events' || (i.id && i.id.toString().startsWith('event-')) || n.includes('booking') || n.includes('celebration') || n.includes('event');
+                            });
                             const hasRide = tx.items && tx.items.some(i => (i.type === 'ride' || (i.id && i.id.toString().startsWith('ride-')) || (i.id && i.id.toString().startsWith('play-'))));
 
                             if (filterType === 'events') return hasEvent;
