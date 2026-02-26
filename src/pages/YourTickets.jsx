@@ -332,7 +332,7 @@ const YourTickets = () => {
                                                         : 'bg-riverside-teal text-white shadow-lg shadow-teal-50 hover:bg-teal-600'
                                                         }`}
                                                 >
-                                                    {isExpanded ? 'Hide' : 'View Tickets'}
+                                                    {isExpanded ? 'Hide' : (activeTab === 'events' ? 'View Details' : 'View Tickets')}
                                                 </button>
                                             </div>
                                         </div>
@@ -371,10 +371,28 @@ const YourTickets = () => {
                                                                             />
                                                                         )}
                                                                     </div>
-                                                                    <div className="min-w-0">
+                                                                    <div className="min-w-0 flex-grow">
                                                                         <h4 className="font-bold text-charcoal-grey text-xs truncate uppercase tracking-tighter">{ticket.name}</h4>
-                                                                        <div className="flex items-center gap-2 mt-1">
+                                                                        <div className="flex flex-col gap-1 mt-1">
                                                                             <p className="text-[10px] font-bold text-gray-400">₹{ticket.price}</p>
+                                                                            {isEvent && ticket.details && (
+                                                                                <div className="space-y-0.5 mt-1 border-t border-gray-100 pt-1">
+                                                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-sunset-orange">
+                                                                                        <Calendar size={10} />
+                                                                                        {ticket.details.date?.split('-').reverse().join('/')}
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-riverside-teal">
+                                                                                        <Clock size={10} />
+                                                                                        {formatTime12h(ticket.details.startTime)} {ticket.details.endTime ? `- ${formatTime12h(ticket.details.endTime)}` : ''}
+                                                                                    </div>
+                                                                                    {ticket.details.guests && (
+                                                                                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-gray-500">
+                                                                                            <Hash size={10} />
+                                                                                            {ticket.details.guests} Expected Guests
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
                                                                             {isExpired && <span className="text-[9px] font-black text-red-500 uppercase">Expired</span>}
                                                                         </div>
                                                                     </div>
@@ -417,7 +435,7 @@ const YourTickets = () => {
                                         <div className="w-10 h-10 bg-sunset-orange rounded-xl flex items-center justify-center font-black text-lg">E3</div>
                                         <div>
                                             <p className="font-bold text-lg leading-none uppercase">ethree</p>
-                                            <p className="text-blue-300 text-xs">Pvt Ltd</p>
+                                            <p className="text-blue-300 text-[10px] mt-1 font-semibold">Powered by JAAN ENTERTAINMENT Pvt Ltd</p>
                                         </div>
                                     </div>
                                     <p className="text-gray-400 text-xs">Opp. APSRTC Bus Stand, Padmavathi Ghat,</p>
@@ -542,7 +560,7 @@ const YourTickets = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
 

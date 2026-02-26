@@ -68,6 +68,12 @@ const Success = () => {
     const totalAmount = orderData?.amount ||
         bookedItems.reduce((acc, item) => acc + item.price * (item.quantity || 1), 0);
 
+    const isEventOrder = (orderData?.items || bookedItems).some(item =>
+        (item.id && item.id.toString().startsWith('event-')) ||
+        (item.name && item.name.toLowerCase().includes('booking')) ||
+        item.stall === 'Events'
+    );
+
     return (
         <div className="min-h-screen bg-creamy-white flex items-center justify-center p-6 pt-24">
             <motion.div
@@ -85,7 +91,9 @@ const Success = () => {
                     >
                         <CheckCircle size={44} className="text-white" />
                     </motion.div>
-                    <h1 className="text-3xl font-heading font-bold tracking-tight">Your rides are confirmed!</h1>
+                    <h1 className="text-3xl font-heading font-bold tracking-tight">
+                        {isEventOrder ? 'Congratulations! Your event is booked' : 'Your rides are confirmed!'}
+                    </h1>
                     <p className="text-green-100 mt-1 text-sm">Check your tickets in your tickets page</p>
                     <div className="mt-4 bg-white/20 rounded-xl px-4 py-2 inline-block">
                         <span className="font-mono font-bold text-sm tracking-widest">{orderId}</span>
@@ -99,7 +107,7 @@ const Success = () => {
                             to="/tickets"
                             className="w-full flex items-center justify-center gap-3 py-5 rounded-[1.5rem] bg-riverside-teal text-white font-bold text-lg hover:bg-teal-600 transition-all shadow-xl shadow-teal-100"
                         >
-                            <Ticket size={22} /> See Your Tickets
+                            <Ticket size={22} /> {isEventOrder ? 'Your Event Details' : 'See Your Tickets'}
                         </Link>
                         <Link
                             to="/"
