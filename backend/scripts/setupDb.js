@@ -164,6 +164,8 @@ async function setup() {
                     category TEXT,
                     "ageGroup" TEXT,
                     type TEXT,
+                    "isCombo" BOOLEAN DEFAULT FALSE,
+                    "rideCount" INTEGER,
                     status TEXT,
                     "createdAt" TIMESTAMPTZ DEFAULT NOW(),
                     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -186,6 +188,7 @@ async function setup() {
                     open BOOLEAN,
                     status TEXT,
                     "menuImages" JSONB,
+                    "contactNumber" TEXT,
                     "createdAt" TIMESTAMPTZ DEFAULT NOW(),
                     updated_at TIMESTAMPTZ DEFAULT NOW()
                 );
