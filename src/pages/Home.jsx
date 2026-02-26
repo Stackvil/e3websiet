@@ -11,7 +11,7 @@ import RideSkeleton from '../components/RideSkeleton';
 import localProducts from '../data/products.json';
 
 const Home = () => {
-    const { addToCart, toggleCart } = useStore();
+    const { addToCart, toggleCart, rideItems, setRideItems } = useStore();
     const [activities, setActivities] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -19,12 +19,19 @@ const Home = () => {
 
     useEffect(() => {
         const fetchActivities = async () => {
+            if (rideItems && rideItems.length > 0) {
+                setActivities(rideItems);
+                setIsLoading(false);
+                return;
+            }
+
             setIsLoading(true);
             let data = [];
             try {
                 const res = await fetch(`${API_URL}/e3/rides?all=true`);
                 if (!res.ok) throw new Error('API Failed');
                 data = await res.json();
+                setRideItems(data);
             } catch (err) {
                 console.warn("Failed to fetch E3 rides from API, using local data", err);
                 data = localProducts.filter(item => item.category === 'play');
@@ -36,7 +43,7 @@ const Home = () => {
             setIsLoading(false);
         };
         fetchActivities();
-    }, []);
+    }, [rideItems, setRideItems]);
 
     const philosophy = [
         { title: 'Eat', icon: <Utensils className="text-white" size={32} />, color: 'bg-sunset-orange', desc: 'A Gastronomic journey through the best stalls in Vijayawada.' },
