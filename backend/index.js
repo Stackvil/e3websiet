@@ -21,7 +21,7 @@ global.EASEBUZZ_CONFIG = {
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'https://e3websiet.vercel.app'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'https://e3websiet.vercel.app', 'https://www.ethree.in', 'https://www.efour.in'],
     credentials: true
 }));
 app.use(cookieParser());
