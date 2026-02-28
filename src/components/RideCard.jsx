@@ -35,7 +35,9 @@ const RideCard = ({ ride }) => {
             name: ride.name || ride.title,
             price: Number(ride.price) || 0,
             image: ride.image,
-            stall: ride.stall || ride.category
+            stall: ride.stall || ride.category,
+            isCombo: ride.isCombo || false,
+            rideCount: ride.rideCount || (ride.isCombo ? 5 : 1)
         }, quantity);
         setQuantity(1);
     };

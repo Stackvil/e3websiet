@@ -147,17 +147,15 @@ const YourTickets = () => {
     // Group orders to display as containers
     const groupedOrders = orders.map(order => {
         const orderTickets = (order.items || []).flatMap((item, itemIdx) => {
-            // Priority 1: Explicit ride count from metadata
-            let ridesPerCombo = item.details?.rideCount || 1;
+            // Priority 1: Explicit metadata
+            const isComboItem = item.isCombo === true || (item.name && item.name.toLowerCase().includes('combo'));
+            let ridesPerCombo = item.rideCount || (item.details?.rideCount) || (isComboItem ? 5 : 1);
 
-            // Priority 2: If no explicit count but has "combo" in name, try to parse a number
-            if (!item.details?.rideCount && item.name && item.name.toLowerCase().includes('combo')) {
+            // Priority 2: Fallback to regex if metadata seems missing but name suggests combo
+            if (!item.rideCount && !item.details?.rideCount && isComboItem && ridesPerCombo === 1) {
                 const match = item.name.match(/(\d+)\s*(rides?|items?|pack|tickets?)/i);
                 if (match) {
                     ridesPerCombo = parseInt(match[1]);
-                } else {
-                    // Default to 1 for generic "Combo" items to avoid over-counting
-                    ridesPerCombo = 1;
                 }
             }
 

@@ -31,17 +31,27 @@ const Success = () => {
                     if (existingTickets.length === 0) {
                         const generatedTickets = [];
                         items.forEach(item => {
+                            const isCombo = item.isCombo || (item.name && item.name.toLowerCase().includes('combo'));
+                            const rideCount = item.rideCount || (isCombo ? 5 : 1);
+
                             for (let i = 0; i < item.quantity; i++) {
-                                const ticketId = `${orderId}-${generatedTickets.length + 1}`;
-                                const newTicket = {
-                                    id: ticketId,
-                                    date: order.createdAt || new Date().toISOString(),
-                                    items: [{ ...item, quantity: 1 }],
-                                    total: item.price,
-                                    userMobile: order.phone
-                                };
-                                addTicket(newTicket);
-                                generatedTickets.push(newTicket);
+                                for (let r = 0; r < rideCount; r++) {
+                                    const ticketId = `${orderId}-${generatedTickets.length + 1}`;
+                                    const newTicket = {
+                                        id: ticketId,
+                                        date: order.createdAt || new Date().toISOString(),
+                                        items: [{
+                                            ...item,
+                                            quantity: 1,
+                                            displayComboIndex: rideCount > 1 ? r + 1 : null,
+                                            totalComboRides: rideCount > 1 ? rideCount : null
+                                        }],
+                                        total: item.price / rideCount, // Distribute price if it's a combo
+                                        userMobile: order.phone
+                                    };
+                                    addTicket(newTicket);
+                                    generatedTickets.push(newTicket);
+                                }
                             }
                         });
                         setBookedItems(generatedTickets.flatMap(t => t.items));
