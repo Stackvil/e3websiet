@@ -39,7 +39,7 @@ const AdminDashboard = () => {
     const [filterType, setFilterType] = useState('all'); // 'all', 'rides', 'events'
 
     // Add cuisine to initial state if editing doesn't provide it
-    const defaultForm = { name: '', category: 'dine', price: '', description: '', image: '', images: [], menuImages: [], status: 'open', cuisine: '', ageGroup: 'All', stall: '', isCombo: false, rideCount: '', contactNumber: '' };
+    const defaultForm = { name: '', category: 'dine', price: '', description: '', image: '', images: [], menuImages: [], status: 'open', cuisine: '', ageGroup: 'Adults', stall: '', isCombo: false, rideCount: '', contactNumber: '' };
     const navigate = useNavigate();
     // setUser is already destructured above
 
@@ -181,7 +181,25 @@ const AdminDashboard = () => {
     const handleEditItem = (item) => {
         setEditingItem(item);
         const defaultCategory = activeTab === 'rides' ? 'play' : 'dine';
-        setFormData(item ? { menuImages: [], status: 'open', cuisine: item.cuisine || '', ageGroup: item.ageGroup || 'All', stall: item.stall || '', isCombo: item.isCombo || false, rideCount: item.rideCount || '', images: item.images || [], contactNumber: item.contactNumber || '', ...item } : { ...defaultForm, category: defaultCategory });
+
+        // If editing a combo and it has "All", default to "Adult" display
+        let initialAgeGroup = item?.ageGroup || 'Adults';
+        if (item?.isCombo && (initialAgeGroup.toLowerCase() === 'all')) {
+            initialAgeGroup = 'Adults';
+        }
+
+        setFormData(item ? {
+            menuImages: [],
+            status: 'open',
+            cuisine: item.cuisine || '',
+            stall: item.stall || '',
+            isCombo: item.isCombo || false,
+            rideCount: item.rideCount || '',
+            images: item.images || [],
+            contactNumber: item.contactNumber || '',
+            ...item,
+            ageGroup: initialAgeGroup // Ensure it overrides
+        } : { ...defaultForm, category: defaultCategory });
         setShowModal(true);
     };
 
@@ -294,7 +312,7 @@ const AdminDashboard = () => {
         // Company Header
         doc.setFontSize(22);
         doc.setTextColor(255, 107, 107); // Sunset Orange
-        doc.text('E3 Entertainment', 105, 20, { align: 'center' });
+        doc.text('Jaan Entertainment Pvt Ltd', 105, 20, { align: 'center' });
 
         doc.setFontSize(10);
         doc.setTextColor(100);
@@ -364,7 +382,7 @@ const AdminDashboard = () => {
         // Footer
         doc.setFontSize(9);
         doc.setTextColor(150);
-        doc.text('Thank you for choosing E3 Entertainment!', 105, 145, { align: 'center' });
+        doc.text('Thank you for choosing Jaan Entertainment Pvt Ltd!', 105, 145, { align: 'center' });
         doc.text('Please present this receipt at the venue entry.', 105, 150, { align: 'center' });
 
         doc.save(`Receipt_${(booking.facility || 'Event').replace(/\s+/g, '_')}_${(booking.bookingId || 'ID').slice(-4)}.pdf`);
@@ -965,10 +983,19 @@ const AdminDashboard = () => {
                                             <div className="flex flex-col items-center justify-center flex-grow">
                                                 <h3 className="text-white font-bold text-xs leading-tight text-center line-clamp-2">{ride.name}</h3>
                                                 {ride.isCombo && (
-                                                    <div className="mt-1 px-2 py-0.5 bg-sunset-orange/90 border-2 border-white/80 rounded-md shadow-lg">
-                                                        <p className="text-[9px] text-white font-black text-center whitespace-nowrap uppercase tracking-wide">
-                                                            Any {ride.rideCount || 5} Rides
-                                                        </p>
+                                                    <div className="mt-1 flex flex-col gap-1 items-center">
+                                                        <div className="px-2 py-0.5 bg-sunset-orange/90 border-2 border-white/80 rounded-md shadow-lg w-fit">
+                                                            <p className="text-[9px] text-white font-black text-center whitespace-nowrap uppercase tracking-wide">
+                                                                Any {ride.rideCount || 5} Rides
+                                                            </p>
+                                                        </div>
+                                                        {ride.ageGroup && !['all', 'all ages', 'All'].includes(ride.ageGroup) && (
+                                                            <div className="px-2 py-0.5 bg-white/10 border border-white/20 rounded-md shadow-md w-fit">
+                                                                <p className="text-[8px] text-white font-bold text-center uppercase tracking-widest leading-none">
+                                                                    {ride.ageGroup}
+                                                                </p>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -1109,7 +1136,7 @@ const AdminDashboard = () => {
                         };
 
                         return (
-                            <>
+                            <div className="space-y-8">
                                 {/* ══════════════════════════════════════ */}
                                 {/* ── Daily Sales Section ── */}
                                 {/* ══════════════════════════════════════ */}
@@ -1445,250 +1472,250 @@ const AdminDashboard = () => {
                                         </div>
                                     )}
                                 </div>
-                            </>
+                            </div>
                         );
                     })()}
 
-
-
                     {/* Sponsors Section */}
-                    {
-                        activeTab === 'sponsors' && (
-                            <div>
-                                <div className="mb-6 flex justify-end">
-                                    <button
-                                        onClick={() => {
-                                            setEditingItem(null);
-                                            setFormData({ name: '', category: 'Partner', price: '', description: '', image: '', menuImages: [], status: 'open' });
-                                            setShowModal(true);
-                                        }}
-                                        className="bg-riverside-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
-                                    >
-                                        <Users className="w-5 h-5 mr-2" />
-                                        Add New Sponsor
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {sponsors.map((sponsor) => (
-                                        <div key={sponsor._id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group relative">
-                                            <div className="h-32 p-4 flex items-center justify-center bg-gray-50">
-                                                <img src={sponsor.image} alt={sponsor.name} className="max-h-full max-w-full object-contain" />
-                                            </div>
-                                            <div className="p-4">
-                                                <h3 className="font-bold text-charcoal-grey">{sponsor.name}</h3>
-                                                <p className="text-xs text-gray-500 mb-2">{sponsor.tier || 'Partner'}</p>
-                                                <button
-                                                    onClick={() => handleDeleteSponsor(sponsor._id)}
-                                                    className="w-full py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors border border-red-100"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                    {activeTab === 'sponsors' && (
+                        <div>
+                            <div className="mb-6 flex justify-end">
+                                <button
+                                    onClick={() => {
+                                        setEditingItem(null);
+                                        setFormData({ name: '', category: 'Partner', price: '', description: '', image: '', menuImages: [], status: 'open' });
+                                        setShowModal(true);
+                                    }}
+                                    className="bg-riverside-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
+                                >
+                                    <Users className="w-5 h-5 mr-2" />
+                                    Add New Sponsor
+                                </button>
                             </div>
-                        )
-                    }
-
-
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                                {sponsors.map((sponsor) => (
+                                    <div key={sponsor._id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 group relative">
+                                        <div className="h-32 p-4 flex items-center justify-center bg-gray-50">
+                                            <img src={sponsor.image} alt={sponsor.name} className="max-h-full max-w-full object-contain" />
+                                        </div>
+                                        <div className="p-4">
+                                            <h3 className="font-bold text-charcoal-grey">{sponsor.name}</h3>
+                                            <p className="text-xs text-gray-500 mb-2">{sponsor.tier || 'Partner'}</p>
+                                            <button
+                                                onClick={() => handleDeleteSponsor(sponsor._id)}
+                                                className="w-full py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors border border-red-100"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Inventory/Sponsor Modal */}
-                    {
-                        showModal && (
-                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                                <div className="bg-white rounded-xl p-8 max-w-md w-full">
-                                    <h3 className="text-xl font-bold mb-6">{editingItem ? 'Edit Item' : (formData.isCombo ? 'Add New Combo' : 'Add New Item')}</h3>
-                                    <form onSubmit={activeTab === 'sponsors' ? handleSaveSponsor : handleSaveItem} className="space-y-4">
-                                        <input
-                                            placeholder={activeTab === 'sponsors' ? "Sponsor Name" : (formData.isCombo ? "Combo Name (e.g. Super Saver)" : (formData.category === 'dine' ? "Stall Name" : "Item Name"))}
-                                            className="w-full border p-2 rounded"
-                                            value={formData.name}
-                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            required
-                                        />
+                    {showModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-xl p-8 max-w-md w-full">
+                                <h3 className="text-xl font-bold mb-6">{editingItem ? 'Edit Item' : (formData.isCombo ? 'Add New Combo' : 'Add New Item')}</h3>
+                                <form onSubmit={activeTab === 'sponsors' ? handleSaveSponsor : handleSaveItem} className="space-y-4">
+                                    <input
+                                        placeholder={activeTab === 'sponsors' ? "Sponsor Name" : (formData.isCombo ? "Combo Name (e.g. Super Saver)" : (formData.category === 'dine' ? "Stall Name" : "Item Name"))}
+                                        className="w-full border p-2 rounded"
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        required
+                                    />
 
-                                        {formData.isCombo && (
+                                    {formData.isCombo && (
+                                        <div className="flex gap-2">
                                             <input
                                                 type="number"
                                                 placeholder="How many rides? (e.g. 5)"
-                                                className="w-full border p-2 rounded"
+                                                className="flex-1 border p-2 rounded"
                                                 value={formData.rideCount}
                                                 onChange={e => setFormData({ ...formData, rideCount: e.target.value })}
                                                 required
                                             />
-                                        )}
-
-                                        {activeTab === 'sponsors' ? (
-                                            <>
-                                                <select className="w-full border p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
-                                                    <option value="Partner">Partner</option>
-                                                    <option value="Gold">Gold</option>
-                                                    <option value="Silver">Silver</option>
-                                                </select>
-                                                <input placeholder="Website URL (Optional)" className="w-full border p-2 rounded" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
-                                            </>
-                                        ) : (
-                                            <>
-                                                {!formData.isCombo && (
-                                                    <select className="w-full border p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
-                                                        <option value="dine">Dine (Food)</option>
-                                                        <option value="play">Play (Rides)</option>
-                                                        <option value="events">Event</option>
-                                                    </select>
-                                                )}
-                                                {formData.category === 'dine' && (
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Contact Number"
-                                                        className="w-full border p-2 rounded"
-                                                        value={formData.contactNumber || ''}
-                                                        onChange={e => setFormData({ ...formData, contactNumber: e.target.value })}
-                                                    />
-                                                )}
-                                                {formData.category !== 'dine' && (
-                                                    <input
-                                                        type="number"
-                                                        placeholder="Price (₹)"
-                                                        className="w-full border p-2 rounded"
-                                                        value={formData.price}
-                                                        onChange={e => setFormData({ ...formData, price: e.target.value })}
-                                                        required
-                                                    />
-                                                )}
-                                                {formData.category === 'play' && !formData.isCombo && (
-                                                    <>
-                                                        <select
-                                                            className="w-full border p-2 rounded"
-                                                            value={formData.ageGroup || 'All'}
-                                                            onChange={e => setFormData({ ...formData, ageGroup: e.target.value })}
-                                                        >
-                                                            <option value="All">All Ages</option>
-                                                            <option value="Kids">Kids</option>
-                                                            <option value="Toddlers">Toddlers</option>
-                                                            <option value="Youth">Youth</option>
-                                                            <option value="Family">Family</option>
-                                                            <option value="7+ years">7+ years</option>
-                                                            <option value="10+">10+</option>
-                                                        </select>
-
-                                                    </>
-                                                )}
-                                                {formData.category !== 'dine' && (
-                                                    <textarea placeholder="Description" className="w-full border p-2 rounded" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
-                                                )}
-                                            </>
-                                        )}
-
-                                        <div className="flex flex-col gap-2">
-                                            <input placeholder="Image URL (Main Cover)" className="w-full border p-2 rounded" value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} />
-                                            {/* Image Upload Logic Placeholder - Kept simple for now for stability */}
-                                            <div className="flex items-center gap-2">
-                                                <label className="flex-1 cursor-pointer bg-gray-50 border border-dashed border-gray-300 rounded p-2 text-center text-sm text-gray-500 hover:bg-gray-100 transition-colors">
-                                                    <span>Upload Main Cover (Auto-compressed)</span>
-                                                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                                                        const file = e.target.files[0];
-                                                        if (file) {
-                                                            try {
-                                                                const compressed = await compressImage(file, 800, 0.7);
-                                                                setFormData({ ...formData, image: compressed });
-                                                            } catch (err) {
-                                                                console.error("Image compression failed:", err);
-                                                                alert("Failed to process image. Please try another.");
-                                                            }
-                                                        }
-                                                    }} />
-                                                </label>
-                                                {formData.image && formData.image.startsWith('data:') && (
-                                                    <div className="w-10 h-10 rounded overflow-hidden border">
-                                                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <select
+                                                className="flex-1 border p-2 rounded"
+                                                value={formData.ageGroup || 'Adults'}
+                                                onChange={e => setFormData({ ...formData, ageGroup: e.target.value })}
+                                            >
+                                                <option value="Adults">Adults</option>
+                                                <option value="Kids">Kids</option>
+                                            </select>
                                         </div>
+                                    )}
 
-                                        {/* Combo Multiple Images Upload */}
-                                        {formData.isCombo && (
+                                    {activeTab === 'sponsors' ? (
+                                        <>
+                                            <select className="w-full border p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
+                                                <option value="Partner">Partner</option>
+                                                <option value="Gold">Gold</option>
+                                                <option value="Silver">Silver</option>
+                                            </select>
+                                            <input placeholder="Website URL (Optional)" className="w-full border p-2 rounded" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                        </>
+                                    ) : (
+                                        <>
+                                            {!formData.isCombo && (
+                                                <select className="w-full border p-2 rounded" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
+                                                    <option value="dine">Dine (Food)</option>
+                                                    <option value="play">Play (Rides)</option>
+                                                    <option value="events">Event</option>
+                                                </select>
+                                            )}
+                                            {formData.category === 'dine' && (
+                                                <input
+                                                    type="text"
+                                                    placeholder="Contact Number"
+                                                    className="w-full border p-2 rounded"
+                                                    value={formData.contactNumber || ''}
+                                                    onChange={e => setFormData({ ...formData, contactNumber: e.target.value })}
+                                                />
+                                            )}
+                                            {formData.category !== 'dine' && (
+                                                <input
+                                                    type="number"
+                                                    placeholder="Price (₹)"
+                                                    className="w-full border p-2 rounded"
+                                                    value={formData.price}
+                                                    onChange={e => setFormData({ ...formData, price: e.target.value })}
+                                                    required
+                                                />
+                                            )}
+                                            {formData.category === 'play' && !formData.isCombo && (
+                                                <select
+                                                    className="w-full border p-2 rounded"
+                                                    value={formData.ageGroup || 'All'}
+                                                    onChange={e => setFormData({ ...formData, ageGroup: e.target.value })}
+                                                >
+                                                    <option value="All">All Ages</option>
+                                                    <option value="Kids">Kids</option>
+                                                    <option value="Adults">Adults</option>
+                                                </select>
+                                            )}
+                                            {formData.category !== 'dine' && (
+                                                <textarea
+                                                    placeholder="Description"
+                                                    className="w-full border p-2 rounded"
+                                                    value={formData.description}
+                                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                                />
+                                            )}
+
                                             <div className="flex flex-col gap-2">
-                                                <label className="text-sm font-bold text-gray-700">Combo Images (Slideshow)</label>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    {(formData.images || []).map((img, idx) => (
-                                                        <div key={idx} className="w-16 h-16 rounded overflow-hidden border relative group">
-                                                            <img src={img} alt={`Combo ${idx}`} className="w-full h-full object-cover" />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
-                                                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            >
-                                                                <X size={12} />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    <label className="w-16 h-16 cursor-pointer bg-gray-50 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
-                                                        <span className="text-2xl">+</span>
-                                                        <input type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
-                                                            const files = Array.from(e.target.files);
-                                                            try {
-                                                                // Process all files in parallel
-                                                                const compressedImages = await Promise.all(
-                                                                    files.map(file => compressImage(file, 800, 0.7))
-                                                                );
-                                                                setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...compressedImages] }));
-                                                            } catch (err) {
-                                                                console.error("Batch compression failed:", err);
-                                                                alert("Failed to process one or more images.");
+                                                <input placeholder="Image URL (Main Cover)" className="w-full border p-2 rounded" value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })} />
+                                                {/* Image Upload Logic Placeholder - Kept simple for now for stability */}
+                                                <div className="flex items-center gap-2">
+                                                    <label className="flex-1 cursor-pointer bg-gray-50 border border-dashed border-gray-300 rounded p-2 text-center text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+                                                        <span>Upload Main Cover (Auto-compressed)</span>
+                                                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                                            const file = e.target.files[0];
+                                                            if (file) {
+                                                                try {
+                                                                    const compressed = await compressImage(file, 800, 0.7);
+                                                                    setFormData({ ...formData, image: compressed });
+                                                                } catch (err) {
+                                                                    console.error("Image compression failed:", err);
+                                                                    alert("Failed to process image. Please try another.");
+                                                                }
                                                             }
                                                         }} />
                                                     </label>
+                                                    {formData.image && formData.image.startsWith('data:') && (
+                                                        <div className="w-10 h-10 rounded overflow-hidden border">
+                                                            <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        )}
 
-                                        {/* Dine Menu Images */}
-                                        {formData.category === 'dine' && activeTab !== 'sponsors' && (
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-sm font-bold text-gray-700">Menu Pages</label>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    className="border p-2 rounded block w-full text-sm text-slate-500
-                                                        file:mr-4 file:py-2 file:px-4
-                                                        file:rounded-full file:border-0
-                                                        file:text-sm file:font-semibold
-                                                        file:bg-riverside-teal/10 file:text-riverside-teal
-                                                        hover:file:bg-riverside-teal/20"
-                                                    onChange={async (e) => {
-                                                        const files = Array.from(e.target.files);
-                                                        try {
-                                                            const compressedList = await Promise.all(
-                                                                files.map(file => compressImage(file, 800, 0.6))
-                                                            );
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                menuImages: [...(prev.menuImages || []), ...compressedList]
-                                                            }));
-                                                        } catch (err) {
-                                                            console.error("Menu compression failed", err);
-                                                            alert("Failed to process menu images. Please try fewer images.");
-                                                        }
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
+                                            {/* Combo Multiple Images Upload */}
+                                            {formData.isCombo && (
+                                                <div className="flex flex-col gap-2">
+                                                    <label className="text-sm font-bold text-gray-700">Combo Images (Slideshow)</label>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        {(formData.images || []).map((img, idx) => (
+                                                            <div key={idx} className="w-16 h-16 rounded overflow-hidden border relative group">
+                                                                <img src={img} alt={`Combo ${idx}`} className="w-full h-full object-cover" />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))}
+                                                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                        <label className="w-16 h-16 cursor-pointer bg-gray-50 border border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+                                                            <span className="text-2xl">+</span>
+                                                            <input type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+                                                                const files = Array.from(e.target.files);
+                                                                try {
+                                                                    // Process all files in parallel
+                                                                    const compressedImages = await Promise.all(
+                                                                        files.map(file => compressImage(file, 800, 0.7))
+                                                                    );
+                                                                    setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...compressedImages] }));
+                                                                } catch (err) {
+                                                                    console.error("Batch compression failed:", err);
+                                                                    alert("Failed to process one or more images.");
+                                                                }
+                                                            }} />
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                        <div className="flex gap-4 mt-6">
-                                            <button type="submit" className="flex-1 bg-riverside-teal text-white py-2 rounded font-bold">Save</button>
-                                            <button type="button" onClick={() => setShowModal(false)} className="flex-1 border border-gray-300 py-2 rounded font-bold">Cancel</button>
-                                        </div>
-                                    </form>
-                                </div>
+                                            {/* Dine Menu Images */}
+                                            {formData.category === 'dine' && activeTab !== 'sponsors' && (
+                                                <div className="flex flex-col gap-2">
+                                                    <label className="text-sm font-bold text-gray-700">Menu Pages</label>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        multiple
+                                                        className="border p-2 rounded block w-full text-sm text-slate-500
+                                                            file:mr-4 file:py-2 file:px-4
+                                                            file:rounded-full file:border-0
+                                                            file:text-sm file:font-semibold
+                                                            file:bg-riverside-teal/10 file:text-riverside-teal
+                                                            hover:file:bg-riverside-teal/20"
+                                                        onChange={async (e) => {
+                                                            const files = Array.from(e.target.files);
+                                                            try {
+                                                                const compressedList = await Promise.all(
+                                                                    files.map(file => compressImage(file, 800, 0.6))
+                                                                );
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    menuImages: [...(prev.menuImages || []), ...compressedList]
+                                                                }));
+                                                            } catch (err) {
+                                                                console.error("Menu compression failed", err);
+                                                                alert("Failed to process menu images. Please try fewer images.");
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    <div className="flex gap-4 mt-6">
+                                        <button type="submit" className="flex-1 bg-riverside-teal text-white py-2 rounded font-bold">Save</button>
+                                        <button type="button" onClick={() => setShowModal(false)} className="flex-1 border border-gray-300 py-2 rounded font-bold">Cancel</button>
+                                    </div>
+                                </form>
                             </div>
-                        )
-                    }
-                </motion.div >
-            </div >
-        </div >
+                        </div>
+                    )}
+                </motion.div>
+            </div>
+        </div>
     );
 };
 

@@ -313,7 +313,7 @@ const Dine = () => {
                         ))}
                     </div>
                     <div className="text-gray-400 text-sm font-medium flex flex-col items-center gap-1">
-                        <p>© {new Date().getFullYear()} E3 Entertainment. All rights reserved.</p>
+                        <p>© {new Date().getFullYear()} Jaan Entertainment Pvt Ltd. All rights reserved.</p>
                         <p className="text-[11px] text-gray-400/80 mt-1 max-w-lg italic">
                             * All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted.
                         </p>

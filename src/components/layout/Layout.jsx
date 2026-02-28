@@ -34,10 +34,10 @@ const Header = () => {
     ];
 
     return (
-        <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-gray-200 py-2 px-6">
+        <header className="sticky top-0 z-50 bg-black py-1 px-6 border-b border-white/10">
             <div className="container mx-auto flex justify-between items-center max-w-7xl">
                 <Link to="/" className="flex items-center gap-2">
-                    <Logo className="scale-60 md:scale-75" />
+                    <Logo className="scale-90 md:scale-110" />
                 </Link>
 
                 {/* Desktop Nav */}
@@ -46,14 +46,14 @@ const Header = () => {
                         <Link
                             key={link.name}
                             to={link.path}
-                            className={`font-semibold transition-all duration-300 hover:scale-105 inline-block relative group ${location.pathname === link.path ? 'text-sunset-orange' : 'text-charcoal-grey hover:text-sunset-orange'
+                            className={`font-semibold transition-all duration-300 hover:scale-105 inline-block relative group ${location.pathname === link.path ? 'text-sunset-orange' : 'text-white/80 hover:text-white'
                                 }`}
                         >
                             {link.name}
                             <span className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-sunset-orange transition-all duration-300 group-hover:w-full ${location.pathname === link.path ? 'w-full' : ''}`}></span>
                         </Link>
                     ))}
-                    <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} className={`font-semibold transition-all duration-300 hover:scale-105 ${user ? '' : 'text-charcoal-grey hover:text-sunset-orange'}`}>
+                    <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} className={`font-semibold transition-all duration-300 hover:scale-105 ${user ? '' : 'text-white/80 hover:text-white'}`}>
                         {user ? (
                             <motion.div
                                 whileHover={{ scale: 1.05 }}
@@ -73,7 +73,7 @@ const Header = () => {
                 </nav>
 
                 {/* Mobile Toggle */}
-                <button className="md:hidden" onClick={() => setIsOpen(!isOpen)}>
+                <button className="md:hidden text-white" onClick={() => setIsOpen(!isOpen)}>
                     {isOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
@@ -85,7 +85,7 @@ const Header = () => {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="md:hidden bg-white overflow-hidden"
+                        className="md:hidden bg-black overflow-hidden border-t border-white/10"
                     >
                         <div className="flex flex-col p-6 gap-4">
                             {navLinks.map((link) => (
@@ -93,12 +93,12 @@ const Header = () => {
                                     key={link.name}
                                     to={link.path}
                                     onClick={() => setIsOpen(false)}
-                                    className="text-lg font-semibold"
+                                    className={`text-lg font-semibold ${location.pathname === link.path ? 'text-sunset-orange' : 'text-white/80 hover:text-white'}`}
                                 >
                                     {link.name}
                                 </Link>
                             ))}
-                            <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3">
+                            <Link to={user ? (user.role === 'admin' ? '/admin' : '/profile') : '/login'} onClick={() => setIsOpen(false)} className="text-lg font-semibold flex items-center gap-3 text-charcoal-grey">
                                 {user && (
                                     <div
                                         className="w-8 h-8 rounded-full flex items-center justify-center bg-[#1D2B44] text-white"
@@ -117,7 +117,7 @@ const Header = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </header>
+        </header >
     );
 };
 
@@ -200,7 +200,7 @@ const Layout = ({ children }) => {
                 <div className="container mx-auto mt-10 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-6">
                     <div className="flex flex-col gap-1.5">
                         <p className="text-gray-400 text-xs">
-                            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">E3 Entertainment</span>. All Rights Reserved.
+                            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Jaan Entertainment Pvt Ltd</span>. All Rights Reserved.
                         </p>
                         <p className="text-gray-400 text-[10px] font-medium italic">
                             * All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted.

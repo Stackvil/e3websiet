@@ -132,7 +132,7 @@ const Home = () => {
                     <div>
                         <h2 className="text-2xl md:text-4xl font-heading font-bold mb-8">Scenic Riverside Experience</h2>
                         <p className="text-lg leading-relaxed mb-10 opacity-90">
-                            E3 Entertainment is widely recognized for its scenic location on the banks of the Krishna River. It features a casual, trendy, and contemporary atmosphere with mostly open-air seating, offering a refreshing breeze and picturesque views, especially after sunset.
+                            Jaan Entertainment Pvt Ltd is widely recognized for its scenic location on the banks of the Krishna River. It features a casual, trendy, and contemporary atmosphere with mostly open-air seating, offering a refreshing breeze and picturesque views, especially after sunset.
                         </p>
                         <Link to="/contact" className="inline-block border-2 border-white px-8 py-3 rounded-lg font-bold hover:bg-white hover:text-riverside-teal transition-all">
                             View Map & Directions

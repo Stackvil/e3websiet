@@ -100,8 +100,8 @@ const FoodCourt = () => {
                                 key={stall.id}
                                 onClick={() => setActiveCategory(stall.id)}
                                 className={`px-10 py-4 rounded-full whitespace-nowrap transition-all uppercase text-[10px] tracking-widest font-black border ${activeCategory === stall.id
-                                        ? 'bg-white border-white text-bg-deep'
-                                        : 'border-white/10 hover:border-primary text-text-secondary'
+                                    ? 'bg-white border-white text-bg-deep'
+                                    : 'border-white/10 hover:border-primary text-text-secondary'
                                     }`}
                             >
                                 {stall.name}

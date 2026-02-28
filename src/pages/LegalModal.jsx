@@ -249,9 +249,11 @@ const LegalModal = ({ doc, onClose }) => {
                         <div className="relative z-10">
                             {currentDoc.component}
                         </div>
-                        <div className="mt-8 pt-4 border-t border-gray-100 text-center">
-                            <button onClick={onClose} className="btn-orange px-8 py-2 text-sm uppercase tracking-widest font-bold">Accept</button>
-                        </div>
+                        {doc !== 'about' && (
+                            <div className="mt-8 pt-4 border-t border-gray-100 text-center">
+                                <button onClick={onClose} className="btn-orange px-8 py-2 text-sm uppercase tracking-widest font-bold">Accept</button>
+                            </div>
+                        )}
                     </div>
                 </motion.div>
             </div>

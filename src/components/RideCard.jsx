@@ -59,10 +59,19 @@ const RideCard = ({ ride }) => {
                     }}
                 />
                 {ride.isCombo && (
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-sunset-orange border-2 border-white rounded-lg shadow-lg z-10">
-                        <p className="text-[9px] text-white font-black text-center whitespace-nowrap leading-tight uppercase tracking-wide">
-                            Any 5 Rides
-                        </p>
+                    <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                        <div className="px-2 py-1 bg-sunset-orange border-2 border-white rounded-lg shadow-lg">
+                            <p className="text-[9px] text-white font-black text-center whitespace-nowrap leading-tight uppercase tracking-wide">
+                                Any {ride.rideCount || 5} Rides
+                            </p>
+                        </div>
+                        {ride.ageGroup && !['all', 'all ages'].includes(ride.ageGroup.toLowerCase()) && (
+                            <div className="px-2 py-0.5 bg-charcoal-grey border border-white/50 rounded-md shadow-md">
+                                <p className="text-[8px] text-white font-bold text-center uppercase tracking-widest leading-none">
+                                    {ride.ageGroup}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
                 <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg text-sm font-bold text-sunset-orange border border-sunset-orange/50 shadow-lg">
@@ -80,12 +89,12 @@ const RideCard = ({ ride }) => {
                 )}
             </div>
 
-            <div className="p-1 flex flex-col h-[40%] justify-between bg-white">
+            <div className="p-2 md:p-1.5 flex flex-col h-[40%] justify-between bg-white">
                 <div className="flex flex-col items-center justify-center">
                     <h3 className="text-charcoal-grey font-bold leading-tight text-center line-clamp-1 text-sm">{ride.name || ride.title}</h3>
                 </div>
 
-                <div className="space-y-1.5 w-full flex-shrink-0">
+                <div className="space-y-1.5 w-full flex-shrink-0 mt-2 md:mt-0">
                     {/* Quantity */}
 
 
