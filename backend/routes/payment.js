@@ -258,30 +258,46 @@ router.post('/success', async (req, res) => {
             await recordPayment(location, req.body);
 
 
-            // Reward Points Logic
+            // Reward Points Logic (10 points for transactions >= ₹300)
             try {
-                if (Number(req.body.amount) >= 300 && req.body.udf2) {
-                    const userId = req.body.udf2;
+                const amount = Number(req.body.amount);
+                const userId = req.body.udf2;
+
+                console.log(`Checking rewards: Amount=${amount}, UserID=${userId}, Location=${location}`);
+
+                if (amount >= 300 && userId) {
                     const userTable = location.toLowerCase() === 'e4' ? 'e4users' : 'e3users';
 
-                    // Supabase raw RPC or manual lookup & update
-                    const { data: userRecord } = await supabase
+                    const { data: userRecord, error: fetchError } = await supabase
                         .from(userTable)
                         .select('reward_points')
                         .eq('_id', userId)
                         .single();
 
-                    if (userRecord) {
-                        const currentPoints = userRecord.reward_points || 0;
-                        await supabase
+                    if (fetchError) {
+                        console.error(`Error fetching user ${userId} for rewards:`, fetchError.message);
+                    } else if (userRecord) {
+                        const currentPoints = Number(userRecord.reward_points) || 0;
+                        const newPoints = currentPoints + 10;
+
+                        const { error: updateError } = await supabase
                             .from(userTable)
-                            .update({ reward_points: currentPoints + 10 })
+                            .update({ reward_points: newPoints })
                             .eq('_id', userId);
-                        console.log(`Credited 10 points to user ${userId} for transaction ${txnid}`);
+
+                        if (updateError) {
+                            console.error(`Error updating reward points for user ${userId}:`, updateError.message);
+                        } else {
+                            console.log(`Successfully credited 10 points to user ${userId} (${userTable}). New balance: ${newPoints}`);
+                        }
+                    } else {
+                        console.warn(`User ${userId} not found in ${userTable} for reward credit.`);
                     }
+                } else {
+                    console.log(`No rewards applicable: Amount ${amount} < 300 or missing UserID.`);
                 }
             } catch (rewardErr) {
-                console.error('Reward Points Error:', rewardErr);
+                console.error('Reward Points Logic Failure:', rewardErr);
             }
 
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';

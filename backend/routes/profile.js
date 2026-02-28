@@ -127,6 +127,7 @@ router.get('/', auth, async (req, res) => {
             name: user.name,
             mobile: user.mobilenumber || user.mobile,
             role: user.role,
+            reward_points: user.reward_points || 0,
             createdAt: user.createdAt,
             location: location
         });
@@ -226,6 +227,7 @@ router.put('/', [auth, validate(updateProfileSchema)], async (req, res) => {
             name: updatedUser.name,
             mobile: updatedUser.mobilenumber,
             role: updatedUser.role,
+            reward_points: updatedUser.reward_points || 0,
             createdAt: updatedUser.createdAt,
             location: location
         });
