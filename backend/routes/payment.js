@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const supabase = require('../utils/supabaseHelper');
 const { validateHash } = require('../utils/easebuzz');
 const { auth } = require('../middleware/auth');
@@ -230,8 +232,19 @@ router.get('/my-orders', auth, async (req, res) => {
  */
 router.post('/success', async (req, res) => {
     try {
-        console.log('Payment Success Callback Hit');
+        console.log('--- Payment Success Callback Detailed Log ---');
+        console.log('Body Keys:', Object.keys(req.body));
+        console.log('UDF1:', req.body.udf1);
+        console.log('UDF2:', req.body.udf2);
+        console.log('Amount:', req.body.amount);
+        console.log('Transaction ID:', req.body.txnid);
+        console.log('Full Body:', JSON.stringify(req.body, null, 2));
+
         const { status, txnid, udf1, easepayid } = req.body;
+
+        // Persistent logging
+        const logEntry = `${new Date().toISOString()} - Callback: TXNID=${txnid}, UDF1=${req.body.udf1}, UDF2=${req.body.udf2}, Amount=${req.body.amount}\n`;
+        fs.appendFileSync(path.join(__dirname, '../debug_payment.log'), logEntry);
 
         // udf1 contains location (E3 or E4)
         const location = udf1 || 'E3';
