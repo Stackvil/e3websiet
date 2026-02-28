@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CheckCircle, ArrowRight, Download, X,
-    Ticket, MapPin, Calendar, Hash, ShieldCheck
+    Ticket, MapPin, Calendar, Hash, ShieldCheck, Award
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import useStore from '../store/useStore';
@@ -59,6 +59,18 @@ const Success = () => {
         closeCart();
     }, [orderId, clearCart, addTicket, closeCart]);
 
+    const [showReward, setShowReward] = useState(false);
+    const [rewardTriggered, setRewardTriggered] = useState(false);
+
+    useEffect(() => {
+        if (orderData && !rewardTriggered) {
+            if (Number(orderData.amount) >= 300) {
+                setTimeout(() => setShowReward(true), 1500); // Show reward after a short delay
+                setRewardTriggered(true);
+            }
+        }
+    }, [orderData, rewardTriggered]);
+
     if (!orderId) return null;
 
     const orderDate = orderData?.createdAt
@@ -75,49 +87,94 @@ const Success = () => {
     );
 
     return (
-        <div className="min-h-screen bg-creamy-white flex items-center justify-center p-6 pt-24">
+        <div className="min-h-screen bg-creamy-white flex flex-col items-center justify-center p-6 pt-24">
+
+            {/* ── Main Success Modal ── */}
             <motion.div
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-[3rem] shadow-2xl shadow-riverside-teal/10 max-w-lg w-full border border-riverside-teal/5 overflow-hidden"
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="bg-white rounded-[3rem] shadow-2xl shadow-riverside-teal/10 max-w-md w-full border border-riverside-teal/5 overflow-hidden relative z-10"
             >
-                {/* ── Green Banner ── */}
-                <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-10 text-center text-white">
+                {/* Green Top Section */}
+                <div className="bg-[#2ecc71] p-10 text-center text-white">
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ type: 'spring', delay: 0.2 }}
-                        className="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4"
+                        transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.2 }}
+                        className="w-16 h-16 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-6"
                     >
-                        <CheckCircle size={44} className="text-white" />
+                        <CheckCircle size={36} className="text-white" />
                     </motion.div>
-                    <h1 className="text-3xl font-heading font-bold tracking-tight">
+                    <h1 className="text-3xl font-black mb-2 leading-tight">
                         {isEventOrder ? 'Congratulations! Your event is booked' : 'Your rides are confirmed!'}
                     </h1>
-                    <p className="text-green-100 mt-1 text-sm">Check your tickets in your tickets page</p>
-                    <div className="mt-4 bg-white/20 rounded-xl px-4 py-2 inline-block">
-                        <span className="font-mono font-bold text-sm tracking-widest">{orderId}</span>
+                    <p className="text-green-50 opacity-90 text-sm font-medium">Check your tickets in your tickets page</p>
+
+                    <div className="mt-6 bg-white/25 rounded-2xl px-5 py-2 inline-block backdrop-blur-sm border border-white/20">
+                        <span className="font-mono font-black text-sm tracking-widest">{orderId}</span>
                     </div>
                 </div>
 
-                <div className="p-8 space-y-8">
-                    {/* ── Action Buttons ── */}
-                    <div className="space-y-4 pt-4">
-                        <Link
-                            to="/tickets"
-                            className="w-full flex items-center justify-center gap-3 py-5 rounded-[1.5rem] bg-riverside-teal text-white font-bold text-lg hover:bg-teal-600 transition-all shadow-xl shadow-teal-100"
-                        >
-                            <Ticket size={22} /> {isEventOrder ? 'Your Event Details' : 'See Your Tickets'}
-                        </Link>
-                        <Link
-                            to="/"
-                            className="w-full flex items-center justify-center gap-2 py-4 rounded-[1.5rem] border-2 border-gray-100 text-charcoal-grey font-bold text-base hover:border-riverside-teal hover:text-riverside-teal transition-all"
-                        >
-                            Back to Home <ArrowRight size={20} />
-                        </Link>
-                    </div>
+                {/* White Bottom Section */}
+                <div className="p-8 space-y-4">
+                    <Link
+                        to="/tickets"
+                        className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl bg-[#008080] text-white font-black text-lg hover:bg-teal-700 transition-all shadow-lg shadow-teal-100"
+                    >
+                        <Ticket size={22} /> See Your Tickets
+                    </Link>
+                    <Link
+                        to="/"
+                        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-gray-100 text-charcoal-grey font-black text-base hover:border-riverside-teal hover:text-riverside-teal transition-all"
+                    >
+                        Back to Home <ArrowRight size={20} />
+                    </Link>
+
+                    <button
+                        onClick={() => setShowInvoice(true)}
+                        className="w-full text-center text-xs font-bold text-gray-400 hover:text-riverside-teal transition-colors mt-2"
+                    >
+                        View Invoice Receipt
+                    </button>
                 </div>
             </motion.div>
+
+            {/* ── Reward Points Popup ── */}
+            <AnimatePresence>
+                {showReward && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                        className="fixed bottom-10 z-[100] max-w-xs w-full px-4"
+                    >
+                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-2xl shadow-indigo-200 border border-white/20 relative overflow-hidden group">
+                            {/* Decorative background circle */}
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all" />
+
+                            <button
+                                onClick={() => setShowReward(false)}
+                                className="absolute top-3 right-3 p-1 hover:bg-white/10 rounded-full transition"
+                            >
+                                <X size={16} />
+                            </button>
+
+                            <div className="relative z-10 flex flex-col items-center text-center">
+                                <div className="w-14 h-14 bg-amber-400 rounded-2xl rotate-12 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/30">
+                                    <Award size={32} className="text-white -rotate-12" />
+                                </div>
+                                <h3 className="text-xl font-black mb-1">Congratulations! 🎉</h3>
+                                <p className="text-sm font-medium text-indigo-100 mb-4 px-2">
+                                    You just earned <span className="text-white font-black">10 Reward Points</span> for your transaction!
+                                </p>
+                                <div className="bg-white/20 backdrop-blur-md rounded-xl py-2 px-4 text-xs font-bold border border-white/20">
+                                    Check your Profile to see balance
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* ══════════════════════════════════
                 INVOICE MODAL
