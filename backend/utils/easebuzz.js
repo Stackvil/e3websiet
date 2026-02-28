@@ -1,4 +1,6 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const sha512 = require('js-sha512');
 const EasebuzzKit = require('./easebuzz-lib/initiate_payment.js');
 const EasebuzzUtil = require('./easebuzz-lib/util.js');
@@ -80,6 +82,10 @@ async function initiatePayment(orderData) {
     const hashString = `${config.key}|${data.txnid}|${data.amount}|${data.productinfo}|${data.firstname}|${data.email}|${data.udf1}|${data.udf2}|${data.udf3}|${data.udf4}|${data.udf5}|${data.udf6}|${data.udf7}|${data.udf8}|${data.udf9}|${data.udf10}|${config.salt}`;
     data.hash = sha512.sha512(hashString);
     data.key = config.key;
+
+    // Persistent logging
+    const logEntry = `${new Date().toISOString()} - Initiate: TXNID=${data.txnid}, UDF1=${data.udf1}, UDF2=${data.udf2}, Amount=${data.amount}\n`;
+    fs.appendFileSync(path.join(__dirname, '../debug_payment.log'), logEntry);
 
     try {
         const response = await EasebuzzUtil.call(url, data);
