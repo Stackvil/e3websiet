@@ -405,7 +405,11 @@ const YourTickets = () => {
                                                                     <div className="min-w-0 flex-grow">
                                                                         <h4 className="font-bold text-charcoal-grey text-xs truncate uppercase tracking-tighter">{ticket.name}</h4>
                                                                         <div className="flex flex-col gap-1 mt-1">
-                                                                            <p className="text-[10px] font-bold text-gray-400">₹{ticket.price}</p>
+                                                                            {ticket.displayComboIndex ? (
+                                                                                <p className="text-[9px] font-mono text-gray-400 leading-none">ID: {ticket.uniqueQrId.split('-').pop()}</p>
+                                                                            ) : (
+                                                                                <p className="text-[10px] font-bold text-gray-400">₹{ticket.price}</p>
+                                                                            )}
                                                                             {isEvent && ticket.details && (
                                                                                 <div className="space-y-0.5 mt-1 border-t border-gray-100 pt-1">
                                                                                     <div className="flex items-center gap-1.5 text-[9px] font-bold text-sunset-orange">

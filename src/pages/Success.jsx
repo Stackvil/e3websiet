@@ -290,8 +290,12 @@ const Success = () => {
                                                             {item.stall && <p className="text-xs text-gray-400">{item.stall}</p>}
                                                         </td>
                                                         <td className="p-4 text-center text-gray-600">{item.quantity || 1}</td>
-                                                        <td className="p-4 text-right text-gray-600">₹{item.price}</td>
-                                                        <td className="p-4 text-right font-bold text-charcoal-grey">₹{item.price * (item.quantity || 1)}</td>
+                                                        <td className="p-4 text-right text-gray-600">
+                                                            {item.displayComboIndex ? '-' : `₹${item.price}`}
+                                                        </td>
+                                                        <td className="p-4 text-right font-bold text-charcoal-grey">
+                                                            {item.displayComboIndex ? '-' : `₹${item.price * (item.quantity || 1)}`}
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
