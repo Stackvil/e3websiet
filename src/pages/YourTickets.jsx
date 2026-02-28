@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Ticket, Calendar, Clock, MapPin, ArrowRight, AlertCircle,
-    Download, Printer, X, Hash, ShieldCheck
+    Download, X, Hash, ShieldCheck
 } from 'lucide-react';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
@@ -45,7 +45,7 @@ const YourTickets = () => {
         // Company Header
         doc.setFontSize(22);
         doc.setTextColor(255, 107, 107); // Sunset Orange
-        doc.text('ethree', 105, 20, { align: 'center' });
+        doc.text('Jaan Entertainment', 105, 20, { align: 'center' });
 
         doc.setFontSize(10);
         doc.setTextColor(100);
@@ -111,7 +111,7 @@ const YourTickets = () => {
         // Footer
         doc.setFontSize(9);
         doc.setTextColor(150);
-        doc.text('Thank you for booking with ethree!', 105, 145, { align: 'center' });
+        doc.text('Thank you for booking with Jaan Entertainment!', 105, 145, { align: 'center' });
         doc.text('Please present this receipt at the venue entry.', 105, 150, { align: 'center' });
 
         doc.save(`Receipt_${ticket.name.replace(/\s+/g, '_')}_${ticket.orderId.slice(-4)}.pdf`);
@@ -282,7 +282,7 @@ const YourTickets = () => {
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-charcoal-grey text-lg leading-tight">ethree</h3>
+                                                    <h3 className="font-bold text-charcoal-grey text-lg leading-tight uppercase tracking-tight">Jaan Entertainment</h3>
                                                     <p className="text-xs text-gray-400 font-medium mt-0.5">{user?.location || 'Vijayawada'}</p>
                                                 </div>
                                             </div>
@@ -434,8 +434,8 @@ const YourTickets = () => {
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="w-10 h-10 bg-sunset-orange rounded-xl flex items-center justify-center font-black text-lg">E3</div>
                                         <div>
-                                            <p className="font-bold text-lg leading-none uppercase">ethree</p>
-                                            <p className="text-blue-300 text-[10px] mt-1 font-semibold">Powered by JAAN ENTERTAINMENT Pvt Ltd</p>
+                                            <p className="font-bold text-lg leading-none uppercase">Jaan Entertainment</p>
+                                            <p className="text-blue-300 text-[10px] mt-1 font-semibold">Pvt Ltd</p>
                                         </div>
                                     </div>
                                     <p className="text-gray-400 text-xs">Opp. APSRTC Bus Stand, Padmavathi Ghat,</p>
@@ -476,7 +476,7 @@ const YourTickets = () => {
                                         <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
                                             <MapPin size={12} /> Venue
                                         </p>
-                                        <p className="font-bold text-charcoal-grey text-sm">ethree, Vijayawada</p>
+                                        <p className="font-bold text-charcoal-grey text-sm">Jaan Entertainment, Vijayawada</p>
                                     </div>
                                     <div className="bg-gray-50 rounded-2xl p-4">
                                         <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
@@ -534,24 +534,16 @@ const YourTickets = () => {
                                 </div>
 
 
-                                {/* Footer */}
                                 <p className="text-center text-xs text-gray-400 leading-relaxed border-t border-gray-100 pt-4">
-                                    Thank you for visiting ethree! 🎉 This is a computer-generated invoice and does not require a signature.<br />
-                                    © {new Date().getFullYear()} ethree Pvt Ltd. All Rights Reserved.
+                                    Thank you for visiting Jaan Entertainment! 🎉 This is a computer-generated invoice and does not require a signature.<br />
+                                    © {new Date().getFullYear()} Jaan Entertainment Pvt Ltd. All Rights Reserved.
                                 </p>
                             </div>
 
-                            {/* Print / Close */}
-                            <div className="p-5 border-t border-gray-100 flex gap-3">
-                                <button
-                                    onClick={() => window.print()}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-charcoal-grey text-white rounded-2xl font-bold text-sm hover:bg-gray-800 transition"
-                                >
-                                    <Printer size={16} /> Print Invoice
-                                </button>
+                            <div className="p-5 border-t border-gray-100 flex">
                                 <button
                                     onClick={() => setSelectedOrderForInvoice(null)}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-gray-100 text-charcoal-grey rounded-2xl font-bold text-sm hover:border-gray-300 transition"
+                                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-gray-100 text-charcoal-grey rounded-2xl font-bold text-sm hover:border-gray-300 transition"
                                 >
                                     <X size={16} /> Close
                                 </button>

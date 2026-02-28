@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    CheckCircle, ArrowRight, Download, Printer, X,
+    CheckCircle, ArrowRight, Download, X,
     Ticket, MapPin, Calendar, Hash, ShieldCheck
 } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -288,17 +288,10 @@ const Success = () => {
                                 </p>
                             </div>
 
-                            {/* Print / Close */}
-                            <div className="p-5 border-t border-gray-100 flex gap-3">
-                                <button
-                                    onClick={() => window.print()}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-charcoal-grey text-white rounded-2xl font-bold text-sm hover:bg-gray-800 transition"
-                                >
-                                    <Printer size={16} /> Print Invoice
-                                </button>
+                            <div className="p-5 border-t border-gray-100 flex">
                                 <button
                                     onClick={() => setShowInvoice(false)}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-gray-100 text-charcoal-grey rounded-2xl font-bold text-sm hover:border-gray-300 transition"
+                                    className="w-full flex items-center justify-center gap-2 py-3 border-2 border-gray-100 text-charcoal-grey rounded-2xl font-bold text-sm hover:border-gray-300 transition"
                                 >
                                     <X size={16} /> Close
                                 </button>
