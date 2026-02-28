@@ -185,7 +185,7 @@ const Success = () => {
                                         <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
                                             <MapPin size={12} /> Venue
                                         </p>
-                                        <p className="font-bold text-charcoal-grey text-sm">Jaan Entertainment, Vijayawada</p>
+                                        <p className="font-bold text-charcoal-grey text-[11px] leading-tight">Opp. APSRTC Bus Stand, Padmavathi Ghat, Krishnalanka, Vijayawada 520013</p>
                                     </div>
                                     <div className="bg-gray-50 rounded-2xl p-4">
                                         <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
