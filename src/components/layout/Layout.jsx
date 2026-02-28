@@ -214,7 +214,7 @@ const Layout = ({ children }) => {
                             <span className="hidden sm:inline text-gray-200">|</span>
                             <span className="flex items-center gap-2 px-3 py-1 bg-gray-50 border border-gray-100 rounded-full hover:bg-white hover:border-sunset-orange/30 group transition-all duration-300">
                                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Developed by</span>
-                                <a href="https://www.stackvil.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] font-black text-gray-600 group-hover:text-sunset-orange transition-colors">Stackvil Technology</a>
+                                <a href="https://www.stackvil.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] font-black text-gray-600 group-hover:text-sunset-orange transition-colors">Stackvil Technologies Pvt Ltd</a>
                             </span>
                         </p>
                         <p className="text-gray-400 text-[10px] font-medium italic opacity-80">
