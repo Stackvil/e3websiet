@@ -91,7 +91,7 @@ const RideCard = ({ ride }) => {
 
             <div className="p-2 md:p-1.5 flex flex-col h-[40%] justify-between bg-white">
                 <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-charcoal-grey font-bold leading-tight text-center line-clamp-1 text-sm">{ride.name || ride.title}</h3>
+                    <h3 className="text-charcoal-grey font-bold leading-tight text-center text-sm">{ride.name || ride.title}</h3>
                 </div>
 
                 <div className="space-y-1.5 w-full flex-shrink-0 mt-2 md:mt-0">

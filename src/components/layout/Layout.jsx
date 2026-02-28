@@ -199,8 +199,13 @@ const Layout = ({ children }) => {
                 {/* Copyright Bar */}
                 <div className="container mx-auto mt-10 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-6">
                     <div className="flex flex-col gap-1.5">
-                        <p className="text-gray-400 text-xs">
-                            © {new Date().getFullYear()} <span className="font-semibold text-gray-500">Jaan Entertainment Pvt Ltd</span>. All Rights Reserved.
+                        <p className="text-gray-400 text-xs flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span>© {new Date().getFullYear()} <span className="font-semibold text-gray-500">Jaan Entertainment Pvt Ltd</span>.</span>
+                            <span className="hidden sm:inline text-gray-200">|</span>
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-100 rounded-md hover:bg-white hover:border-sunset-orange/30 group transition-all duration-300">
+                                <span className="text-[10px] text-gray-400 font-medium">Developed by</span>
+                                <a href="https://www.stackvil.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-gray-500 group-hover:text-sunset-orange transition-colors">Stackvil Technology Pvt Ltd</a>
+                            </span>
                         </p>
                         <p className="text-gray-400 text-[10px] font-medium italic">
                             * All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted.

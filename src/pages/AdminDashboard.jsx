@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
-import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw, Download, Trash2, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, Utensils, Power, Gamepad2, Ticket, Package, X, RefreshCw, Download, Trash2, User, LogOut, Search } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { formatTime12h } from '../utils/timeUtils';
 import autoTable from 'jspdf-autotable';
@@ -12,6 +12,7 @@ import { compressImage } from '../utils/imageUtils';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('analytics');
+    const [searchTerm, setSearchTerm] = useState('');
     const [bookings, setBookings] = useState([]);
 
     // Access global store
@@ -42,6 +43,11 @@ const AdminDashboard = () => {
     const defaultForm = { name: '', category: 'dine', price: '', description: '', image: '', images: [], menuImages: [], status: 'open', cuisine: '', ageGroup: 'Adults', stall: '', isCombo: false, rideCount: '', contactNumber: '' };
     const navigate = useNavigate();
     // setUser is already destructured above
+
+    // Clear search on tab change
+    useEffect(() => {
+        setSearchTerm('');
+    }, [activeTab]);
 
 
     const fetchData = async () => {
@@ -539,12 +545,20 @@ const AdminDashboard = () => {
     ];
 
     const getVisibleProducts = () => {
+        let filtered = products;
+
+        if (searchTerm) {
+            filtered = filtered.filter(p =>
+                (p.name || p.title || p.stall || '').toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
         if (activeTab === 'rides') {
-            return products
+            return filtered
                 .filter(p => p.category === 'play')
                 .sort((a, b) => (b.isCombo ? 1 : 0) - (a.isCombo ? 1 : 0));
         }
-        if (activeTab === 'dine') return products.filter(p => p.category === 'dine' || !p.category);
+        if (activeTab === 'dine') return filtered.filter(p => p.category === 'dine' || !p.category);
         return [];
     };
 
@@ -884,7 +898,17 @@ const AdminDashboard = () => {
 
                     {activeTab === 'dine' && (
                         <div>
-                            <div className="mb-6 flex justify-end">
+                            <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
+                                <div className="relative w-full md:w-64">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search dine items..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-riverside-teal/20 focus:border-riverside-teal outline-none transition-all shadow-sm"
+                                    />
+                                </div>
                                 <button
                                     onClick={() => handleEditItem(null)} // Open modal for new item
                                     className="bg-riverside-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
@@ -908,7 +932,7 @@ const AdminDashboard = () => {
 
                                         <div className="p-4">
                                             <div className="mb-4">
-                                                <h3 className="font-bold text-charcoal-grey truncate">{item.stall || item.name}</h3>
+                                                <h3 className="font-bold text-charcoal-grey">{item.stall || item.name}</h3>
                                                 {item.contactNumber && (
                                                     <p className="text-charcoal-grey text-xs font-bold mt-1 font-mono">
                                                         📞 {item.contactNumber}
@@ -939,31 +963,43 @@ const AdminDashboard = () => {
 
                     {activeTab === 'rides' && (
                         <div>
-                            <div className="mb-6 flex justify-end">
-                                <button
-                                    onClick={() => handleEditItem(null)}
-                                    className="bg-riverside-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
-                                >
-                                    <Package className="w-5 h-5 mr-2" />
-                                    Add New Ride
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setEditingItem(null);
-                                        setFormData({ ...defaultForm, category: 'play', isCombo: true });
-                                        setShowModal(true);
-                                    }}
-                                    className="ml-4 bg-sunset-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
-                                >
-                                    <Package className="w-5 h-5 mr-2" />
-                                    Add Combo
-                                </button>
+                            <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
+                                <div className="relative w-full md:w-64">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search rides..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-riverside-teal/20 focus:border-riverside-teal outline-none transition-all shadow-sm"
+                                    />
+                                </div>
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => handleEditItem(null)}
+                                        className="bg-riverside-teal text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
+                                    >
+                                        <Package className="w-5 h-5 mr-2" />
+                                        Add New Ride
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setEditingItem(null);
+                                            setFormData({ ...defaultForm, category: 'play', isCombo: true });
+                                            setShowModal(true);
+                                        }}
+                                        className="bg-sunset-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-opacity-90 transition-colors flex items-center"
+                                    >
+                                        <Package className="w-5 h-5 mr-2" />
+                                        Add Combo
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                 {visibleProducts.map((ride) => (
-                                    <div key={ride._id} className="bg-white backdrop-blur-md rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all group flex flex-col aspect-square w-full shadow-sm relative">
-                                        <div className="h-[65%] overflow-hidden relative">
+                                    <div key={ride._id} className="bg-white backdrop-blur-md rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all group flex flex-col w-full shadow-sm relative">
+                                        <div className="h-40 overflow-hidden relative">
                                             <img
                                                 src={ride.image}
                                                 alt={ride.name}
@@ -979,9 +1015,9 @@ const AdminDashboard = () => {
                                             )}
                                         </div>
 
-                                        <div className="p-2 flex flex-col h-[35%] justify-between bg-charcoal-grey">
+                                        <div className="p-3 flex flex-col flex-1 justify-between bg-charcoal-grey min-h-[100px]">
                                             <div className="flex flex-col items-center justify-center flex-grow">
-                                                <h3 className="text-white font-bold text-xs leading-tight text-center line-clamp-2">{ride.name}</h3>
+                                                <h3 className="text-white font-bold text-xs leading-tight text-center">{ride.name}</h3>
                                                 {ride.isCombo && (
                                                     <div className="mt-1 flex flex-col gap-1 items-center">
                                                         <div className="px-2 py-0.5 bg-sunset-orange/90 border-2 border-white/80 rounded-md shadow-lg w-fit">

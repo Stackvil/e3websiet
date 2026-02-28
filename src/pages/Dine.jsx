@@ -192,7 +192,7 @@ const Dine = () => {
 
                                     <div className="p-3">
                                         <div className="mb-2">
-                                            <h3 className="text-sm font-bold leading-tight truncate text-charcoal-grey group-hover:text-riverside-teal transition-colors">
+                                            <h3 className="text-sm font-bold leading-tight text-charcoal-grey group-hover:text-riverside-teal transition-colors">
                                                 {item.stall || item.name || 'Unknown Stall'}
                                             </h3>
                                             {item.contactNumber && (
@@ -294,34 +294,7 @@ const Dine = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-            {/* Footer */}
-            <footer className="mt-16 border-t border-gray-200 py-12 bg-white">
-                <div className="container mx-auto px-6 text-center">
-                    <h3 className="text-xl font-heading font-bold text-charcoal-grey mb-6">Follow Us</h3>
-                    <div className="flex justify-center gap-6 mb-8">
-                        {[
-                            { Icon: Facebook, link: '#' },
-                            { Icon: Instagram, link: '#' },
-                            { Icon: Youtube, link: '#' },
-                            { Icon: Twitter, link: '#' }
-                        ].map(({ Icon, link }, i) => (
-                            <a
-                                key={i}
-                                href={link}
-                                className="p-3 bg-gray-50 rounded-full text-charcoal-grey hover:bg-sunset-orange hover:text-white transition-all duration-300 hover:-translate-y-1"
-                            >
-                                <Icon size={20} />
-                            </a>
-                        ))}
-                    </div>
-                    <div className="text-gray-400 text-sm font-medium flex flex-col items-center gap-1">
-                        <p>© {new Date().getFullYear()} Jaan Entertainment Pvt Ltd. All rights reserved.</p>
-                        <p className="text-[11px] text-gray-400/80 mt-1 max-w-lg italic">
-                            * All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted.
-                        </p>
-                    </div>
-                </div>
-            </footer>
+            {/* Footer removed as it is handled by Layout */}
         </div>
     );
 };
