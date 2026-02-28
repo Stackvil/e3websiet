@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ShoppingCart, MapPin, Clock, Info, Ticket, Facebook, Instagram, Youtube, Twitter, UserRound } from 'lucide-react';
+import { Menu, X, ShoppingCart, MapPin, Clock, Info, Ticket, Facebook, Instagram, Youtube, Twitter, UserRound, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cart from '../Cart';
 import Logo from '../Logo';
@@ -156,38 +156,52 @@ const Layout = ({ children }) => {
             <main className="flex-grow pb-24 md:pb-12">
                 {children}
             </main>
-            <footer className={`bg-white border-t border-gray-100 pt-12 pb-32 md:pb-24 px-6 mt-auto transition-all duration-300 ${isAdmin ? 'md:ml-64' : ''}`}>
-                <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+            <footer className={`bg-[#0F172A] border-t border-white/5 pt-16 pb-32 md:pb-24 px-6 mt-auto transition-all duration-300 relative overflow-hidden ${isAdmin ? 'md:ml-64' : ''}`}>
+                {/* Decorative background glow */}
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-sunset-orange/5 rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-riverside-teal/5 rounded-full blur-[120px] pointer-events-none" />
+
+                <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 relative z-10">
                     <div className="col-span-2">
-                        <Link to="/" className="inline-block mb-6">
-                            <Logo className="scale-90 origin-left" />
+                        <Link to="/" className="inline-block mb-8 group">
+                            <Logo className="scale-90 origin-left transition-transform group-hover:scale-95" />
                         </Link>
-                        <p className="text-gray-500 max-w-sm">
-                            Eat, Enjoy, and Entertainment - Vijayawada's premier open-air family hub on the banks of Krishna River.
+                        <p className="text-gray-400 max-w-sm leading-relaxed text-sm font-medium">
+                            Eat, Enjoy, and Entertainment - Vijayawada's premier open-air family hub on the banks of Krishna River. Experience the magic of outdoor entertainment.
                         </p>
                     </div>
                     <div>
-                        <h3 className="font-bold mb-6 uppercase text-gray-400 text-xs tracking-widest">Connect</h3>
-                        <ul className="space-y-4 font-semibold">
-                            <li className="hover:translate-x-2 transition-transform duration-300 cursor-default">+91 70369 23456</li>
-                            <li className="hover:translate-x-2 transition-transform duration-300 cursor-default">Padmavathi Ghat, Vijayawada</li>
+                        <h3 className="font-bold mb-8 uppercase text-sunset-orange text-[10px] tracking-[0.2em]">Connect</h3>
+                        <ul className="space-y-5 font-bold text-sm text-gray-300">
+                            <li className="flex items-center gap-3 group cursor-default transition-colors hover:text-white">
+                                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-sunset-orange group-hover:bg-sunset-orange group-hover:text-white transition-all">
+                                    <Phone size={14} />
+                                </div>
+                                +91 70369 23456
+                            </li>
+                            <li className="flex items-center gap-3 group cursor-default transition-colors hover:text-white">
+                                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-riverside-teal group-hover:bg-riverside-teal group-hover:text-white transition-all">
+                                    <MapPin size={14} />
+                                </div>
+                                Padmavathi Ghat, Vijayawada
+                            </li>
                         </ul>
                     </div>
                     <div>
-                        <h3 className="font-bold mb-6 uppercase text-gray-400 text-xs tracking-widest">Follow</h3>
+                        <h3 className="font-bold mb-8 uppercase text-riverside-teal text-[10px] tracking-[0.2em]">Follow Us</h3>
                         <div className="flex gap-4">
                             {[
-                                { Icon: Facebook, link: 'https://facebook.com', color: 'hover:text-[#1877F2] hover:border-[#1877F2]' },
-                                { Icon: Instagram, link: 'https://instagram.com', color: 'hover:text-[#E4405F] hover:border-[#E4405F]' },
-                                { Icon: Youtube, link: 'https://youtube.com', color: 'hover:text-[#FF0000] hover:border-[#FF0000]' },
-                                { Icon: Twitter, link: 'https://twitter.com', color: 'hover:text-[#1DA1F2] hover:border-[#1DA1F2]' }
+                                { Icon: Facebook, link: 'https://facebook.com', color: 'hover:bg-[#1877F2]' },
+                                { Icon: Instagram, link: 'https://instagram.com', color: 'hover:bg-gradient-to-tr from-[#FFB700] via-[#FF0069] to-[#7638FF]' },
+                                { Icon: Youtube, link: 'https://youtube.com', color: 'hover:bg-[#FF0000]' },
+                                { Icon: Twitter, link: 'https://twitter.com', color: 'hover:bg-[#1DA1F2]' }
                             ].map(({ Icon, link, color }, i) => (
                                 <a
                                     key={i}
                                     href={link}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={`w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center text-gray-400 transition-all duration-300 cursor-pointer transform hover:scale-110 hover:-rotate-12 bg-white hover:shadow-lg ${color}`}
+                                    className={`w-11 h-11 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-gray-400 transition-all duration-300 cursor-pointer transform hover:scale-110 hover:-rotate-12 hover:text-white hover:border-transparent hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] ${color}`}
                                 >
                                     <Icon size={18} />
                                 </a>
@@ -197,26 +211,24 @@ const Layout = ({ children }) => {
                 </div>
 
                 {/* Copyright Bar */}
-                <div className="container mx-auto mt-10 pt-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-6">
-                    <div className="flex flex-col gap-1.5">
-                        <p className="text-gray-400 text-xs flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span>© {new Date().getFullYear()} <span className="font-semibold text-gray-500">Jaan Entertainment Pvt Ltd</span>.</span>
-                            <span className="hidden sm:inline text-gray-200">|</span>
-                            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-100 rounded-md hover:bg-white hover:border-sunset-orange/30 group transition-all duration-300">
-                                <span className="text-[10px] text-gray-400 font-medium">Developed by</span>
-                                <a href="https://www.stackvil.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-gray-500 group-hover:text-sunset-orange transition-colors">Stackvil Technology Pvt Ltd</a>
+                <div className="container mx-auto mt-16 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-8 relative z-10">
+                    <div className="flex flex-col gap-3">
+                        <p className="text-gray-500 text-[11px] font-medium flex flex-wrap items-center gap-x-3 gap-y-2">
+                            <span>© {new Date().getFullYear()} <span className="text-white font-black tracking-tight">JAAN ENTERTAINMENT</span>.</span>
+                            <span className="hidden sm:inline w-1 h-1 bg-gray-700 rounded-full" />
+                            <span className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 hover:border-sunset-orange/40 group transition-all duration-300 backdrop-blur-sm">
+                                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Dev</span>
+                                <a href="https://www.stackvil.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] font-black text-gray-300 group-hover:text-sunset-orange transition-colors tracking-tight">STACKVIL</a>
                             </span>
                         </p>
-                        <p className="text-gray-400 text-[10px] font-medium italic">
-                            * All bookings and purchases are final. We maintain a strict no-refund and no-return policy once a service has been booked, food has been served, or entry has been granted.
+                        <p className="text-gray-500 text-[9px] font-medium leading-relaxed max-w-2xl opacity-60">
+                            * All bookings and purchases are final. We maintain a strict no-refund policy once a service has been booked, food has been served, or entry has been granted. Thank you for your cooperation.
                         </p>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-400">
-                        <button onClick={() => setLegalDoc('privacy')} className="hover:text-sunset-orange transition-colors">Privacy Policy</button>
-                        <span className="text-gray-200">|</span>
-                        <button onClick={() => setLegalDoc('terms')} className="hover:text-sunset-orange transition-colors">Terms &amp; Conditions</button>
-                        <span className="text-gray-200">|</span>
-                        <button onClick={() => setLegalDoc('about')} className="hover:text-sunset-orange transition-colors">About Us</button>
+                    <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                        <button onClick={() => setLegalDoc('privacy')} className="hover:text-sunset-orange transition-colors">Privacy</button>
+                        <button onClick={() => setLegalDoc('terms')} className="hover:text-sunset-orange transition-colors">Terms</button>
+                        <button onClick={() => setLegalDoc('about')} className="hover:text-sunset-orange transition-colors">About</button>
                     </div>
                 </div>
             </footer>
