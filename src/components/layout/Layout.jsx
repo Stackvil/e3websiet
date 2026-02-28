@@ -169,7 +169,7 @@ const Layout = ({ children }) => {
                     <div>
                         <h3 className="font-bold mb-6 uppercase text-gray-400 text-xs tracking-widest">Connect</h3>
                         <ul className="space-y-4 font-semibold">
-                            <li className="hover:translate-x-2 transition-transform duration-300 cursor-default">70369 23456</li>
+                            <li className="hover:translate-x-2 transition-transform duration-300 cursor-default">+91 70369 23456</li>
                             <li className="hover:translate-x-2 transition-transform duration-300 cursor-default">Padmavathi Ghat, Vijayawada</li>
                         </ul>
                     </div>

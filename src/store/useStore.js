@@ -69,7 +69,7 @@ const useStore = create(
         }),
         {
             name: 'ethree-storage-v1',
-            partialize: (state) => ({ cart: state.cart, user: state.user, tickets: state.tickets }),
+            partialize: (state) => ({ cart: state.cart, user: state.user, tickets: state.tickets, dineItems: state.dineItems, rideItems: state.rideItems }),
         }
     )
 );

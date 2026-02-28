@@ -73,10 +73,12 @@ const Dine = () => {
 
     useEffect(() => {
         const fetchDineItems = async () => {
-            // Only show loader if we have NO data to show
-            if (!dineItems || dineItems.length === 0) {
-                setLoading(true);
+            if (dineItems && dineItems.length > 0) {
+                setLoading(false);
+                return;
             }
+
+            setLoading(true);
 
             try {
                 const res = await fetch(`${API_URL}/e3/dine`);
@@ -97,7 +99,7 @@ const Dine = () => {
             }
         };
         fetchDineItems();
-    }, [setDineItems]);
+    }, [dineItems, setDineItems]);
 
     const filteredItems = (dineItems || []).filter(item => {
         const query = searchQuery.toLowerCase();
