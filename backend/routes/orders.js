@@ -213,6 +213,67 @@ const checkoutHandler = (type) => async (req, res) => {
     }
 };
 
+const claimRewardHandler = (type) => async (req, res) => {
+    try {
+        const userTable = getUserTable(type);
+        const orderTable = getOrderTable(type);
+
+        // 1. Fetch user to verify points
+        const { data: user, error: userError } = await supabase
+            .from(userTable)
+            .select('reward_points')
+            .eq('_id', req.user.id)
+            .single();
+
+        if (userError || !user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const currentPoints = Number(user.reward_points) || 0;
+        if (currentPoints < 500) {
+            return res.status(400).json({ success: false, message: 'Insufficient reward points. Need 500 points.' });
+        }
+
+        // 2. Deduct points
+        const { error: updateError } = await supabase
+            .from(userTable)
+            .update({ reward_points: currentPoints - 500 })
+            .eq('_id', req.user.id);
+
+        if (updateError) throw updateError;
+
+        // 3. Create Free Ride Ticket Order
+        const txnid = 'REW-' + Math.floor(100000 + Math.random() * 900000);
+        const orderPayload = {
+            _id: txnid,
+            userId: req.user.id,
+            items: [{
+                id: 'reward-free-ride',
+                name: 'Free Ride Ticket (Reward)',
+                price: 0,
+                quantity: 1,
+                stall: 'Rewards',
+                details: { rideCount: 1, type: 'reward' }
+            }],
+            amount: 0,
+            status: 'success',
+            createdAt: new Date().toISOString()
+        };
+
+        const { error: orderError } = await supabase
+            .from(orderTable)
+            .insert([orderPayload]);
+
+        if (orderError) throw orderError;
+
+        res.json({ success: true, message: 'Free Ride Ticket claimed successfully!', orderId: txnid });
+
+    } catch (err) {
+        console.error('Claim Reward Error:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 /**
  * @swagger
  * tags:
@@ -301,6 +362,7 @@ router.get('/e3', auth, getUserOrders('e3'));
  *                 txnid: { type: string }
  */
 router.post('/e3/checkout', [auth, validate(checkoutSchema)], checkoutHandler('e3'));
+router.post('/e3/claim-reward', auth, claimRewardHandler('e3'));
 
 
 /**
@@ -382,6 +444,7 @@ router.get('/e4', auth, getUserOrders('e4'));
  *                 txnid: { type: string }
  */
 router.post('/e4/checkout', [auth, validate(checkoutSchema)], checkoutHandler('e4'));
+router.post('/e4/claim-reward', auth, claimRewardHandler('e4'));
 
 
 

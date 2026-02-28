@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Ticket, Calendar, Clock, MapPin, ArrowRight, AlertCircle,
-    Download, X, Hash, ShieldCheck
+    Download, X, Hash, ShieldCheck, Gift
 } from 'lucide-react';
 import useStore from '../store/useStore';
 import { Link } from 'react-router-dom';
@@ -186,6 +186,15 @@ const YourTickets = () => {
         };
     }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+    const freeRideCount = groupedOrders.reduce((total, order) => {
+        const rewardRides = (order.items || []).filter(item =>
+            item.id === 'reward-free-ride' ||
+            item.stall === 'Rewards' ||
+            (item.name && item.name.toLowerCase().includes('reward'))
+        );
+        return total + rewardRides.reduce((itemTotal, item) => itemTotal + (item.quantity || 1), 0);
+    }, 0);
+
     // Categorize orders into Rides vs Events
     const categorizedOrders = groupedOrders.reduce((acc, order) => {
         const isEventOrder = (order.items || []).some(item => {
@@ -217,6 +226,30 @@ const YourTickets = () => {
                     </Link>
                     <h1 className="text-xl font-bold text-charcoal-grey uppercase tracking-tight">My Account</h1>
                 </div>
+
+                {/* Free Rides Summary */}
+                {freeRideCount > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mb-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-[2rem] p-6 text-white shadow-xl shadow-indigo-100 flex items-center justify-between overflow-hidden relative group border border-white/20"
+                    >
+                        <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all" />
+                        <div className="relative z-10 flex items-center gap-5">
+                            <div className="w-14 h-14 bg-amber-400 rounded-2xl rotate-6 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                                <Gift size={28} className="text-white -rotate-6" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-indigo-100 uppercase tracking-[0.2em] mb-1">Rewards Unlocked</p>
+                                <h2 className="text-2xl font-black tracking-tight">{freeRideCount} Free Ride{freeRideCount > 1 ? 's' : ''}</h2>
+                                <p className="text-[10px] text-indigo-200 font-bold mt-0.5 italic">Valid for any single ride entry</p>
+                            </div>
+                        </div>
+                        <div className="relative z-10 bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-[10px] font-black uppercase tracking-widest shadow-sm">
+                            Claimed
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* Status Bar / Subheader */}
                 <div className="mb-6">
