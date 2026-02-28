@@ -148,11 +148,11 @@ const YourTickets = () => {
     const groupedOrders = orders.map(order => {
         const orderTickets = (order.items || []).flatMap((item, itemIdx) => {
             // Priority 1: Explicit metadata
-            const isComboItem = item.isCombo === true || (item.name && item.name.toLowerCase().includes('combo'));
-            let ridesPerCombo = item.rideCount || (item.details?.rideCount) || (isComboItem ? 5 : 1);
+            const isComboBase = item.isCombo === true || (item.name && item.name.toLowerCase().includes('combo'));
+            let ridesPerCombo = item.rideCount || (item.details?.rideCount) || (isComboBase ? 5 : 1);
 
             // Priority 2: Fallback to regex if metadata seems missing but name suggests combo
-            if (!item.rideCount && !item.details?.rideCount && isComboItem && ridesPerCombo === 1) {
+            if (!item.rideCount && !item.details?.rideCount && isComboBase && ridesPerCombo === 1) {
                 const match = item.name.match(/(\d+)\s*(rides?|items?|pack|tickets?)/i);
                 if (match) {
                     ridesPerCombo = parseInt(match[1]);
