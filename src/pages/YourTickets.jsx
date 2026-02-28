@@ -432,7 +432,7 @@ const YourTickets = () => {
                             <div className="bg-[#1D2B44] text-white p-8 flex justify-between items-start">
                                 <div>
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-sunset-orange rounded-xl flex items-center justify-center font-black text-lg">E3</div>
+                                        <img src="/logo.jpeg" alt="E3 Logo" className="w-12 h-12 object-contain rounded-lg bg-white p-1" />
                                         <div>
                                             <p className="font-bold text-lg leading-none uppercase">Jaan Entertainment</p>
                                             <p className="text-blue-300 text-[10px] mt-1 font-semibold">Pvt Ltd</p>
