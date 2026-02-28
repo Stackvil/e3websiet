@@ -167,9 +167,12 @@ const Success = () => {
                                 <p className="text-sm font-medium text-indigo-100 mb-4 px-2">
                                     You just earned <span className="text-white font-black">10 Reward Points</span> for your transaction!
                                 </p>
-                                <div className="bg-white/20 backdrop-blur-md rounded-xl py-2 px-4 text-xs font-bold border border-white/20">
+                                <Link
+                                    to="/profile"
+                                    className="bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-md rounded-xl py-2 px-4 text-xs font-bold border border-white/20 cursor-pointer"
+                                >
                                     Check your Profile to see balance
-                                </div>
+                                </Link>
                             </div>
                         </div>
                     </motion.div>
